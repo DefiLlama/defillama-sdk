@@ -1,4 +1,4 @@
-import {compound} from "./index";
+import { compound } from "./index";
 
 test("compound", async () => {
   expect(

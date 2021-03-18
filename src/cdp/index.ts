@@ -3,7 +3,10 @@ import { gql, request } from "graphql-request";
 import { ETHER_ADDRESS, e18 } from "../general";
 import { BigNumber } from "ethers";
 
-async function getCompoundAssets(params: { targets: Address[]; block?: number }) {
+async function getCompoundAssets(params: {
+  targets: Address[];
+  block?: number;
+}) {
   // This is not an exact copy of the SDK function since we are coalescing everything into ETH, but the total TVL should be the same
   let totalCollateralValueInEth = 0;
   const queries = [];
@@ -35,7 +38,9 @@ async function getCompoundAssets(params: { targets: Address[]; block?: number })
   }
   await Promise.all(queries);
   return {
-    [ETHER_ADDRESS]: Math.floor(totalCollateralValueInEth*(10**18)).toString(),
+    [ETHER_ADDRESS]: Math.floor(
+      totalCollateralValueInEth * 10 ** 18
+    ).toString(),
   };
 }
 
@@ -50,22 +55,15 @@ async function getAaveAssets(params: { targets: Address[]; block?: number }) {}
 
 const compound = {
   getAssetsLocked: getCompoundAssets,
-}
+};
 const aave = {
   getAssetsLocked: getAaveAssets,
-}
+};
 const maker = {
   getAssetsLocked: getMakerAssets,
-}
-
-
-
-export {
-  getAllAssetsLocked as getAssetsLocked,
-  compound,
-  aave,
-  maker,
 };
+
+export { getAllAssetsLocked as getAssetsLocked, compound, aave, maker };
 
 /*
 cdp: {
