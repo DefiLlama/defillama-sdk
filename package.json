@@ -1,0 +1,38 @@
+{
+  "name": "@defillama/sdk",
+  "version": "1.0.0",
+  "description": "SDK for calculating TVL",
+  "main": "build/index.js",
+  "scripts": {
+    "start": "npm run build && node build/index.js",
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "test": "jest",
+    "format": "prettier --write \"src/**/*.ts\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/0xngmi/sdk.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "types": "build/index.d.ts",
+  "files": [
+    "build"
+  ],
+  "dependencies": {
+    "ethers": "^5.0.32",
+    "graphql": "^15.5.0",
+    "graphql-request": "^3.4.0",
+    "node-fetch": "^2.6.1"
+  },
+  "devDependencies": {
+    "@types/jest": "^26.0.20",
+    "@types/node-fetch": "^2.5.8",
+    "jest": "^26.6.3",
+    "prettier": "^2.2.1",
+    "ts-jest": "^26.5.3",
+    "typescript": "^4.2.3"
+  },
+  "bin": "build/cli.js"
+}
