@@ -1,6 +1,6 @@
 {
   "name": "@defillama/sdk",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "SDK for calculating TVL",
   "main": "build/index.js",
   "scripts": {
@@ -8,11 +8,12 @@
     "build": "tsc",
     "watch": "tsc --watch",
     "test": "jest",
-    "format": "prettier --write \"src/**/*.ts\""
+    "format": "prettier --write \"src/**/*.ts\"",
+    "prepublishOnly": "npm run build"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/0xngmi/sdk.git"
+    "url": "git+https://github.com/0xngmi/defillama-sdk.git"
   },
   "author": "",
   "license": "ISC",
