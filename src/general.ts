@@ -7,7 +7,7 @@ export const provider = new ethers.providers.AlchemyWebSocketProvider(
 
 export const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY;
 export const TEN = BigNumber.from(10);
-export const e18 = TEN.pow(18)
+export const e18 = TEN.pow(18);
 
 export function handleDecimals(num: BigNumber, decimals?: number): string {
   if (decimals === undefined) {
@@ -17,4 +17,4 @@ export function handleDecimals(num: BigNumber, decimals?: number): string {
   }
 }
 
-export const ETHER_ADDRESS = "0x0000000000000000000000000000000000000000"
+export const ETHER_ADDRESS = "0x0000000000000000000000000000000000000000";
