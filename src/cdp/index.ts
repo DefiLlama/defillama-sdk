@@ -3,7 +3,7 @@ import { gql, request } from "graphql-request";
 import { ETHER_ADDRESS, e18 } from "../general";
 import { BigNumber } from "ethers";
 
-async function compound(params: { targets: Address[]; block?: number }) {
+async function getCompoundAssets(params: { targets: Address[]; block?: number }) {
   // This is not an exact copy of the SDK function since we are coalescing everything into ETH, but the total TVL should be the same
   let totalCollateralValueInEth = 0;
   const queries = [];
@@ -35,30 +35,36 @@ async function compound(params: { targets: Address[]; block?: number }) {
   }
   await Promise.all(queries);
   return {
-    [ETHER_ADDRESS]: BigNumber.from(totalCollateralValueInEth).mul(e18),
+    [ETHER_ADDRESS]: Math.floor(totalCollateralValueInEth*(10**18)).toString(),
   };
 }
 
-export async function getAllAssetsLocked(params: {
+async function getAllAssetsLocked(params: {
   targets: Address[];
   block?: number;
 }) {}
 
-export async function maker(params: { targets: Address[]; block?: number }) {}
+async function getMakerAssets(params: { targets: Address[]; block?: number }) {}
 
-export async function aave(params: { targets: Address[]; block?: number }) {}
+async function getAaveAssets(params: { targets: Address[]; block?: number }) {}
 
-export default {
-  getAssetsLocked: getAllAssetsLocked,
-  compound: {
-    getAssetsLocked: compound,
-  },
-  aave: {
-    getAssetsLocked: aave,
-  },
-  maker: {
-    getAssetsLocked: maker,
-  },
+const compound = {
+  getAssetsLocked: getCompoundAssets,
+}
+const aave = {
+  getAssetsLocked: getAaveAssets,
+}
+const maker = {
+  getAssetsLocked: getMakerAssets,
+}
+
+
+
+export {
+  getAllAssetsLocked as getAssetsLocked,
+  compound,
+  aave,
+  maker,
 };
 
 /*

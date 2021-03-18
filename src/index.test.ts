@@ -7,7 +7,16 @@ test("imports", async () => {
           "multiCall": [Function],
         },
         "cdp": Object {
+          "aave": Object {
+            "getAssetsLocked": [Function],
+          },
+          "compound": Object {
+            "getAssetsLocked": [Function],
+          },
           "getAssetsLocked": [Function],
+          "maker": Object {
+            "getAssetsLocked": [Function],
+          },
         },
         "erc20": Object {
           "balanceOf": [Function],

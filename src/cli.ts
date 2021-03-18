@@ -19,6 +19,6 @@ const passedFile = path.resolve(process.cwd(), process.argv[2]);
     throw new Error("TVL returned is not a balances object");
   }
 
-  console.log("Total:", humanizeNumber(await computeTVL(tvl, "now")));
+  console.log("Total:", humanizeNumber(await computeTVL(tvl, "now", true)));
   process.exit(0);
 })();

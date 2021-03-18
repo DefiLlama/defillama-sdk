@@ -1,8 +1,8 @@
-import imported from "./index";
+import {compound} from "./index";
 
 test("compound", async () => {
   expect(
-    await imported.compound.getAssetsLocked({
+    await compound.getAssetsLocked({
       block: 12034664,
       targets: [
         "0x5D4a945271Fb3E16481BF6ce0BAd5f6b2E9d13dB",

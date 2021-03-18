@@ -13,7 +13,8 @@ function fetchJson(url: string) {
 
 export default async function (
   rawBalances: Balances,
-  timestamp: number | "now"
+  timestamp: number | "now",
+  verbose: boolean = false
 ) {
   let balances: Balances;
   if (rawBalances instanceof Array) {
@@ -130,9 +131,11 @@ export default async function (
           amount = Number(balance);
         }
         if (price === undefined) {
-          console.log(
-            `Couldn't find the price of token at ${address}, assuming a price of 0 for it...`
-          );
+          if (verbose) {
+            console.log(
+              `Couldn't find the price of token at ${address}, assuming a price of 0 for it...`
+            );
+          }
           price = 0;
         }
         const usdAmount = amount * price;
@@ -150,10 +153,12 @@ export default async function (
     }
   );
   return (await Promise.all(usdAmounts)).reduce((sum, token) => {
-    console.log(
-      token.tokenSymbol.padEnd(25, " "),
-      humanizeNumber(token.usdAmount)
-    );
+    if (verbose) {
+      console.log(
+        token.tokenSymbol.padEnd(25, " "),
+        humanizeNumber(token.usdAmount)
+      );
+    }
     return sum + token.usdAmount;
   }, 0);
 }
