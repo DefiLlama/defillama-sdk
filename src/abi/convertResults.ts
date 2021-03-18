@@ -5,7 +5,10 @@ function stringifyBigNumbers(result: any, final: any) {
   Object.keys(result).forEach((key) => {
     try {
       final[key] = result[key];
-      if (result[key] instanceof BigNumber || typeof result[key] === "number") {
+      if (
+        BigNumber.isBigNumber(result[key]) ||
+        typeof result[key] === "number"
+      ) {
         final[key] = result[key].toString();
       }
       if (typeof final[key] === "object") {
@@ -28,7 +31,7 @@ export default function (results: ethers.utils.Result) {
     // Match every idiosynchrasy of the SDK
     convertedResults = [];
   }
-  if (results instanceof BigNumber || typeof results === "number") {
+  if (BigNumber.isBigNumber(results) || typeof results === "number") {
     convertedResults = results.toString();
   } else {
     stringifyBigNumbers(results, convertedResults);
