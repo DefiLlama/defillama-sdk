@@ -429,3 +429,55 @@ test("Set protocol multicall", async () => {
     )
   );
 });
+
+test("multicall with no call.target", async () => {
+  expect(
+    await multiCall({
+      target: "0xC1bF1B4929DA9303773eCEa5E251fDEc22cC6828",
+      abi: {
+        inputs: [{ internalType: "uint256", name: "index", type: "uint256" }],
+        name: "getActiveOrderId",
+        outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+        stateMutability: "view",
+        type: "function",
+      },
+      block: 12066151,
+      calls: [{ params: 0 }, { params: 1 }, { params: 2 }, { params: 3 }],
+    } as any)
+  ).toEqual({
+    output: [
+      {
+        input: {
+          target: "0xC1bF1B4929DA9303773eCEa5E251fDEc22cC6828",
+          params: [0],
+        },
+        success: true,
+        output: "967",
+      },
+      {
+        input: {
+          target: "0xC1bF1B4929DA9303773eCEa5E251fDEc22cC6828",
+          params: [1],
+        },
+        success: true,
+        output: "2998",
+      },
+      {
+        input: {
+          target: "0xC1bF1B4929DA9303773eCEa5E251fDEc22cC6828",
+          params: [2],
+        },
+        success: true,
+        output: "2404",
+      },
+      {
+        input: {
+          target: "0xC1bF1B4929DA9303773eCEa5E251fDEc22cC6828",
+          params: [3],
+        },
+        success: true,
+        output: "1805",
+      },
+    ],
+  });
+});

@@ -52,14 +52,14 @@ export async function multiCall(params: {
     params?: CallParams;
   }[];
   block?: number;
-  target?: Address; // Useless
+  target?: Address; // Used when calls.target is not provided
 }) {
   const abi = resolveABI(params.abi);
   const contractCalls = params.calls.map((call, index) => {
     const callParams = normalizeParams(call.params);
     return {
       params: callParams,
-      contract: call.target,
+      contract: call.target ?? params.target,
     };
   });
   // Only a max of around 500 calls are supported by multicall, we have to split bigger batches
