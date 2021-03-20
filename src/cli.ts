@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import path from "path";
 import computeTVL from "./computeTVL";
-import { provider } from "./general";
+import { getProvider } from "./general";
 import { humanizeNumber } from "./computeTVL/humanizeNumber";
 
 if (process.argv.length < 3) {
@@ -13,7 +13,9 @@ const passedFile = path.resolve(process.cwd(), process.argv[2]);
 
 (async () => {
   const moduleToTest = await import(passedFile);
-  const block = await provider.getBlock("latest");
+  const provider = getProvider("ethereum");
+  const lastBlockNumber = await provider.getBlockNumber();
+  const block = await provider.getBlock(lastBlockNumber - 5); // To allow indexers to catch up
   let tvl = await moduleToTest.tvl(block.timestamp, block.number);
   if (typeof tvl !== "object") {
     throw new Error("TVL returned is not a balances object");

@@ -1,6 +1,6 @@
 import { Address } from "../types";
 import { gql, request } from "graphql-request";
-import { ETHER_ADDRESS, e18 } from "../general";
+import { ETHER_ADDRESS } from "../general";
 import { BigNumber } from "ethers";
 
 async function getCompoundAssets(params: {

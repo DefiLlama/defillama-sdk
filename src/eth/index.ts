@@ -1,12 +1,16 @@
 import { Address } from "../types";
-import { provider, handleDecimals } from "../general";
+import { Chain, getProvider, handleDecimals } from "../general";
 
 export async function getBalance(params: {
   target: Address;
   block?: number;
   decimals?: number;
+  chain?: Chain;
 }) {
-  const balance = await provider.getBalance(params.target, params.block);
+  const balance = await getProvider(params.chain).getBalance(
+    params.target,
+    params.block
+  );
   return {
     output: handleDecimals(balance, params.decimals),
   };
@@ -17,11 +21,12 @@ export async function getBalances(params: {
   targets: Address[];
   block?: number;
   decimals?: number;
+  chain?: Chain;
 }) {
   const balances = params.targets.map(async (target) => ({
     target,
     balance: handleDecimals(
-      await provider.getBalance(target, params.block),
+      await getProvider(params.chain).getBalance(target, params.block),
       params.decimals
     ),
   }));

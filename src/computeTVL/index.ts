@@ -11,6 +11,17 @@ function fetchJson(url: string) {
   return fetch(url).then((res) => res.json());
 }
 
+function tokenMulticall(addresses: Address[], abi: string, chain?: "bsc") {
+  return multiCall({
+    abi,
+    calls: addresses.map((address) => ({
+      target: address,
+      params: [],
+    })),
+    chain,
+  }).then((res) => res.output.filter((call) => call.success));
+}
+
 export default async function (
   rawBalances: Balances,
   timestamp: number | "now",
@@ -46,7 +57,8 @@ export default async function (
     balances = rawBalances;
   }
   const normalizedBalances = {} as Balances;
-  let ethereumAddresses = [] as Address[];
+  const ethereumAddresses = [] as Address[];
+  const bscAddresses = [] as Address[];
   const nonEthereumTokenIds = [] as string[];
   for (const tokenAddressOrName of Object.keys(balances)) {
     let normalizedAddressOrName = tokenAddressOrName;
@@ -64,29 +76,32 @@ export default async function (
     }
     if (normalizedAddressOrName.startsWith("0x")) {
       ethereumAddresses.push(normalizedAddressOrName);
+    } else if (normalizedAddressOrName.startsWith("bsc:")) {
+      bscAddresses.push(normalizedAddressOrName.slice("bsc:".length));
     } else {
       nonEthereumTokenIds.push(normalizedAddressOrName);
     }
   }
-  const allTokenDecimals = multiCall({
-    abi: "erc20:decimals",
-    calls: ethereumAddresses.map((address) => ({
-      target: address,
-      params: [],
-    })),
-  }).then((res) => res.output.filter((call) => call.success));
-  const allTokenSymbols = multiCall({
-    abi: "erc20:symbol",
-    calls: ethereumAddresses.map((address) => ({
-      target: address,
-      params: [],
-    })),
-  }).then((res) => res.output.filter((call) => call.success));
+
+  const allTokenDecimals = tokenMulticall(ethereumAddresses, "erc20:decimals");
+  const allTokenSymbols = tokenMulticall(ethereumAddresses, "erc20:symbol");
+  const bscTokenDecimals = tokenMulticall(
+    bscAddresses,
+    "erc20:decimals",
+    "bsc"
+  );
+  const bscTokenSymbols = tokenMulticall(bscAddresses, "erc20:symbol", "bsc");
   let nonEthereumTokenPrices: Promise<any>;
   let ethereumTokenPrices = {} as any;
+  let bscTokenPrices: Promise<any>;
   if (timestamp === "now") {
     nonEthereumTokenPrices = fetchJson(
       `https://api.coingecko.com/api/v3/simple/price?ids=${nonEthereumTokenIds.join(
+        ","
+      )}&vs_currencies=usd`
+    );
+    bscTokenPrices = fetchJson(
+      `https://api.coingecko.com/api/v3/simple/token_price/binance-smart-chain?contract_addresses=${bscAddresses.join(
         ","
       )}&vs_currencies=usd`
     );
@@ -106,15 +121,31 @@ export default async function (
     async ([address, balance]) => {
       let amount: number, price: number, tokenSymbol: string;
       try {
-        if (address.startsWith("0x")) {
-          tokenSymbol = (await allTokenSymbols).find(
-            (call) => call.input.target === address
+        if (address.startsWith("0x") || address.startsWith("bsc:")) {
+          let chainTokenPrices: typeof ethereumTokenPrices,
+            chainTokenSymbols: typeof allTokenSymbols,
+            chainTokenDecimals: typeof allTokenDecimals,
+            normalizedAddress: Address;
+          if (address.startsWith("bsc:")) {
+            chainTokenPrices = bscTokenPrices;
+            chainTokenSymbols = bscTokenSymbols;
+            chainTokenDecimals = bscTokenDecimals;
+            normalizedAddress = address.slice("bsc:".length);
+          } else {
+            chainTokenPrices = ethereumTokenPrices;
+            chainTokenSymbols = allTokenSymbols;
+            chainTokenDecimals = allTokenDecimals;
+            normalizedAddress = address;
+          }
+
+          tokenSymbol = (await chainTokenSymbols).find(
+            (call) => call.input.target === normalizedAddress
           )?.output;
           if (tokenSymbol === undefined) {
             tokenSymbol = `UNKNOWN (${address})`;
           }
-          const tokenDecimals = (await allTokenDecimals).find(
-            (call) => call.input.target === address
+          const tokenDecimals = (await chainTokenDecimals).find(
+            (call) => call.input.target === normalizedAddress
           )?.output;
           if (tokenDecimals === undefined) {
             console.warn(
@@ -124,7 +155,8 @@ export default async function (
           } else {
             amount = Number(balance) / 10 ** Number(tokenDecimals);
           }
-          price = (await ethereumTokenPrices)[address.toLowerCase()]?.usd;
+          price = (await chainTokenPrices)[normalizedAddress.toLowerCase()]
+            ?.usd;
         } else {
           tokenSymbol = address;
           price = (await nonEthereumTokenPrices)[address.toLowerCase()]?.usd;

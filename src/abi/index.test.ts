@@ -481,3 +481,35 @@ test("multicall with no call.target", async () => {
     ],
   });
 });
+
+test("bsc multicall", async () => {
+  expect(
+    // No block provided!
+    (
+      await multiCall({
+        abi: {
+          constant: true,
+          inputs: [],
+          name: "getReserves",
+          outputs: [
+            { internalType: "uint112", name: "_reserve0", type: "uint112" },
+            { internalType: "uint112", name: "_reserve1", type: "uint112" },
+            {
+              internalType: "uint32",
+              name: "_blockTimestampLast",
+              type: "uint32",
+            },
+          ],
+          payable: false,
+          stateMutability: "view",
+          type: "function",
+        },
+        calls: [
+          { target: "0xaeBE45E3a03B734c68e5557AE04BFC76917B4686" },
+          { target: "0x1B96B92314C44b159149f7E0303511fB2Fc4774f" },
+        ],
+        chain: "bsc",
+      })
+    ).output.every((call) => call.success)
+  ).toBe(true);
+});

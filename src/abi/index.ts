@@ -1,10 +1,11 @@
 import { Address } from "../types";
 import catchedABIs from "./cachedABIs";
 import { ethers, BigNumber } from "ethers";
-import { provider, handleDecimals } from "../general";
+import { getProvider, Chain } from "../general";
 import makeMultiCall from "./multicall";
 import convertResults from "./convertResults";
 
+// Maybe add 'type': 'function' for the cases where that is omitted?
 function resolveABI(providedAbi: string | any) {
   let abi = providedAbi;
   if (typeof abi === "string") {
@@ -33,10 +34,15 @@ export async function call(params: {
   abi: string | any;
   block?: number;
   params?: CallParams;
+  chain?: Chain;
 }) {
   const abi = resolveABI(params.abi);
   const callParams = normalizeParams(params.params);
-  const contract = new ethers.Contract(params.target, [abi], provider);
+  const contract = new ethers.Contract(
+    params.target,
+    [abi],
+    getProvider(params.chain)
+  );
   let result = await contract[abi.name](...callParams, {
     blockTag: params.block ?? "latest",
   });
@@ -53,6 +59,7 @@ export async function multiCall(params: {
   }[];
   block?: number;
   target?: Address; // Used when calls.target is not provided
+  chain?: Chain;
 }) {
   const abi = resolveABI(params.abi);
   const contractCalls = params.calls.map((call, index) => {
@@ -69,6 +76,7 @@ export async function multiCall(params: {
     const pendingResult = makeMultiCall(
       abi,
       contractCalls.slice(i, i + 500),
+      params.chain ?? "ethereum",
       params.block
     ).then((partialCalls) => {
       result = result.concat(partialCalls);

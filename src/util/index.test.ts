@@ -6,11 +6,12 @@ import {
   getLogs,
 } from "./index";
 
+jest.setTimeout(20000);
 test("lookupBlock", async () => {
-  expect(await lookupBlock(1594115200)).toEqual({
-    timestamp: 1594115200,
-    block: 10411538,
-  }); // Approximation, DP's sdk returns { timestamp: 1594112400, block: 10411348 }
+  const block = await lookupBlock(1594115200);
+  // Approximation, DP's sdk returns { timestamp: 1594112400, block: 10411348 }
+  expect(block.block).toBeCloseTo(10411539, -1.5);
+  expect(block.timestamp).toBeCloseTo(1594115202, -2.5);
 });
 
 test("tokenList", async () => {

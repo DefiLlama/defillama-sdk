@@ -1,18 +1,41 @@
-import { ETHERSCAN_API_KEY, TEN, provider } from "../general";
+import { getProvider, Chain } from "../general";
 import fetch from "node-fetch";
 import rawTokenList from "./tokenList";
-import type { StringNumber, Address } from "../types";
-import { utils, BigNumber } from "ethers";
-import type { Log } from "@ethersproject/abstract-provider";
+import type { Address } from "../types";
+import { utils } from "ethers";
+import type { Log, Block } from "@ethersproject/abstract-provider";
 import { symbol, decimals } from "../erc20";
 
-export async function lookupBlock(timestamp: number) {
-  const { result } = await fetch(
-    `https://api.etherscan.io/api?module=block&action=getblocknobytime&timestamp=${timestamp}&closest=before&apikey=${ETHERSCAN_API_KEY}`
-  ).then((res) => res.json());
+export async function lookupBlock(
+  timestamp: number,
+  extraParams: {
+    chain?: Chain;
+  } = {}
+) {
+  const provider = getProvider(extraParams.chain);
+  const lastBlock = await provider.getBlock("latest");
+  if (Math.abs(lastBlock.timestamp - timestamp) < 60) {
+    // Short-circuit in case we are trying to get the current block
+    return {
+      block: lastBlock.number,
+      timestamp: lastBlock.timestamp,
+    };
+  }
+  let high = lastBlock.number;
+  let low = 0;
+  let block: Block;
+  do {
+    const mid = Math.floor((high + low) / 2);
+    block = await provider.getBlock(mid);
+    if (block.timestamp < timestamp) {
+      low = mid + 1;
+    } else {
+      high = mid - 1;
+    }
+  } while (high - low > 4); // We lose some precision (~4 blocks) but reduce #calls needed
   return {
-    block: Number(result),
-    timestamp, // Not correct but a very good approximation which doesn't require another call
+    block: block.number,
+    timestamp: block.timestamp,
   };
 }
 
@@ -98,6 +121,7 @@ export async function getLogs(params: {
   fromBlock: number;
   toBlock: number; // DefiPulse's implementation is buggy and doesn't take this into account
   topics?: string[]; // This is an outdated part of DefiPulse's API which is still used in some old adapters
+  chain?: Chain;
 }) {
   const filter = {
     address: params.target,
@@ -111,7 +135,7 @@ export async function getLogs(params: {
   while (currentBlock < params.toBlock) {
     const nextBlock = Math.min(params.toBlock, currentBlock + blockSpread);
     try {
-      const partLogs = await provider.getLogs({
+      const partLogs = await getProvider(params.chain).getLogs({
         ...filter,
         fromBlock: currentBlock,
         toBlock: nextBlock,

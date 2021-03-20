@@ -1,6 +1,6 @@
 import { ethers } from "ethers";
 import { ParamType } from "ethers/lib/utils";
-import { provider } from "../general";
+import { getProvider, Chain } from "../general";
 import convertResults from "./convertResults";
 
 export const MULTICALL_ADDRESS_MAINNET =
@@ -19,6 +19,7 @@ export default async function makeMultiCall(
     contract: string;
     params: any[];
   }[],
+  chain: Chain,
   block?: number
 ) {
   const contractInterface = new ethers.utils.Interface([functionABI]);
@@ -32,7 +33,7 @@ export default async function makeMultiCall(
     };
   });
 
-  const returnValues = await executeCalls(contractCalls, block);
+  const returnValues = await executeCalls(contractCalls, chain, block);
 
   return returnValues.map((values: any, index: number) => {
     let output: any;
@@ -59,9 +60,10 @@ async function executeCalls(
     to: string;
     data: string;
   }[],
+  chain: Chain,
   block?: number
 ) {
-  if (await networkSupportsMulticall()) {
+  if (await networkSupportsMulticall(chain)) {
     try {
       const multicallData = ethers.utils.defaultAbiCoder.encode(
         [
@@ -76,7 +78,7 @@ async function executeCalls(
         ],
         [contractCalls.map((call) => [call.to, call.data])]
       );
-      const address = await multicallAddressOrThrow();
+      const address = await multicallAddressOrThrow(chain);
 
       const callData = AGGREGATE_SELECTOR + multicallData.substr(2);
 
@@ -85,7 +87,7 @@ async function executeCalls(
         data: callData,
       };
 
-      const returnData = await provider.call(tx, block ?? "latest");
+      const returnData = await getProvider(chain).call(tx, block ?? "latest");
 
       const [blockNumber, returnValues] = ethers.utils.defaultAbiCoder.decode(
         ["uint256", "bytes[]"],
@@ -99,7 +101,10 @@ async function executeCalls(
   const values = await Promise.all(
     contractCalls.map(async (call) => {
       try {
-        return await provider.call({ to: call.to, data: call.data });
+        return await getProvider(chain).call(
+          { to: call.to, data: call.data },
+          block ?? "latest"
+        );
       } catch (e) {
         return null;
       }
@@ -108,8 +113,8 @@ async function executeCalls(
   return values;
 }
 
-async function multicallAddressOrThrow() {
-  const network = await provider.getNetwork();
+async function multicallAddressOrThrow(chain: Chain) {
+  const network = await getProvider(chain).getNetwork();
   const address = multicallAddress(network.chainId);
   if (address === null) {
     const msg = `multicall is not available on the network ${network.chainId}`;
@@ -119,8 +124,8 @@ async function multicallAddressOrThrow() {
   return address;
 }
 
-async function networkSupportsMulticall() {
-  const network = await provider.getNetwork();
+async function networkSupportsMulticall(chain: Chain) {
+  const network = await getProvider(chain).getNetwork();
   const address = multicallAddress(network.chainId);
   return address !== null;
 }
