@@ -5,7 +5,6 @@ import { getProvider, Chain } from "../general";
 import makeMultiCall from "./multicall";
 import convertResults from "./convertResults";
 
-// Maybe add 'type': 'function' for the cases where that is omitted?
 function resolveABI(providedAbi: string | any) {
   let abi = providedAbi;
   if (typeof abi === "string") {
@@ -14,7 +13,11 @@ function resolveABI(providedAbi: string | any) {
       throw new Error("ABI method undefined");
     }
   }
-  return abi;
+  // If type is omitted DP's sdk processes it fine but we don't, so we need to add it
+  return {
+    type: 'function',
+    ...abi
+  };
 }
 
 type CallParams = string | number | (string | number)[] | undefined;
