@@ -15,8 +15,8 @@ function resolveABI(providedAbi: string | any) {
   }
   // If type is omitted DP's sdk processes it fine but we don't, so we need to add it
   return {
-    type: 'function',
-    ...abi
+    type: "function",
+    ...abi,
   };
 }
 
@@ -41,16 +41,28 @@ export async function call(params: {
 }) {
   const abi = resolveABI(params.abi);
   const callParams = normalizeParams(params.params);
-  const contract = new ethers.Contract(
-    params.target,
-    [abi],
-    getProvider(params.chain)
+
+  const contractInterface = new ethers.utils.Interface([abi]);
+  const functionABI = ethers.utils.FunctionFragment.from(abi);
+  const callData = contractInterface.encodeFunctionData(
+    functionABI,
+    callParams
   );
-  let result = await contract[abi.name](...callParams, {
-    blockTag: params.block ?? "latest",
-  });
+
+  const result = await getProvider(params.chain).call(
+    {
+      to: params.target,
+      data: callData,
+    },
+    params.block ?? "latest"
+  );
+  const decodedResult = contractInterface.decodeFunctionResult(
+    functionABI,
+    result
+  );
+
   return {
-    output: convertResults(result),
+    output: convertResults(decodedResult),
   };
 }
 
