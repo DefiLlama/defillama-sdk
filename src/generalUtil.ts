@@ -34,4 +34,13 @@ export function sumMultiBalanceOf(
   });
 }
 
+export function sumSingleBalance(
+  balances: Balances,
+  token: string,
+  balance: string
+) {
+  const prevBalance = BigNumber.from(balances[token] || "0");
+  balances[token] = prevBalance.add(BigNumber.from(balance)).toString();
+}
+
 export { computeTVL };

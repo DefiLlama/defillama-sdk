@@ -3,6 +3,7 @@ export * as eth from "./eth";
 export * as erc20 from "./erc20";
 export * as cdp from "./cdp";
 export * as abi from "./abi";
+export { setProvider } from "./general";
 
 /*
   export default {

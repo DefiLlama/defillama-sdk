@@ -29,6 +29,7 @@ test("imports", async () => {
           "getBalance": [Function],
           "getBalances": [Function],
         },
+        "setProvider": [Function],
         "util": Object {
           "getLogs": [Function],
           "kyberTokens": [Function],
@@ -40,6 +41,7 @@ test("imports", async () => {
       "util": Object {
         "computeTVL": [Function],
         "sumMultiBalanceOf": [Function],
+        "sumSingleBalance": [Function],
       },
     }
   `);

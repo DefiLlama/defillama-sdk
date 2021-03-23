@@ -1,4 +1,4 @@
-import { sumMultiBalanceOf } from "./generalUtil";
+import { sumMultiBalanceOf, sumSingleBalance } from "./generalUtil";
 
 test("sumMultiBalanceOf", () => {
   const balances = {
@@ -48,4 +48,20 @@ test("sumMultiBalanceOf", () => {
     "0x80fb784b7ed66730e8b1dbd9820afd29931aab03": "240068223687113307904",
     "0xc011a73ee8576fb46f5e1c5751ca3b9fe0af2a6f": "32125191633871661847",
   });
+});
+
+test("sumSingleBalance", () => {
+  const balances = {};
+  sumSingleBalance(balances, "ethereum", "2");
+  expect(balances).toMatchInlineSnapshot(`
+    Object {
+      "ethereum": "2",
+    }
+  `);
+  sumSingleBalance(balances, "ethereum", "5");
+  expect(balances).toMatchInlineSnapshot(`
+    Object {
+      "ethereum": "7",
+    }
+  `);
 });
