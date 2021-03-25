@@ -1,7 +1,7 @@
 import { ethers, BigNumber } from "ethers";
 
 const providers = {
-  ethereum: new ethers.providers.AlchemyWebSocketProvider(
+  ethereum: new ethers.providers.AlchemyProvider(
     "mainnet",
     process.env.ALCHEMY_API ?? "50pap1Pw6npcNypxG15YCjj4W_K5kb3Z"
   ),
