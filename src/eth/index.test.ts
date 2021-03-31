@@ -11,6 +11,27 @@ test("getBalance", async () => {
   });
 });
 
+test("getBalance on all chains", async () => {
+  const chains = [
+    "ethereum",
+    "bsc",
+    "polygon",
+    "heco",
+    "fantom",
+    "rsk",
+    "tomochain",
+  ];
+  await Promise.all(
+    chains.map(async (chain) => {
+      const ethOwned = await getBalance({
+        target: "0x0000000000000000000000000000000000000000",
+        chain: chain as any,
+      });
+      expect(ethOwned.output).toBeDefined();
+    })
+  );
+});
+
 test("getBalances", async () => {
   expect(
     await getBalances({
