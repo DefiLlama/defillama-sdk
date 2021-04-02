@@ -5,6 +5,6 @@ export * as cdp from "./cdp";
 export * as abi from "./abi";
 import { setProvider } from "./general";
 const config = {
-  setProvider
-}
-export {config};
+  setProvider,
+};
+export { config };

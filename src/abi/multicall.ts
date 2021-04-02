@@ -95,7 +95,7 @@ async function executeCalls(
       );
       return returnValues;
     } catch (e) {
-      if(!process.env.DEFILLAMA_SDK_MUTED){
+      if (!process.env.DEFILLAMA_SDK_MUTED) {
         console.log("Multicall failed, defaulting to single transactions...");
       }
     }
