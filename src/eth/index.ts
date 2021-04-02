@@ -34,10 +34,3 @@ export async function getBalances(params: {
     output: await Promise.all(balances),
   };
 }
-
-/*
-eth: {
-      getBalance: (options) => eth('getBalance', options),
-      getBalances: (options) => eth('getBalances', options),
-    },
-*/

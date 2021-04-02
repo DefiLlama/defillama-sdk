@@ -164,15 +164,3 @@ export async function getLogs(params: {
     output: logs,
   };
 }
-
-/*
- getLogs: (options) => util('getLogs', { ...options }),
-      tokenList: () => util('tokenList'),
-      kyberTokens: () => util('kyberTokens'),
-      getEthCallCount: () => util('getEthCallCount'),
-      resetEthCallCount: () => util('resetEthCallCount'),
-      toSymbols: (data) => util('toSymbols', { data }),
-      unwrap: (options) => util('unwrap', { ...options }),
-      lookupBlock: (timestamp) => util('lookupBlock', { timestamp })
-    },
-*/

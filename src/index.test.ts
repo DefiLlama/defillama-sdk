@@ -18,6 +18,9 @@ test("imports", async () => {
             "getAssetsLocked": [Function],
           },
         },
+        "config": Object {
+          "setProvider": [Function],
+        },
         "erc20": Object {
           "balanceOf": [Function],
           "decimals": [Function],
@@ -29,7 +32,6 @@ test("imports", async () => {
           "getBalance": [Function],
           "getBalances": [Function],
         },
-        "setProvider": [Function],
         "util": Object {
           "getLogs": [Function],
           "kyberTokens": [Function],

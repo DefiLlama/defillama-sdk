@@ -1,6 +1,6 @@
 import { Address } from "../types";
 import catchedABIs from "./cachedABIs";
-import { ethers, BigNumber } from "ethers";
+import { ethers } from "ethers";
 import { getProvider, Chain } from "../general";
 import makeMultiCall from "./multicall";
 import convertResults from "./convertResults";
@@ -107,10 +107,3 @@ export async function multiCall(params: {
     output: result,
   };
 }
-
-/*
-abi: {
-      call: (options) => abi('call', { ...options }),
-      multiCall: (options) => abi('multiCall', { ...options, chunk: {param: 'calls', length: 5000, combine: 'array'} })
-    },
-*/

@@ -95,7 +95,9 @@ async function executeCalls(
       );
       return returnValues;
     } catch (e) {
-      console.log("Multicall failed, defaulting to single transactions...");
+      if(!process.env.DEFILLAMA_SDK_MUTED){
+        console.log("Multicall failed, defaulting to single transactions...");
+      }
     }
   }
   const values = await Promise.all(

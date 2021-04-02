@@ -66,13 +66,3 @@ export async function balanceOf(params: {
     output: handleDecimals(balance, params.decimals),
   };
 }
-
-/*
- erc20: {
-      info: (target) => erc20('info', { target }),
-      symbol: (target) => erc20('symbol', { target }),
-      decimals: (target) => erc20('decimals', { target }),
-      totalSupply: (options) => erc20('totalSupply', { ...options }),
-      balanceOf: (options) => erc20('balanceOf', { ...options }),
-    }
-*/
