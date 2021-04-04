@@ -31,13 +31,13 @@ interface TokenPrices {
 }
 
 type GetCoingeckoLog = () => Promise<any>;
-const coingeckoMaxRetries = 3;
 
 async function getTokenPrices(
   originalIds: string[],
   url: string,
   knownTokenPrices: TokenPrices,
   getCoingeckoLock: GetCoingeckoLog,
+  coingeckoMaxRetries: number,
   prefix: string = ""
 ): Promise<TokenPrices> {
   let tokenPrices = {} as TokenPrices;
@@ -83,7 +83,8 @@ export default async function (
   timestamp: number | "now",
   verbose: boolean = false,
   knownTokenPrices: TokenPrices = {},
-  getCoingeckoLock: GetCoingeckoLog = () => Promise.resolve()
+  getCoingeckoLock: GetCoingeckoLog = () => Promise.resolve(),
+  coingeckoMaxRetries: number = 3
 ) {
   let balances: Balances;
   if (rawBalances instanceof Array) {
@@ -157,20 +158,23 @@ export default async function (
       nonEthereumTokenIds,
       "v3/simple/price?ids",
       knownTokenPrices,
-      getCoingeckoLock
+      getCoingeckoLock,
+      coingeckoMaxRetries
     );
     bscTokenPrices = await getTokenPrices(
       bscAddresses,
       "v3/simple/token_price/binance-smart-chain?contract_addresses",
       knownTokenPrices,
       getCoingeckoLock,
+      coingeckoMaxRetries,
       "bsc:"
     );
     ethereumTokenPrices = await getTokenPrices(
       ethereumAddresses,
       "v3/simple/token_price/ethereum?contract_addresses",
       knownTokenPrices,
-      getCoingeckoLock
+      getCoingeckoLock,
+      coingeckoMaxRetries
     );
   } else {
     throw new Error("Historical rates are not currently supported");
