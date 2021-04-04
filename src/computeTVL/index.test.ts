@@ -2,6 +2,7 @@ import computeTVL from ".";
 
 jest.setTimeout(10000)
 test("compute tvl of ethereum and bsc tokens", async () => {
+  const knownPrices = {}
   expect(
     await computeTVL(
       {
@@ -10,10 +11,11 @@ test("compute tvl of ethereum and bsc tokens", async () => {
         "bsc:0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82": "100000000000000000000",
         "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599": "200000000", // 2 WBTC
       },
-      "now"
+      "now",
+      false,
+      knownPrices
     )
   ).toBeGreaterThan(1e5);
-
   expect(
     await computeTVL(
       {
@@ -43,7 +45,9 @@ test("compute tvl of ethereum and bsc tokens", async () => {
       {
         "0x0000000000000000000000000000000000000000": "100000000000000000000", // 100 ETH
       },
-      "now"
+      "now",
+      false,
+      knownPrices
     )
   ).toBeGreaterThan(1e3);
 });
