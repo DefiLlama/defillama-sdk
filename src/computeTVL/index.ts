@@ -22,10 +22,60 @@ function tokenMulticall(addresses: Address[], abi: string, chain?: "bsc") {
   }).then((res) => res.output.filter((call) => call.success));
 }
 
+interface TokenPrices {
+  [token: string]: {
+    usd: number
+  } | undefined
+}
+
+type GetCoingeckoLog = () => Promise<any>
+const coingeckoMaxRetries = 3;
+
+async function getTokenPrices(originalIds: string[], url: string, knownTokenPrices: TokenPrices, getCoingeckoLock: GetCoingeckoLog, prefix: string = ''): Promise<TokenPrices> {
+  let tokenPrices = {} as TokenPrices
+  const newIds = originalIds.slice(); // Copy
+  for (let i = 0; i < newIds.length; i++) {
+    const knownPrice = knownTokenPrices[prefix + newIds[i]]
+    if (knownPrice !== undefined) {
+      tokenPrices[newIds[i]] = knownPrice;
+      newIds.splice(i, 1);
+      i--;
+    }
+  }
+  // The url can only contain up to 100 addresses (otherwise we'll get 'URI too large' errors)
+  for (let i = 0; i < newIds.length; i += 100) {
+    let tempTokenPrices: any;
+    for (let j = 0; j < coingeckoMaxRetries; j++) {
+      try {
+        await getCoingeckoLock();
+        tempTokenPrices = await fetchJson(
+          `https://api.coingecko.com/api/${url}=${newIds
+            .slice(i, i + 100)
+            .join(",")}&vs_currencies=usd`
+        );
+        break;
+      } catch (e) {
+        if(j>=(coingeckoMaxRetries-1)){
+          throw e;
+        } else {
+          continue;
+        }
+      }
+    }
+    Object.assign(tokenPrices, tempTokenPrices);
+    Object.entries(tempTokenPrices).forEach(tokenPrice => {
+      knownTokenPrices[prefix + tokenPrice[0]] = tokenPrice[1] as any
+    })
+  }
+  return tokenPrices
+}
+
 export default async function (
   rawBalances: Balances,
   timestamp: number | "now",
-  verbose: boolean = false
+  verbose: boolean = false,
+  knownTokenPrices: TokenPrices = {},
+  getCoingeckoLock: GetCoingeckoLog = () => Promise.resolve()
 ) {
   let balances: Balances;
   if (rawBalances instanceof Array) {
@@ -91,35 +141,19 @@ export default async function (
     "bsc"
   );
   const bscTokenSymbols = tokenMulticall(bscAddresses, "erc20:symbol", "bsc");
-  let nonEthereumTokenPrices: Promise<any>;
-  let ethereumTokenPrices = {} as any;
-  let bscTokenPrices: Promise<any>;
+  let nonEthereumTokenPrices: TokenPrices;
+  let ethereumTokenPrices: TokenPrices;
+  let bscTokenPrices: TokenPrices;
   if (timestamp === "now") {
-    nonEthereumTokenPrices = fetchJson(
-      `https://api.coingecko.com/api/v3/simple/price?ids=${nonEthereumTokenIds.join(
-        ","
-      )}&vs_currencies=usd`
-    );
-    bscTokenPrices = fetchJson(
-      `https://api.coingecko.com/api/v3/simple/token_price/binance-smart-chain?contract_addresses=${bscAddresses.join(
-        ","
-      )}&vs_currencies=usd`
-    );
-    // Max the url can only contain up to 100 addresses (otherwise we'll get 'URI too large' errors)
-    for (let i = 0; i < ethereumAddresses.length; i += 100) {
-      let tempEthereumPrices = await fetchJson(
-        `https://api.coingecko.com/api/v3/simple/token_price/ethereum?contract_addresses=${ethereumAddresses
-          .slice(i, i + 100)
-          .join(",")}&vs_currencies=usd`
-      );
-      Object.assign(ethereumTokenPrices, tempEthereumPrices);
-    }
+    nonEthereumTokenPrices = await getTokenPrices(nonEthereumTokenIds, 'v3/simple/price?ids', knownTokenPrices, getCoingeckoLock)
+    bscTokenPrices = await getTokenPrices(bscAddresses, 'v3/simple/token_price/binance-smart-chain?contract_addresses', knownTokenPrices, getCoingeckoLock, 'bsc:')
+    ethereumTokenPrices = await getTokenPrices(ethereumAddresses, 'v3/simple/token_price/ethereum?contract_addresses', knownTokenPrices, getCoingeckoLock);
   } else {
     throw new Error("Historical rates are not currently supported");
   }
   const usdAmounts = Object.entries(normalizedBalances).map(
     async ([address, balance]) => {
-      let amount: number, price: number, tokenSymbol: string;
+      let amount: number, price: number | undefined, tokenSymbol: string;
       try {
         if (address.startsWith("0x") || address.startsWith("bsc:")) {
           let chainTokenPrices: typeof ethereumTokenPrices,
@@ -148,18 +182,20 @@ export default async function (
             (call) => call.input.target === normalizedAddress
           )?.output;
           if (tokenDecimals === undefined) {
-            console.warn(
-              `Couldn't query decimals() for token ${tokenSymbol} (${address}) so we'll ignore and assume it's amount is 0`
-            );
+            if (verbose) {
+              console.warn(
+                `Couldn't query decimals() for token ${tokenSymbol} (${address}) so we'll ignore and assume it's amount is 0`
+              );
+            }
             amount = 0;
           } else {
             amount = Number(balance) / 10 ** Number(tokenDecimals);
           }
-          price = (await chainTokenPrices)[normalizedAddress.toLowerCase()]
+          price = chainTokenPrices[normalizedAddress.toLowerCase()]
             ?.usd;
         } else {
           tokenSymbol = address;
-          price = (await nonEthereumTokenPrices)[address.toLowerCase()]?.usd;
+          price = nonEthereumTokenPrices[address.toLowerCase()]?.usd;
           amount = Number(balance);
         }
         if (price === undefined) {
