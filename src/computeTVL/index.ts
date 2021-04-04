@@ -23,19 +23,27 @@ function tokenMulticall(addresses: Address[], abi: string, chain?: "bsc") {
 }
 
 interface TokenPrices {
-  [token: string]: {
-    usd: number
-  } | undefined
+  [token: string]:
+    | {
+        usd: number;
+      }
+    | undefined;
 }
 
-type GetCoingeckoLog = () => Promise<any>
+type GetCoingeckoLog = () => Promise<any>;
 const coingeckoMaxRetries = 3;
 
-async function getTokenPrices(originalIds: string[], url: string, knownTokenPrices: TokenPrices, getCoingeckoLock: GetCoingeckoLog, prefix: string = ''): Promise<TokenPrices> {
-  let tokenPrices = {} as TokenPrices
+async function getTokenPrices(
+  originalIds: string[],
+  url: string,
+  knownTokenPrices: TokenPrices,
+  getCoingeckoLock: GetCoingeckoLog,
+  prefix: string = ""
+): Promise<TokenPrices> {
+  let tokenPrices = {} as TokenPrices;
   const newIds = originalIds.slice(); // Copy
   for (let i = 0; i < newIds.length; i++) {
-    const knownPrice = knownTokenPrices[prefix + newIds[i]]
+    const knownPrice = knownTokenPrices[prefix + newIds[i]];
     if (knownPrice !== undefined) {
       tokenPrices[newIds[i]] = knownPrice;
       newIds.splice(i, 1);
@@ -55,7 +63,7 @@ async function getTokenPrices(originalIds: string[], url: string, knownTokenPric
         );
         break;
       } catch (e) {
-        if(j>=(coingeckoMaxRetries-1)){
+        if (j >= coingeckoMaxRetries - 1) {
           throw e;
         } else {
           continue;
@@ -63,11 +71,11 @@ async function getTokenPrices(originalIds: string[], url: string, knownTokenPric
       }
     }
     Object.assign(tokenPrices, tempTokenPrices);
-    Object.entries(tempTokenPrices).forEach(tokenPrice => {
-      knownTokenPrices[prefix + tokenPrice[0]] = tokenPrice[1] as any
-    })
+    Object.entries(tempTokenPrices).forEach((tokenPrice) => {
+      knownTokenPrices[prefix + tokenPrice[0]] = tokenPrice[1] as any;
+    });
   }
-  return tokenPrices
+  return tokenPrices;
 }
 
 export default async function (
@@ -145,9 +153,25 @@ export default async function (
   let ethereumTokenPrices: TokenPrices;
   let bscTokenPrices: TokenPrices;
   if (timestamp === "now") {
-    nonEthereumTokenPrices = await getTokenPrices(nonEthereumTokenIds, 'v3/simple/price?ids', knownTokenPrices, getCoingeckoLock)
-    bscTokenPrices = await getTokenPrices(bscAddresses, 'v3/simple/token_price/binance-smart-chain?contract_addresses', knownTokenPrices, getCoingeckoLock, 'bsc:')
-    ethereumTokenPrices = await getTokenPrices(ethereumAddresses, 'v3/simple/token_price/ethereum?contract_addresses', knownTokenPrices, getCoingeckoLock);
+    nonEthereumTokenPrices = await getTokenPrices(
+      nonEthereumTokenIds,
+      "v3/simple/price?ids",
+      knownTokenPrices,
+      getCoingeckoLock
+    );
+    bscTokenPrices = await getTokenPrices(
+      bscAddresses,
+      "v3/simple/token_price/binance-smart-chain?contract_addresses",
+      knownTokenPrices,
+      getCoingeckoLock,
+      "bsc:"
+    );
+    ethereumTokenPrices = await getTokenPrices(
+      ethereumAddresses,
+      "v3/simple/token_price/ethereum?contract_addresses",
+      knownTokenPrices,
+      getCoingeckoLock
+    );
   } else {
     throw new Error("Historical rates are not currently supported");
   }
@@ -191,8 +215,7 @@ export default async function (
           } else {
             amount = Number(balance) / 10 ** Number(tokenDecimals);
           }
-          price = chainTokenPrices[normalizedAddress.toLowerCase()]
-            ?.usd;
+          price = chainTokenPrices[normalizedAddress.toLowerCase()]?.usd;
         } else {
           tokenSymbol = address;
           price = nonEthereumTokenPrices[address.toLowerCase()]?.usd;
