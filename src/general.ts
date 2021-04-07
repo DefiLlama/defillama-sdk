@@ -41,7 +41,7 @@ const providers = {
     name: "tomochain",
     chainId: 88,
   }),
-  xdai: new ethers.providers.JsonRpcProvider("https://rpc.xdaichain.com/", {
+  xdai: new ethers.providers.JsonRpcProvider("https://xdai.poanetwork.dev", {
     name: "xdai",
     chainId: 100,
   }),
