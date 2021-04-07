@@ -41,6 +41,10 @@ const providers = {
     name: "tomochain",
     chainId: 88,
   }),
+  xdai: new ethers.providers.JsonRpcProvider("https://rpc.xdaichain.com/", {
+    name: "xdai",
+    chainId: 100,
+  }),
   /*
   wanchain: new ethers.providers.JsonRpcProvider(
     'https://gwan-ssl.wandevs.org:56891',
@@ -61,6 +65,7 @@ export type Chain =
   | "heco"
   | "fantom"
   | "rsk"
+  | "xdai"
   | "tomochain";
 export function getProvider(chain: Chain = "ethereum") {
   return providers[chain];
