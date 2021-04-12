@@ -1,6 +1,6 @@
 {
   "name": "@defillama/sdk",
-  "version": "1.1.7",
+  "version": "1.1.8",
   "description": "SDK for calculating TVL",
   "main": "build/index.js",
   "scripts": {
@@ -13,7 +13,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/0xngmi/defillama-sdk.git"
+    "url": "git+https://github.com/DefiLlama/defillama-sdk.git"
   },
   "author": "",
   "license": "ISC",

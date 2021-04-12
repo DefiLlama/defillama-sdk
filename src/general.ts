@@ -45,6 +45,13 @@ const providers = {
     name: "xdai",
     chainId: 100,
   }),
+  avax: new ethers.providers.JsonRpcProvider(
+    "https://api.avax.network/ext/bc/C/rpc",
+    {
+      name: "avax",
+      chainId: 43114,
+    }
+  ),
   /*
   wanchain: new ethers.providers.JsonRpcProvider(
     'https://gwan-ssl.wandevs.org:56891',
