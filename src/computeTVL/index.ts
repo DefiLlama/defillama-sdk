@@ -2,6 +2,9 @@ import { StringNumber, Address } from "../types";
 import { multiCall } from "../abi";
 import fetch from "node-fetch";
 import { humanizeNumber } from "./humanizeNumber";
+import { getProvider } from "../general";
+import { lookupBlock } from "../util/index";
+import type { Chain } from "../general";
 
 type Balances = {
   [tokenAddressOrName: string]: StringNumber | Object;
@@ -76,6 +79,38 @@ async function getTokenPrices(
     });
   }
   return tokenPrices;
+}
+
+const chainsForBlocks = ["avax", "bsc", "polygon", "xdai"] as Chain[];
+const blockRetries = 5;
+export async function getCurrentBlocks() {
+  const provider = getProvider("ethereum");
+  const lastBlockNumber = await provider.getBlockNumber();
+  const block = await provider.getBlock(lastBlockNumber - 5); // To allow indexers to catch up
+  const chainBlocks = {} as {
+    [chain: string]: number;
+  };
+  await Promise.all(
+    chainsForBlocks.map(async (chain) => {
+      for (let i = 0; i < blockRetries; i++) {
+        try {
+          chainBlocks[chain] = await lookupBlock(block.timestamp, {
+            chain,
+          }).then((block) => block.block);
+          break;
+        } catch (e) {
+          if (i === blockRetries - 1) {
+            throw e;
+          }
+        }
+      }
+    })
+  );
+  return {
+    timestamp: block.timestamp,
+    ethereumBlock: block.number,
+    chainBlocks,
+  };
 }
 
 export default async function (
