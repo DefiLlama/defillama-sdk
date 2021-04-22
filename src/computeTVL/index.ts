@@ -1,17 +1,14 @@
 import { StringNumber, Address } from "../types";
 import { multiCall } from "../abi";
-import fetch from "node-fetch";
 import { humanizeNumber } from "./humanizeNumber";
-import { getProvider } from "../general";
-import { lookupBlock } from "../util/index";
-import type { Chain } from "../general";
+import {getTokenPrices, getHistoricalTokenPrices, TokenPrices, GetCoingeckoLog} from './prices'
 
 type Balances = {
   [tokenAddressOrName: string]: StringNumber | Object;
 };
 
-function fetchJson(url: string) {
-  return fetch(url).then((res) => res.json());
+type ReturnedTokenBalances = {
+  [tokenSymbolOrName: string]: number
 }
 
 function tokenMulticall(addresses: Address[], abi: string, chain?: "bsc") {
@@ -25,92 +22,8 @@ function tokenMulticall(addresses: Address[], abi: string, chain?: "bsc") {
   }).then((res) => res.output.filter((call) => call.success));
 }
 
-interface TokenPrices {
-  [token: string]:
-    | {
-        usd: number;
-      }
-    | undefined;
-}
-
-type GetCoingeckoLog = () => Promise<any>;
-
-async function getTokenPrices(
-  originalIds: string[],
-  url: string,
-  knownTokenPrices: TokenPrices,
-  getCoingeckoLock: GetCoingeckoLog,
-  coingeckoMaxRetries: number,
-  prefix: string = ""
-): Promise<TokenPrices> {
-  let tokenPrices = {} as TokenPrices;
-  const newIds = originalIds.slice(); // Copy
-  for (let i = 0; i < newIds.length; i++) {
-    const knownPrice = knownTokenPrices[prefix + newIds[i]];
-    if (knownPrice !== undefined) {
-      tokenPrices[newIds[i]] = knownPrice;
-      newIds.splice(i, 1);
-      i--;
-    }
-  }
-  // The url can only contain up to 100 addresses (otherwise we'll get 'URI too large' errors)
-  for (let i = 0; i < newIds.length; i += 100) {
-    let tempTokenPrices: any;
-    for (let j = 0; j < coingeckoMaxRetries; j++) {
-      try {
-        await getCoingeckoLock();
-        tempTokenPrices = await fetchJson(
-          `https://api.coingecko.com/api/${url}=${newIds
-            .slice(i, i + 100)
-            .join(",")}&vs_currencies=usd`
-        );
-        break;
-      } catch (e) {
-        if (j >= coingeckoMaxRetries - 1) {
-          throw e;
-        } else {
-          continue;
-        }
-      }
-    }
-    Object.assign(tokenPrices, tempTokenPrices);
-    Object.entries(tempTokenPrices).forEach((tokenPrice) => {
-      knownTokenPrices[prefix + tokenPrice[0]] = tokenPrice[1] as any;
-    });
-  }
-  return tokenPrices;
-}
-
-const chainsForBlocks = ["avax", "bsc", "polygon", "xdai"] as Chain[];
-const blockRetries = 5;
-export async function getCurrentBlocks() {
-  const provider = getProvider("ethereum");
-  const lastBlockNumber = await provider.getBlockNumber();
-  const block = await provider.getBlock(lastBlockNumber - 5); // To allow indexers to catch up
-  const chainBlocks = {} as {
-    [chain: string]: number;
-  };
-  await Promise.all(
-    chainsForBlocks.map(async (chain) => {
-      for (let i = 0; i < blockRetries; i++) {
-        try {
-          chainBlocks[chain] = await lookupBlock(block.timestamp, {
-            chain,
-          }).then((block) => block.block);
-          break;
-        } catch (e) {
-          if (i === blockRetries - 1) {
-            throw e;
-          }
-        }
-      }
-    })
-  );
-  return {
-    timestamp: block.timestamp,
-    ethereumBlock: block.number,
-    chainBlocks,
-  };
+function addTokenBalance(balances: ReturnedTokenBalances, symbol: string, amount:number){
+  balances[symbol] = (balances[symbol] || 0) + amount
 }
 
 export default async function (
@@ -212,8 +125,12 @@ export default async function (
       coingeckoMaxRetries
     );
   } else {
-    throw new Error("Historical rates are not currently supported");
+    nonEthereumTokenPrices = await getHistoricalTokenPrices(nonEthereumTokenIds, 'https://api.coingecko.com/api/v3/coins', timestamp, getCoingeckoLock, coingeckoMaxRetries)
+    bscTokenPrices = await getHistoricalTokenPrices(bscAddresses, 'https://api.coingecko.com/api/v3/coins/binance-smart-chain/contract', timestamp, getCoingeckoLock, coingeckoMaxRetries)
+    ethereumTokenPrices = await getHistoricalTokenPrices(ethereumAddresses, 'https://api.coingecko.com/api/v3/coins/ethereum/contract', timestamp, getCoingeckoLock, coingeckoMaxRetries)
   }
+  const usdTokenBalances = {} as ReturnedTokenBalances
+  const tokenBalances = {} as ReturnedTokenBalances
   const usdAmounts = Object.entries(normalizedBalances).map(
     async ([address, balance]) => {
       let amount: number, price: number | undefined, tokenSymbol: string;
@@ -268,7 +185,9 @@ export default async function (
           }
           price = 0;
         }
+        addTokenBalance(tokenBalances, tokenSymbol, amount);
         const usdAmount = amount * price;
+        addTokenBalance(usdTokenBalances, tokenSymbol, usdAmount)
         return { usdAmount, tokenSymbol };
       } catch (e) {
         console.error(
@@ -282,7 +201,7 @@ export default async function (
       }
     }
   );
-  return (await Promise.all(usdAmounts)).reduce((sum, token) => {
+  const usdTvl = (await Promise.all(usdAmounts)).reduce((sum, token) => {
     if (verbose) {
       console.log(
         token.tokenSymbol.padEnd(25, " "),
@@ -291,4 +210,9 @@ export default async function (
     }
     return sum + token.usdAmount;
   }, 0);
+  return {
+    usdTvl,
+    usdTokenBalances,
+    tokenBalances
+  }
 }

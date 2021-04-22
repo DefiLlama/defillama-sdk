@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import path from "path";
-import computeTVL, { getCurrentBlocks } from "./computeTVL";
+import computeTVL from "./computeTVL";
+import { getCurrentBlocks } from "./computeTVL/blocks"
 import { humanizeNumber } from "./computeTVL/humanizeNumber";
 
 if (process.argv.length < 3) {
@@ -19,6 +20,7 @@ const passedFile = path.resolve(process.cwd(), process.argv[2]);
     throw new Error("TVL returned is not a balances object");
   }
 
-  console.log("Total:", humanizeNumber(await computeTVL(tvl, "now", true)));
+  const { usdTvl } = await computeTVL(tvl, "now", true)
+  console.log("Total:", humanizeNumber(usdTvl));
   process.exit(0);
 })();
