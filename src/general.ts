@@ -72,8 +72,9 @@ export type Chain =
   | "heco"
   | "fantom"
   | "rsk"
+  | "tomochain"
   | "xdai"
-  | "tomochain";
+  | "avax";
 export function getProvider(chain: Chain = "ethereum") {
   return providers[chain];
 }

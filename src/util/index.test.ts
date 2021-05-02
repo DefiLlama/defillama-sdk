@@ -14,6 +14,16 @@ test("lookupBlock", async () => {
   expect(block.timestamp).toBeCloseTo(1594115202, -2.5);
 });
 
+test("lookupBlock on xdai", async () => {
+  const calls = []
+  for(let i=0; i<10; i++){
+    calls.push(lookupBlock(1594115200, {
+      chain:'xdai'
+    }));
+  }
+  await Promise.all(calls)
+});
+
 test("tokenList", async () => {
   expect((await tokenList()).length).toMatchInlineSnapshot(`811`);
 });
