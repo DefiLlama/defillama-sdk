@@ -15,13 +15,15 @@ test("lookupBlock", async () => {
 });
 
 test("lookupBlock on xdai", async () => {
-  const calls = []
-  for(let i=0; i<10; i++){
-    calls.push(lookupBlock(1594115200, {
-      chain:'xdai'
-    }));
+  const calls = [];
+  for (let i = 0; i < 10; i++) {
+    calls.push(
+      lookupBlock(1594115200, {
+        chain: "xdai",
+      })
+    );
   }
-  await Promise.all(calls)
+  await Promise.all(calls);
 });
 
 test("tokenList", async () => {
