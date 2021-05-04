@@ -84,15 +84,19 @@ export async function getHistoricalTokenPrices(
       coingeckoMaxRetries,
       getCoingeckoLock
     );
-    let closest = range.prices[0];
-    for (const price of range.prices) {
-      if (Math.abs(price[0] - timestamp) < Math.abs(closest[0] - timestamp)) {
-        closest = price;
+    if (range.error === undefined && range.prices?.length > 0) {
+      let closest = range.prices[0];
+      for (const price of range.prices) {
+        if (Math.abs(price[0] - timestamp) < Math.abs(closest[0] - timestamp)) {
+          closest = price;
+        }
       }
+      tokenPrices[id.toLowerCase()] = {
+        usd: closest[1],
+      };
+    } else {
+      tokenPrices[id.toLowerCase()] = undefined;
     }
-    tokenPrices[id.toLowerCase()] = {
-      usd: closest[1],
-    };
   }
   return tokenPrices;
 }
