@@ -143,7 +143,7 @@ export async function getLogs(params: {
       logs = logs.concat(partLogs);
       currentBlock = nextBlock;
     } catch (e) {
-      if (e.message.startsWith("Log response size exceeded.")) {
+      if (blockSpread >= 2e3) {
         // We got too many results
         // We could chop it up into 2K block spreads as that is guaranteed to always return but then we'll have to make a lot of queries (easily >1000), so instead we'll keep dividing the block spread by two until we make it
         blockSpread = Math.floor(blockSpread / 2);

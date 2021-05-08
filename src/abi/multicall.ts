@@ -11,6 +11,8 @@ export const MULTICALL_ADDRESS_RINKEBY =
   "0x42ad527de7d4e9d9d011ac45b31d8551f8fe9821";
 export const MULTICALL_ADDRESS_GOERLI =
   "0x77dca2c955b15e9de4dbbcf1246b4b85b651e50e";
+export const MULTICALL_ADDRESS_POLYGON =
+  "0x95028E5B8a734bb7E2071F96De89BABe75be9C8E";
 export const AGGREGATE_SELECTOR = "0x252dba42";
 
 export default async function makeMultiCall(
@@ -142,6 +144,8 @@ function multicallAddress(chainId: number) {
       return MULTICALL_ADDRESS_RINKEBY;
     case 5:
       return MULTICALL_ADDRESS_GOERLI;
+    case 137:
+      return MULTICALL_ADDRESS_POLYGON;
     default:
       return null;
   }

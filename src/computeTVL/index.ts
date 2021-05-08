@@ -16,14 +16,14 @@ type ReturnedTokenBalances = {
   [tokenSymbolOrName: string]: number;
 };
 
-function tokenMulticall(addresses: Address[], abi: string, chain?: "bsc") {
+function tokenMulticall(addresses: Address[], abi: string, chain?: string) {
   return multiCall({
     abi,
     calls: addresses.map((address) => ({
       target: address,
       params: [],
     })),
-    chain,
+    chain: chain as any,
   }).then((res) => res.output.filter((call) => call.success));
 }
 
@@ -33,6 +33,82 @@ function addTokenBalance(
   amount: number
 ) {
   balances[symbol] = (balances[symbol] || 0) + amount;
+}
+
+type ChainOrCoingecko = "bsc" | "ethereum" | "coingecko" | "polygon";
+const historicalCoingeckoUrls = {
+  coingecko: "https://api.coingecko.com/api/v3/coins",
+  bsc: "https://api.coingecko.com/api/v3/coins/binance-smart-chain/contract",
+  ethereum: "https://api.coingecko.com/api/v3/coins/ethereum/contract",
+  polygon: "https://api.coingecko.com/api/v3/coins/polygon-pos/contract",
+};
+
+const currentCoingeckoUrls = {
+  coingecko: "v3/simple/price?ids",
+  bsc: "v3/simple/token_price/binance-smart-chain?contract_addresses",
+  ethereum: "v3/simple/token_price/ethereum?contract_addresses",
+  polygon: "v3/simple/token_price/polygon-pos?contract_addresses",
+};
+
+const chains = ["bsc", "ethereum", "polygon"];
+
+async function getChainPrices(
+  ids: {
+    [chain: string]: string[];
+  },
+  timestamp: number | "now",
+  knownTokenPrices: TokenPrices,
+  getCoingeckoLock: GetCoingeckoLog,
+  coingeckoMaxRetries: number
+) {
+  const chainPrices = {} as {
+    [chain: string]: TokenPrices;
+  };
+  for (const chain of chains.concat(["coingecko"])) {
+    if (ids[chain].length === 0) {
+      chainPrices[chain] = {};
+    } else {
+      if (timestamp === "now") {
+        chainPrices[chain] = await getTokenPrices(
+          ids[chain],
+          currentCoingeckoUrls[chain as ChainOrCoingecko],
+          knownTokenPrices,
+          getCoingeckoLock,
+          coingeckoMaxRetries
+        );
+      } else {
+        chainPrices[chain] = await getHistoricalTokenPrices(
+          ids[chain],
+          historicalCoingeckoUrls[chain as ChainOrCoingecko],
+          timestamp,
+          getCoingeckoLock,
+          coingeckoMaxRetries
+        );
+      }
+    }
+  }
+  return chainPrices;
+}
+
+type ChainResults = {
+  [chain: string]: Promise<any[]>;
+};
+function getChainSymbolsAndDecimals(ids: { [chain: string]: string[] }) {
+  const allChainTokenDecimals = {} as ChainResults;
+  const allChainTokenSymbols = {} as ChainResults;
+  for (const chain of chains) {
+    allChainTokenDecimals[chain] = tokenMulticall(
+      ids[chain],
+      "erc20:decimals",
+      chain
+    );
+    allChainTokenSymbols[chain] = tokenMulticall(
+      ids[chain],
+      "erc20:symbol",
+      chain
+    );
+  }
+  return { allChainTokenDecimals, allChainTokenSymbols };
 }
 
 export default async function (
@@ -75,6 +151,7 @@ export default async function (
   const normalizedBalances = {} as Balances;
   const ethereumAddresses = [] as Address[];
   const bscAddresses = [] as Address[];
+  const polygonAddresses = [] as Address[];
   const nonEthereumTokenIds = [] as string[];
   for (const tokenAddressOrName of Object.keys(balances)) {
     let normalizedAddressOrName = tokenAddressOrName;
@@ -94,90 +171,52 @@ export default async function (
       ethereumAddresses.push(normalizedAddressOrName);
     } else if (normalizedAddressOrName.startsWith("bsc:")) {
       bscAddresses.push(normalizedAddressOrName.slice("bsc:".length));
+    } else if (normalizedAddressOrName.startsWith("polygon:")) {
+      polygonAddresses.push(normalizedAddressOrName.slice("polygon:".length));
     } else {
       nonEthereumTokenIds.push(normalizedAddressOrName);
     }
   }
 
-  const allTokenDecimals = tokenMulticall(ethereumAddresses, "erc20:decimals");
-  const allTokenSymbols = tokenMulticall(ethereumAddresses, "erc20:symbol");
-  const bscTokenDecimals = tokenMulticall(
-    bscAddresses,
-    "erc20:decimals",
-    "bsc"
+  const chainIds = {
+    coingecko: nonEthereumTokenIds,
+    bsc: bscAddresses,
+    ethereum: ethereumAddresses,
+    polygon: polygonAddresses,
+  };
+  const {
+    allChainTokenDecimals,
+    allChainTokenSymbols,
+  } = getChainSymbolsAndDecimals(chainIds);
+  const allChainTokenPrices = await getChainPrices(
+    chainIds,
+    timestamp,
+    knownTokenPrices,
+    getCoingeckoLock,
+    coingeckoMaxRetries
   );
-  const bscTokenSymbols = tokenMulticall(bscAddresses, "erc20:symbol", "bsc");
-  let nonEthereumTokenPrices: TokenPrices;
-  let ethereumTokenPrices: TokenPrices;
-  let bscTokenPrices: TokenPrices;
-  if (timestamp === "now") {
-    nonEthereumTokenPrices = await getTokenPrices(
-      nonEthereumTokenIds,
-      "v3/simple/price?ids",
-      knownTokenPrices,
-      getCoingeckoLock,
-      coingeckoMaxRetries
-    );
-    bscTokenPrices = await getTokenPrices(
-      bscAddresses,
-      "v3/simple/token_price/binance-smart-chain?contract_addresses",
-      knownTokenPrices,
-      getCoingeckoLock,
-      coingeckoMaxRetries,
-      "bsc:"
-    );
-    ethereumTokenPrices = await getTokenPrices(
-      ethereumAddresses,
-      "v3/simple/token_price/ethereum?contract_addresses",
-      knownTokenPrices,
-      getCoingeckoLock,
-      coingeckoMaxRetries
-    );
-  } else {
-    nonEthereumTokenPrices = await getHistoricalTokenPrices(
-      nonEthereumTokenIds,
-      "https://api.coingecko.com/api/v3/coins",
-      timestamp,
-      getCoingeckoLock,
-      coingeckoMaxRetries
-    );
-    bscTokenPrices = await getHistoricalTokenPrices(
-      bscAddresses,
-      "https://api.coingecko.com/api/v3/coins/binance-smart-chain/contract",
-      timestamp,
-      getCoingeckoLock,
-      coingeckoMaxRetries
-    );
-    ethereumTokenPrices = await getHistoricalTokenPrices(
-      ethereumAddresses,
-      "https://api.coingecko.com/api/v3/coins/ethereum/contract",
-      timestamp,
-      getCoingeckoLock,
-      coingeckoMaxRetries
-    );
-  }
   const usdTokenBalances = {} as ReturnedTokenBalances;
   const tokenBalances = {} as ReturnedTokenBalances;
   const usdAmounts = Object.entries(normalizedBalances).map(
     async ([address, balance]) => {
       let amount: number, price: number | undefined, tokenSymbol: string;
       try {
-        if (address.startsWith("0x") || address.startsWith("bsc:")) {
-          let chainTokenPrices: typeof ethereumTokenPrices,
-            chainTokenSymbols: typeof allTokenSymbols,
-            chainTokenDecimals: typeof allTokenDecimals,
-            normalizedAddress: Address;
+        if (address.startsWith("0x") || address.includes(":")) {
+          let normalizedAddress: Address,
+            chainSelector: "ethereum" | "bsc" | "polygon";
           if (address.startsWith("bsc:")) {
-            chainTokenPrices = bscTokenPrices;
-            chainTokenSymbols = bscTokenSymbols;
-            chainTokenDecimals = bscTokenDecimals;
+            chainSelector = "bsc";
             normalizedAddress = address.slice("bsc:".length);
+          } else if (address.startsWith("polygon:")) {
+            chainSelector = "polygon";
+            normalizedAddress = address.slice("polygon:".length);
           } else {
-            chainTokenPrices = ethereumTokenPrices;
-            chainTokenSymbols = allTokenSymbols;
-            chainTokenDecimals = allTokenDecimals;
+            chainSelector = "ethereum";
             normalizedAddress = address;
           }
+          const chainTokenSymbols = allChainTokenSymbols[chainSelector];
+          const chainTokenDecimals = allChainTokenDecimals[chainSelector];
+          const chainTokenPrices = allChainTokenPrices[chainSelector];
 
           tokenSymbol = (await chainTokenSymbols).find(
             (call) => call.input.target === normalizedAddress
@@ -201,7 +240,7 @@ export default async function (
           price = chainTokenPrices[normalizedAddress.toLowerCase()]?.usd;
         } else {
           tokenSymbol = address;
-          price = nonEthereumTokenPrices[address.toLowerCase()]?.usd;
+          price = allChainTokenPrices["coingecko"][address.toLowerCase()]?.usd;
           amount = Number(balance);
         }
         if (price === undefined) {
@@ -228,13 +267,17 @@ export default async function (
       }
     }
   );
+  if (verbose) {
+    (await Promise.all(usdAmounts))
+      .sort((a, b) => b.usdAmount - a.usdAmount)
+      .map((token) => {
+        console.log(
+          token.tokenSymbol.padEnd(25, " "),
+          humanizeNumber(token.usdAmount)
+        );
+      });
+  }
   const usdTvl = (await Promise.all(usdAmounts)).reduce((sum, token) => {
-    if (verbose) {
-      console.log(
-        token.tokenSymbol.padEnd(25, " "),
-        humanizeNumber(token.usdAmount)
-      );
-    }
     return sum + token.usdAmount;
   }, 0);
   return {
