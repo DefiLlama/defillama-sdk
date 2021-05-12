@@ -1,9 +1,13 @@
 import { ethers, BigNumber } from "ethers";
 
 const providers = {
-  ethereum: new ethers.providers.AlchemyProvider(
-    "mainnet",
-    process.env.ALCHEMY_API ?? "50pap1Pw6npcNypxG15YCjj4W_K5kb3Z"
+  ethereum: new ethers.providers.JsonRpcProvider(
+    process.env.ETHEREUM_RPC ??
+      "https://eth-mainnet.alchemyapi.io/v2/50pap1Pw6npcNypxG15YCjj4W_K5kb3Z",
+    {
+      name: "ethereum",
+      chainId: 1,
+    }
   ),
   bsc: new ethers.providers.JsonRpcProvider(
     process.env.BSC_RPC ?? "https://bsc-dataseed.binance.org/",
@@ -20,47 +24,54 @@ const providers = {
     }
   ),
   heco: new ethers.providers.JsonRpcProvider(
-    "https://http-mainnet.hecochain.com",
+    process.env.HECO_RPC ?? "https://http-mainnet.hecochain.com",
     {
       name: "heco",
       chainId: 128,
     }
   ),
   fantom: new ethers.providers.JsonRpcProvider(
-    "https://rpcapi.fantom.network",
+    process.env.FANTOM_RPC ?? "https://rpcapi.fantom.network",
     {
       name: "fantom",
       chainId: 250,
     }
   ),
-  rsk: new ethers.providers.JsonRpcProvider("https://public-node.rsk.co", {
-    name: "rsk",
-    chainId: 30,
-  }),
-  tomochain: new ethers.providers.JsonRpcProvider("https://rpc.tomochain.com", {
-    name: "tomochain",
-    chainId: 88,
-  }),
-  xdai: new ethers.providers.JsonRpcProvider("https://xdai.poanetwork.dev", {
-    name: "xdai",
-    chainId: 100,
-  }),
+  rsk: new ethers.providers.JsonRpcProvider(
+    process.env.RSK_RPC ?? "https://public-node.rsk.co",
+    {
+      name: "rsk",
+      chainId: 30,
+    }
+  ),
+  tomochain: new ethers.providers.JsonRpcProvider(
+    process.env.TOMOCHAIN_RPC ?? "https://rpc.tomochain.com",
+    {
+      name: "tomochain",
+      chainId: 88,
+    }
+  ),
+  xdai: new ethers.providers.JsonRpcProvider(
+    process.env.XDAI_RPC ?? "https://xdai.poanetwork.dev",
+    {
+      name: "xdai",
+      chainId: 100,
+    }
+  ),
   avax: new ethers.providers.JsonRpcProvider(
-    "https://api.avax.network/ext/bc/C/rpc",
+    process.env.AVAX_RPC ?? "https://api.avax.network/ext/bc/C/rpc",
     {
       name: "avax",
       chainId: 43114,
     }
   ),
-  /*
-  wanchain: new ethers.providers.JsonRpcProvider(
-    'https://gwan-ssl.wandevs.org:56891',
+  wan: new ethers.providers.JsonRpcProvider(
+    process.env.WAN_RPC ?? "https://gwan-ssl.wandevs.org:56891",
     {
-      name: "wanchain",
+      name: "wan",
       chainId: 888,
     }
   ),
-  */
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
@@ -74,7 +85,8 @@ export type Chain =
   | "rsk"
   | "tomochain"
   | "xdai"
-  | "avax";
+  | "avax"
+  | "wan";
 export function getProvider(chain: Chain = "ethereum") {
   return providers[chain];
 }
