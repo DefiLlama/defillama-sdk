@@ -37,10 +37,18 @@ export function sumMultiBalanceOf(
 export function sumSingleBalance(
   balances: Balances,
   token: string,
-  balance: string
+  balance: string | number
 ) {
-  const prevBalance = BigNumber.from(balances[token] || "0");
-  balances[token] = prevBalance.add(BigNumber.from(balance)).toString();
+  if (typeof balance === 'number') {
+    const prevBalance = balances[token] ?? 0
+    if (typeof prevBalance !== 'number') {
+      throw new Error(`Trying to merge token balance and coingecko amount for ${token}`)
+    }
+    (balances[token] as number) = prevBalance + balance;
+  } else {
+    const prevBalance = BigNumber.from(balances[token] ?? "0");
+    balances[token] = prevBalance.add(BigNumber.from(balance)).toString();
+  }
 }
 
 function mergeBalances(balances: Balances, balancesToMerge: Balances) {
