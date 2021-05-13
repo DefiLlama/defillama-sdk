@@ -3,16 +3,34 @@ import fetch from "node-fetch";
 import rawTokenList from "./tokenList";
 import type { Address } from "../types";
 import { utils } from "ethers";
-import type { Log, Block } from "@ethersproject/abstract-provider";
+import type { Log } from "@ethersproject/abstract-provider";
 import { symbol, decimals } from "../erc20";
+
+interface TimestampBlock {
+  number: number;
+  timestamp: number;
+}
+
+const terraBlockProvider = {
+  getBlock: async (time: number | "latest") =>
+    fetch(`https://lcd.terra.dev/blocks/${time}`)
+      .then((res) => res.json())
+      .then((block) => ({
+        number: Number(block.block.header.height),
+        timestamp: Math.round(Date.parse(block.block.header.time) / 1000),
+      })),
+};
 
 export async function lookupBlock(
   timestamp: number,
   extraParams: {
-    chain?: Chain;
+    chain?: Chain | "terra";
   } = {}
 ) {
-  const provider = getProvider(extraParams.chain);
+  const provider =
+    extraParams.chain === "terra"
+      ? terraBlockProvider
+      : getProvider(extraParams.chain);
   const lastBlock = await provider.getBlock("latest");
   if (Math.abs(lastBlock.timestamp - timestamp) < 60) {
     // Short-circuit in case we are trying to get the current block
@@ -23,7 +41,7 @@ export async function lookupBlock(
   }
   let high = lastBlock.number;
   let low = 0;
-  let block: Block;
+  let block: TimestampBlock;
   do {
     const mid = Math.floor((high + low) / 2);
     block = await provider.getBlock(mid);

@@ -14,12 +14,15 @@ test("lookupBlock", async () => {
   expect(block.timestamp).toBeCloseTo(1594115202, -2.5);
 });
 
-test("lookupBlock on xdai", async () => {
+test("lookupBlock on xdai and terra", async () => {
   const calls = [];
   for (let i = 0; i < 10; i++) {
     calls.push(
       lookupBlock(1594115200, {
         chain: "xdai",
+      }),
+      lookupBlock(1594115200, {
+        chain: "terra",
       })
     );
   }

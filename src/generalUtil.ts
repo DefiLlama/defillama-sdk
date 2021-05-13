@@ -43,4 +43,37 @@ export function sumSingleBalance(
   balances[token] = prevBalance.add(BigNumber.from(balance)).toString();
 }
 
+function mergeBalances(balances: Balances, balancesToMerge: Balances) {
+  Object.entries(balancesToMerge).forEach((balance) => {
+    sumSingleBalance(balances, balance[0], balance[1]);
+  });
+}
+type ChainBlocks = {
+  [chain: string]: number;
+};
+export function sumChainTvls(
+  chainTvls: Array<
+    (
+      timestamp: number,
+      ethBlock: number,
+      chainBlocks: ChainBlocks
+    ) => Promise<Balances>
+  >
+) {
+  return async (
+    timestamp: number,
+    ethBlock: number,
+    chainBlocks: ChainBlocks
+  ) => {
+    const balances = {};
+    await Promise.all(
+      chainTvls.map(async (chainTvl) => {
+        const chainBalances = await chainTvl(timestamp, ethBlock, chainBlocks);
+        mergeBalances(balances, chainBalances);
+      })
+    );
+    return balances;
+  };
+}
+
 export { computeTVL };
