@@ -11,6 +11,6 @@ npm run format
 
 ```
 POLYGON_RPC="https://..."
-ALCHEMY_API="50pap...."
+ETHEREUM_RPC="https://..."
 BSC_RPC="https://..."
 ```
