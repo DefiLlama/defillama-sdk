@@ -72,6 +72,13 @@ const providers = {
       chainId: 888,
     }
   ),
+  harmony: new ethers.providers.JsonRpcProvider(
+    process.env.HARMONY_RPC ?? "https://api.s0.t.hmny.io",
+    {
+      name: "harmony",
+      chainId: 1666600000,
+    }
+  ),
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
@@ -86,7 +93,8 @@ export type Chain =
   | "tomochain"
   | "xdai"
   | "avax"
-  | "wan";
+  | "wan"
+  | "harmony";
 export function getProvider(chain: Chain = "ethereum") {
   return providers[chain];
 }
