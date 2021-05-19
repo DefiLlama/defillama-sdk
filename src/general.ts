@@ -79,6 +79,13 @@ const providers = {
       chainId: 1666600000,
     }
   ),
+  thundercore: new ethers.providers.JsonRpcProvider(
+    process.env.THUNDERCORE_RPC ?? "https://mainnet-rpc.thundercore.com",
+    {
+      name: "thundercore",
+      chainId: 108,
+    }
+  ),
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };

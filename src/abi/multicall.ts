@@ -13,6 +13,10 @@ export const MULTICALL_ADDRESS_GOERLI =
   "0x77dca2c955b15e9de4dbbcf1246b4b85b651e50e";
 export const MULTICALL_ADDRESS_POLYGON =
   "0x95028E5B8a734bb7E2071F96De89BABe75be9C8E";
+export const MULTICALL_ADDRESS_BSC =
+  "0x1Ee38d535d541c55C9dae27B12edf090C608E6Fb";
+export const MULTICALL_ADDRESS_FANTOM =
+  "0xb828C456600857abd4ed6C32FAcc607bD0464F4F";
 export const AGGREGATE_SELECTOR = "0x252dba42";
 
 export default async function makeMultiCall(
@@ -146,6 +150,10 @@ function multicallAddress(chainId: number) {
       return MULTICALL_ADDRESS_GOERLI;
     case 137:
       return MULTICALL_ADDRESS_POLYGON;
+    case 56:
+      return MULTICALL_ADDRESS_BSC;
+    case 250:
+      return MULTICALL_ADDRESS_FANTOM;
     default:
       return null;
   }
