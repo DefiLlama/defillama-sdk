@@ -133,7 +133,7 @@ async function multicallAddressOrThrow(chain: Chain) {
 }
 
 async function networkSupportsMulticall(chain: Chain) {
-  const network = await getProvider(chain).getNetwork();
+  const network = await getProvider(chain).network;
   const address = multicallAddress(network.chainId);
   return address !== null;
 }
