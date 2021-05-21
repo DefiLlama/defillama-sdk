@@ -52,7 +52,7 @@ const currentCoingeckoUrls = {
   avax: "v3/simple/token_price/Avalanche?contract_addresses",
 };
 
-const chains = ["bsc", "ethereum", "polygon", "avax"];
+const chains = ["bsc", "ethereum", "polygon", "avax"] as ChainOrCoingecko[];
 
 async function getChainPrices(
   ids: {
@@ -150,12 +150,17 @@ export default async function (
   } else {
     balances = rawBalances;
   }
+  const chainIds = {
+    coingecko: [],
+    bsc: [],
+    ethereum: [],
+    polygon: [],
+    avax: []
+  } as {
+    [chain:string]:Address[]
+  };
+
   const normalizedBalances = {} as Balances;
-  const ethereumAddresses = [] as Address[];
-  const bscAddresses = [] as Address[];
-  const avaxAddresses = [] as Address[];
-  const polygonAddresses = [] as Address[];
-  const nonEthereumTokenIds = [] as string[];
   for (const tokenAddressOrName of Object.keys(balances)) {
     let normalizedAddressOrName = tokenAddressOrName;
     let normalizedBalance = balances[tokenAddressOrName];
@@ -171,25 +176,15 @@ export default async function (
       normalizedBalances[normalizedAddressOrName] = normalizedBalance;
     }
     if (normalizedAddressOrName.startsWith("0x")) {
-      ethereumAddresses.push(normalizedAddressOrName);
-    } else if (normalizedAddressOrName.startsWith("bsc:")) {
-      bscAddresses.push(normalizedAddressOrName.slice("bsc:".length));
-    } else if (normalizedAddressOrName.startsWith("avax:")) {
-      avaxAddresses.push(normalizedAddressOrName.slice("avax:".length));
-    } else if (normalizedAddressOrName.startsWith("polygon:")) {
-      polygonAddresses.push(normalizedAddressOrName.slice("polygon:".length));
+      chainIds.ethereum.push(normalizedAddressOrName)
+    } else if (normalizedAddressOrName.includes(":")) {
+      const chain = normalizedAddressOrName.split(':')[0]
+      chainIds[chain].push(normalizedAddressOrName.slice(chain.length+1))
     } else {
-      nonEthereumTokenIds.push(normalizedAddressOrName);
+      chainIds.coingecko.push(normalizedAddressOrName)
     }
   }
 
-  const chainIds = {
-    coingecko: nonEthereumTokenIds,
-    bsc: bscAddresses,
-    ethereum: ethereumAddresses,
-    polygon: polygonAddresses,
-    avax: avaxAddresses
-  };
   const {
     allChainTokenDecimals,
     allChainTokenSymbols,
@@ -208,21 +203,14 @@ export default async function (
       let amount: number, price: number | undefined, tokenSymbol: string;
       try {
         if (address.startsWith("0x") || address.includes(":")) {
-          let normalizedAddress: Address,
-            chainSelector: Exclude<ChainOrCoingecko, 'coingecko'>;
-          if (address.startsWith("bsc:")) {
-            chainSelector = "bsc";
-            normalizedAddress = address.slice("bsc:".length);
-          } else if (address.startsWith("polygon:")) {
-            chainSelector = "polygon";
-            normalizedAddress = address.slice("polygon:".length);
-          } else if (address.startsWith("avax:")) {
-            chainSelector = "avax";
-            normalizedAddress = address.slice("avax:".length);
-          } else {
-            chainSelector = "ethereum";
-            normalizedAddress = address;
-          }
+          let normalizedAddress = address;
+          let chainSelector: ChainOrCoingecko = "ethereum";
+          chains.forEach(chain=>{
+            if(address.startsWith(chain)){
+              chainSelector = chain;
+              normalizedAddress = address.slice(chain.length +1);
+            }
+          })
           const chainTokenSymbols = allChainTokenSymbols[chainSelector];
           const chainTokenDecimals = allChainTokenDecimals[chainSelector];
           const chainTokenPrices = allChainTokenPrices[chainSelector];
