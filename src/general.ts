@@ -86,10 +86,10 @@ const providers = {
       chainId: 108,
     }
   ),
-  okex: new ethers.providers.JsonRpcProvider(
-    process.env.OKEX_RPC ?? "https://exchainrpc.okex.org",
+  okexchain: new ethers.providers.JsonRpcProvider(
+    process.env.OKEXCHAIN_RPC ?? "https://exchainrpc.okex.org",
     {
-      name: "okex",
+      name: "okexchain",
       chainId: 66,
     }
   ),
@@ -110,7 +110,7 @@ export type Chain =
   | "wan"
   | "harmony"
   | "thundercore"
-  | "okex";
+  | "okexchain";
 export function getProvider(chain: Chain = "ethereum") {
   return providers[chain];
 }

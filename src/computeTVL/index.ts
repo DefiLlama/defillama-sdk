@@ -35,13 +35,14 @@ function addTokenBalance(
   balances[symbol] = (balances[symbol] || 0) + amount;
 }
 
-type ChainOrCoingecko = "bsc" | "ethereum" | "coingecko" | "polygon" | 'avax';
+type ChainOrCoingecko = "bsc" | "ethereum" | "coingecko" | "polygon" | 'avax' | 'fantom';
 const historicalCoingeckoUrls = {
   coingecko: "https://api.coingecko.com/api/v3/coins",
   bsc: "https://api.coingecko.com/api/v3/coins/binance-smart-chain/contract",
   ethereum: "https://api.coingecko.com/api/v3/coins/ethereum/contract",
   polygon: "https://api.coingecko.com/api/v3/coins/polygon-pos/contract",
   avax: "https://api.coingecko.com/api/v3/coins/Avalanche/contract",
+  fantom: "https://api.coingecko.com/api/v3/coins/fantom/contract",
 };
 
 const currentCoingeckoUrls = {
@@ -50,9 +51,10 @@ const currentCoingeckoUrls = {
   ethereum: "v3/simple/token_price/ethereum?contract_addresses",
   polygon: "v3/simple/token_price/polygon-pos?contract_addresses",
   avax: "v3/simple/token_price/Avalanche?contract_addresses",
+  fantom: "v3/simple/token_price/fantom?contract_addresses",
 };
 
-const chains = ["bsc", "ethereum", "polygon", "avax"] as ChainOrCoingecko[];
+const chains = ["bsc", "ethereum", "polygon", "avax", "fantom"] as ChainOrCoingecko[];
 
 async function getChainPrices(
   ids: {
@@ -152,13 +154,12 @@ export default async function (
   }
   const chainIds = {
     coingecko: [],
-    bsc: [],
-    ethereum: [],
-    polygon: [],
-    avax: []
   } as {
     [chain:string]:Address[]
   };
+  for(const chain of chains){
+    chainIds[chain] = [];
+  }
 
   const normalizedBalances = {} as Balances;
   for (const tokenAddressOrName of Object.keys(balances)) {
