@@ -166,8 +166,7 @@ export default async function (
     let normalizedAddressOrName = tokenAddressOrName;
     let normalizedBalance = balances[tokenAddressOrName];
     if (tokenAddressOrName === "0x0000000000000000000000000000000000000000") {
-      normalizedAddressOrName = "ethereum"; // Normalize ETH
-      normalizedBalance = Number(normalizedBalance) / 10 ** 18;
+      normalizedAddressOrName = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"; // Normalize ETH to WETH
     }
     if (typeof normalizedBalance === "object") {
       normalizedBalances[
