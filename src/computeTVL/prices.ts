@@ -32,6 +32,28 @@ async function makeCoingeckoCall(
   }
 }
 
+const coingeckoTokensInEth = async () => {
+  try {
+  const res = await fetch("https://api.coingecko.com/api/v3/coins/list?include_platform=true", {
+    header: {
+      "content-type": "application/json",
+    },
+    method: "GET",
+  });
+
+  const data = await res.json();
+
+  return data;
+  } catch(err) {
+      console.error(err);
+  }
+};
+
+type coingeckoTokensInEthResponseFormat = {
+  id: number;
+  symbol: string;
+};
+
 export async function getTokenPrices(
   originalIds: string[],
   url: string,
@@ -42,6 +64,8 @@ export async function getTokenPrices(
 ): Promise<TokenPrices> {
   const tokenPrices = {} as TokenPrices;
   const newIds = originalIds.slice(); // Copy
+  const coingeckoTokensAvailable = await coingeckoTokensInEth();
+  const coingeckoIds: string[] = []; // --- Here will be translated the id needed for coingecko to retrieve the right usd price later ---
   for (let i = 0; i < newIds.length; i++) {
     const knownPrice = knownTokenPrices[prefix + newIds[i]];
     if (knownPrice !== undefined) {
@@ -49,11 +73,13 @@ export async function getTokenPrices(
       newIds.splice(i, 1);
       i--;
     }
+    // --- Translate the symbols (ticker) to coingecko ID's ---
+    coingeckoIds.push(coingeckoTokensAvailable.filter((el: coingeckoTokensInEthResponseFormat) => el.symbol == newIds[i].toLocaleLowerCase())[0].id);
   }
   // The url can only contain up to 100 addresses (otherwise we'll get 'URI too large' errors)
   for (let i = 0; i < newIds.length; i += 100) {
     const tempTokenPrices = await makeCoingeckoCall(
-      `https://api.coingecko.com/api/${url}=${newIds
+      `https://api.coingecko.com/api/${url}=${coingeckoIds
         .slice(i, i + 100)
         .join(",")}&vs_currencies=usd`,
       coingeckoMaxRetries,
