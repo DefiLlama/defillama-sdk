@@ -16,11 +16,12 @@ export function sumMultiBalanceOf(
         params: string[];
       };
     }[];
-  }
+  },
+  transformAddress = (addr:string)=>addr
 ) {
   results.output.map((result) => {
     if (result.success) {
-      const address = result.input.target;
+      const address = transformAddress(result.input.target);
       const balance = result.output;
 
       if (BigNumber.from(balance).lte(0)) {

@@ -29,10 +29,10 @@ async function getChainBlocks(timestamp: number) {
 }
 
 export async function getBlocks(timestamp: number) {
-  const ethBlock = lookupBlock(timestamp);
-  const chainBlocks = await getChainBlocks(timestamp);
+  const [ethBlock, chainBlocks] = await Promise.all([lookupBlock(timestamp), getChainBlocks(timestamp)]);
+  chainBlocks['ethereum'] = ethBlock.block;
   return {
-    ethereumBlock: (await ethBlock).block,
+    ethereumBlock: ethBlock.block,
     chainBlocks,
   };
 }
@@ -42,6 +42,7 @@ export async function getCurrentBlocks() {
   const lastBlockNumber = await provider.getBlockNumber();
   const block = await provider.getBlock(lastBlockNumber - 5); // To allow indexers to catch up
   const chainBlocks = await getChainBlocks(block.timestamp);
+  chainBlocks['ethereum'] = block.number;
   return {
     timestamp: block.timestamp,
     ethereumBlock: block.number,
