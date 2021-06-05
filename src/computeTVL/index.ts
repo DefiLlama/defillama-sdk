@@ -35,7 +35,7 @@ function addTokenBalance(
   balances[symbol] = (balances[symbol] || 0) + amount;
 }
 
-type ChainOrCoingecko = "bsc" | "ethereum" | "coingecko" | "polygon" | 'avax' | 'fantom' | 'xdai';
+type ChainOrCoingecko = "bsc" | "ethereum" | "coingecko" | "polygon" | 'avax' | 'fantom' | 'xdai' | 'heco' | 'okexchain';
 const historicalCoingeckoUrls = {
   coingecko: "https://api.coingecko.com/api/v3/coins",
   bsc: "https://api.coingecko.com/api/v3/coins/binance-smart-chain/contract",
@@ -44,6 +44,8 @@ const historicalCoingeckoUrls = {
   avax: "https://api.coingecko.com/api/v3/coins/Avalanche/contract",
   fantom: "https://api.coingecko.com/api/v3/coins/fantom/contract",
   xdai: "https://api.coingecko.com/api/v3/coins/xdai/contract",
+  heco: "https://api.coingecko.com/api/v3/coins/huobi-token/contract",
+  okexchain: "https://api.coingecko.com/api/v3/coins/okex-chain/contract",
 };
 
 const currentCoingeckoUrls = {
@@ -54,9 +56,11 @@ const currentCoingeckoUrls = {
   avax: "v3/simple/token_price/Avalanche?contract_addresses",
   fantom: "v3/simple/token_price/fantom?contract_addresses",
   xdai: "v3/simple/token_price/xdai?contract_addresses",
+  heco: "v3/simple/token_price/huobi-token?contract_addresses",
+  okexchain: "v3/simple/token_price/okex-chain?contract_addresses",
 };
 
-const chains = ["bsc", "ethereum", "polygon", "avax", "fantom", "xdai"] as ChainOrCoingecko[];
+const chains = ["bsc", "ethereum", "polygon", "avax", "fantom", "xdai", "heco", "okexchain"] as ChainOrCoingecko[];
 
 async function getChainPrices(
   ids: {
