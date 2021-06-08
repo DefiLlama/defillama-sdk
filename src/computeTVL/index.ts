@@ -1,6 +1,7 @@
 import { StringNumber, Address } from "../types";
 import { multiCall } from "../abi";
 import { humanizeNumber } from "./humanizeNumber";
+import {BigNumber} from 'ethers'
 import {
   getTokenPrices,
   getHistoricalTokenPrices,
@@ -179,7 +180,8 @@ export default async function (
         normalizedAddressOrName
       ] = (normalizedBalance as any).toFixed(); // Some adapters return a BigNumber from bignumber.js so the results must be normalized
     } else {
-      normalizedBalances[normalizedAddressOrName] = normalizedBalance;
+      const prevBalance = BigNumber.from(normalizedBalances[normalizedAddressOrName] ?? '0')
+      normalizedBalances[normalizedAddressOrName] = BigNumber.from(normalizedBalance).add(prevBalance).toString();
     }
     if (normalizedAddressOrName.startsWith("0x")) {
       chainIds.ethereum.push(normalizedAddressOrName)

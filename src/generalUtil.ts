@@ -17,6 +17,7 @@ export function sumMultiBalanceOf(
       };
     }[];
   },
+  allCallsMustBeSuccessful = false,
   transformAddress = (addr:string)=>addr
 ) {
   results.output.map((result) => {
@@ -31,6 +32,9 @@ export function sumMultiBalanceOf(
       balances[address] = BigNumber.from(balances[address] ?? 0)
         .add(balance)
         .toString();
+    } else if(allCallsMustBeSuccessful){
+      console.error(result)
+      throw new Error(`balanceOf multicall failed`)
     }
   });
 }
