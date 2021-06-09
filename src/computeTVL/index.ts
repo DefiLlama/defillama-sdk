@@ -8,6 +8,8 @@ import {
   TokenPrices,
   GetCoingeckoLog,
 } from "./prices";
+import {sumSingleBalance} from '../generalUtil'
+import {Balances as NormalizedBalances} from '../types'
 
 type Balances = {
   [tokenAddressOrName: string]: StringNumber | Object;
@@ -168,7 +170,7 @@ export default async function (
     chainIds[chain] = [];
   }
 
-  const normalizedBalances = {} as Balances;
+  const normalizedBalances = {} as NormalizedBalances;
   for (const tokenAddressOrName of Object.keys(balances)) {
     let normalizedAddressOrName = tokenAddressOrName;
     let normalizedBalance = balances[tokenAddressOrName];
@@ -180,8 +182,7 @@ export default async function (
         normalizedAddressOrName
       ] = (normalizedBalance as any).toFixed(); // Some adapters return a BigNumber from bignumber.js so the results must be normalized
     } else {
-      const prevBalance = BigNumber.from(normalizedBalances[normalizedAddressOrName] ?? '0')
-      normalizedBalances[normalizedAddressOrName] = BigNumber.from(normalizedBalance).add(prevBalance).toString();
+      sumSingleBalance(normalizedBalances, normalizedAddressOrName, normalizedBalance)
     }
     if (normalizedAddressOrName.startsWith("0x")) {
       chainIds.ethereum.push(normalizedAddressOrName)
