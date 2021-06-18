@@ -273,19 +273,19 @@ export default async function (
       }
     }
   );
-  if (verbose) {
-    (await Promise.all(usdAmounts))
-      .sort((a, b) => b.usdAmount - a.usdAmount)
-      .map((token) => {
-        console.log(
-          token.tokenSymbol.padEnd(25, " "),
-          humanizeNumber(token.usdAmount)
-        );
-      });
-  }
   const usdTvl = (await Promise.all(usdAmounts)).reduce((sum, token) => {
     return sum + token.usdAmount;
   }, 0);
+  if (verbose) {
+    Object.entries(usdTokenBalances)
+      .sort((a, b) => b[1] - a[1])
+      .map((token) => {
+        console.log(
+          token[0].padEnd(25, " "),
+          humanizeNumber(token[1])
+        );
+      });
+  }
   return {
     usdTvl,
     usdTokenBalances,
