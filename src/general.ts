@@ -31,7 +31,7 @@ const providers = {
     }
   ),
   fantom: new ethers.providers.StaticJsonRpcProvider(
-    process.env.FANTOM_RPC ?? "https://rpcapi.fantom.network",
+    process.env.FANTOM_RPC ?? "https://rpc.ftm.tools/",
     {
       name: "fantom",
       chainId: 250,

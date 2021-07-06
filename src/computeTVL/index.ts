@@ -1,12 +1,12 @@
 import { StringNumber, Address } from "../types";
 import { multiCall } from "../abi";
 import { humanizeNumber } from "./humanizeNumber";
-import {BigNumber} from 'ethers'
 import {
   getTokenPrices,
   getHistoricalTokenPrices,
   TokenPrices,
   GetCoingeckoLog,
+  makeCoingeckoCall
 } from "./prices";
 import {sumSingleBalance} from '../generalUtil'
 import {Balances as NormalizedBalances} from '../types'
@@ -27,7 +27,7 @@ function tokenMulticall(addresses: Address[], abi: string, chain?: string) {
       params: [],
     })),
     chain: chain as any,
-  }).then((res) => res.output.filter((call) => call.success));
+  })
 }
 
 function addTokenBalance(
@@ -39,29 +39,38 @@ function addTokenBalance(
 }
 
 type ChainOrCoingecko = "bsc" | "ethereum" | "coingecko" | "polygon" | 'avax' | 'fantom' | 'xdai' | 'heco' | 'okexchain';
-const historicalCoingeckoUrls = {
-  coingecko: "https://api.coingecko.com/api/v3/coins",
-  bsc: "https://api.coingecko.com/api/v3/coins/binance-smart-chain/contract",
-  ethereum: "https://api.coingecko.com/api/v3/coins/ethereum/contract",
-  polygon: "https://api.coingecko.com/api/v3/coins/polygon-pos/contract",
-  avax: "https://api.coingecko.com/api/v3/coins/Avalanche/contract",
-  fantom: "https://api.coingecko.com/api/v3/coins/fantom/contract",
-  xdai: "https://api.coingecko.com/api/v3/coins/xdai/contract",
-  heco: "https://api.coingecko.com/api/v3/coins/huobi-token/contract",
-  okexchain: "https://api.coingecko.com/api/v3/coins/okex-chain/contract",
-};
+function historicalCoingeckoUrls(chain:ChainOrCoingecko){
+  if(chain === 'coingecko'){
+    return "https://api.coingecko.com/api/v3/coins"
+  }
+  const platformId = chainToCoingeckoId[chain]
+  if(platformId!== undefined){
+    return `https://api.coingecko.com/api/v3/coins/${platformId}/contract`
+  }
+  throw new Error("Chain not supported")
+}
 
-const currentCoingeckoUrls = {
-  coingecko: "v3/simple/price?ids",
-  bsc: "v3/simple/token_price/binance-smart-chain?contract_addresses",
-  ethereum: "v3/simple/token_price/ethereum?contract_addresses",
-  polygon: "v3/simple/token_price/polygon-pos?contract_addresses",
-  avax: "v3/simple/token_price/Avalanche?contract_addresses",
-  fantom: "v3/simple/token_price/fantom?contract_addresses",
-  xdai: "v3/simple/token_price/xdai?contract_addresses",
-  heco: "v3/simple/token_price/huobi-token?contract_addresses",
-  okexchain: "v3/simple/token_price/okex-chain?contract_addresses",
-};
+const chainToCoingeckoId = {
+  bsc: "binance-smart-chain",
+  ethereum: "ethereum",
+  polygon: "polygon-pos",
+  avax: "Avalanche",
+  fantom: "fantom",
+  xdai: "xdai",
+  heco: "huobi-token",
+  okexchain: "okex-chain",
+}
+
+function currentCoingeckoUrls(chain:ChainOrCoingecko){
+  if(chain === 'coingecko'){
+    return "v3/simple/price?ids"
+  }
+  const platformId = chainToCoingeckoId[chain]
+  if(platformId!== undefined){
+    return `v3/simple/token_price/${platformId}?contract_addresses`
+  }
+  throw new Error("Chain not supported")
+}
 
 const chains = ["bsc", "ethereum", "polygon", "avax", "fantom", "xdai", "heco", "okexchain"] as ChainOrCoingecko[];
 
@@ -84,7 +93,7 @@ async function getChainPrices(
       if (timestamp === "now") {
         chainPrices[chain] = await getTokenPrices(
           ids[chain],
-          currentCoingeckoUrls[chain as ChainOrCoingecko],
+          currentCoingeckoUrls(chain as ChainOrCoingecko),
           knownTokenPrices,
           getCoingeckoLock,
           coingeckoMaxRetries
@@ -92,7 +101,7 @@ async function getChainPrices(
       } else {
         chainPrices[chain] = await getHistoricalTokenPrices(
           ids[chain],
-          historicalCoingeckoUrls[chain as ChainOrCoingecko],
+          historicalCoingeckoUrls(chain as ChainOrCoingecko),
           timestamp,
           getCoingeckoLock,
           coingeckoMaxRetries
@@ -106,20 +115,31 @@ async function getChainPrices(
 type ChainResults = {
   [chain: string]: Promise<any[]>;
 };
-function getChainSymbolsAndDecimals(ids: { [chain: string]: string[] }) {
+function getChainSymbolsAndDecimals(ids: { [chain: string]: string[] }, getCoingeckoLock: GetCoingeckoLog, coingeckoMaxRetries: number) {
   const allChainTokenDecimals = {} as ChainResults;
   const allChainTokenSymbols = {} as ChainResults;
+  const coingeckoList = makeCoingeckoCall('https://api.coingecko.com/api/v3/coins/list?include_platform=true', coingeckoMaxRetries, getCoingeckoLock)
   for (const chain of chains) {
     allChainTokenDecimals[chain] = tokenMulticall(
       ids[chain],
       "erc20:decimals",
       chain
-    );
+    ).then((res) => res.output.filter((call) => call.success));
     allChainTokenSymbols[chain] = tokenMulticall(
       ids[chain],
       "erc20:symbol",
       chain
-    );
+    ).then(async symbols=>{
+      const resolvedCoingeckoList = await coingeckoList
+      return symbols.output.map(result=>{
+        const coingeckoItem = resolvedCoingeckoList.find((item:any)=>item.platforms?.[(chainToCoingeckoId as any)[chain]]?.toLowerCase() === result.input.target.toLowerCase())
+        console.log(result, coingeckoItem)
+        if(coingeckoItem !== undefined){
+          result.output = coingeckoItem.symbol.toUpperCase()
+        }
+        return result
+      })
+    });
   }
   return { allChainTokenDecimals, allChainTokenSymbols };
 }
@@ -197,7 +217,7 @@ export default async function (
   const {
     allChainTokenDecimals,
     allChainTokenSymbols,
-  } = getChainSymbolsAndDecimals(chainIds);
+  } = getChainSymbolsAndDecimals(chainIds, getCoingeckoLock, coingeckoMaxRetries);
   const allChainTokenPrices = await getChainPrices(
     chainIds,
     timestamp,
@@ -227,7 +247,7 @@ export default async function (
           tokenSymbol = (await chainTokenSymbols).find(
             (call) => call.input.target === normalizedAddress
           )?.output;
-          if (tokenSymbol === undefined) {
+          if (tokenSymbol === undefined || tokenSymbol === null) {
             tokenSymbol = `UNKNOWN (${address})`;
           }
           const tokenDecimals = (await chainTokenDecimals).find(

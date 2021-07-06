@@ -14,7 +14,7 @@ export interface TokenPrices {
 
 export type GetCoingeckoLog = () => Promise<any>;
 
-async function makeCoingeckoCall(
+export async function makeCoingeckoCall(
   url: string,
   coingeckoMaxRetries: number,
   getCoingeckoLock: GetCoingeckoLog
