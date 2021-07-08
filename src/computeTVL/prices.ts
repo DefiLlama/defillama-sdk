@@ -78,7 +78,7 @@ export async function getHistoricalTokenPrices(
   const tokenPrices = {} as TokenPrices;
   for (const id of ids) {
     const range = await makeCoingeckoCall(
-      `${url}/${id}/market_chart/range?vs_currency=usd&from=${
+      `${url}/${id.toLowerCase()}/market_chart/range?vs_currency=usd&from=${
         timestamp - secondsPerHalfDay
       }&to=${timestamp + secondsPerHalfDay}`,
       coingeckoMaxRetries,
