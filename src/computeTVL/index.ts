@@ -133,7 +133,6 @@ function getChainSymbolsAndDecimals(ids: { [chain: string]: string[] }, getCoing
       const resolvedCoingeckoList = await coingeckoList
       return symbols.output.map(result=>{
         const coingeckoItem = resolvedCoingeckoList.find((item:any)=>item.platforms?.[(chainToCoingeckoId as any)[chain]]?.toLowerCase() === result.input.target.toLowerCase())
-        console.log(result, coingeckoItem)
         if(coingeckoItem !== undefined){
           result.output = coingeckoItem.symbol.toUpperCase()
         }
