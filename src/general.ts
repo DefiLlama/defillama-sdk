@@ -93,6 +93,13 @@ const providers = {
       chainId: 66,
     }
   ),
+  optimism: new ethers.providers.StaticJsonRpcProvider(
+    process.env.OPTIMISM_RPC ?? "https://mainnet.optimism.io/",
+    {
+      name: "optimism",
+      chainId: 10,
+    }
+  ),
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
