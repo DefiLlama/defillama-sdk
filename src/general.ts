@@ -100,6 +100,13 @@ const providers = {
       chainId: 10,
     }
   ),
+  arbitrum: new ethers.providers.StaticJsonRpcProvider(
+    process.env.ARBITRUM_RPC ?? "https://arb1.arbitrum.io/rpc",
+    {
+      name: "arbitrum",
+      chainId: 42161,
+    }
+  ),
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
@@ -117,7 +124,9 @@ export type Chain =
   | "wan"
   | "harmony"
   | "thundercore"
-  | "okexchain";
+  | "okexchain"
+  | "optimism"
+  | "arbitrum";
 export function getProvider(chain: Chain = "ethereum") {
   return providers[chain];
 }
