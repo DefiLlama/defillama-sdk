@@ -6,8 +6,8 @@ import {
   getHistoricalTokenPrices,
   TokenPrices,
   GetCoingeckoLog,
-  makeCoingeckoCall
 } from "./prices";
+import fetch from "node-fetch";
 import {sumSingleBalance} from '../generalUtil'
 import {Balances as NormalizedBalances} from '../types'
 
@@ -112,35 +112,14 @@ async function getChainPrices(
   return chainPrices;
 }
 
-type ChainResults = {
-  [chain: string]: Promise<any[]>;
-};
-function getChainSymbolsAndDecimals(ids: { [chain: string]: string[] }, getCoingeckoLock: GetCoingeckoLog, coingeckoMaxRetries: number) {
-  const allChainTokenDecimals = {} as ChainResults;
-  const allChainTokenSymbols = {} as ChainResults;
-  const coingeckoList = makeCoingeckoCall('https://api.coingecko.com/api/v3/coins/list?include_platform=true', coingeckoMaxRetries, getCoingeckoLock)
-  for (const chain of chains) {
-    allChainTokenDecimals[chain] = tokenMulticall(
-      ids[chain],
-      "erc20:decimals",
-      chain
-    ).then((res) => res.output.filter((call) => call.success));
-    allChainTokenSymbols[chain] = tokenMulticall(
-      ids[chain],
-      "erc20:symbol",
-      chain
-    ).then(async symbols=>{
-      const resolvedCoingeckoList = await coingeckoList
-      return symbols.output.map(result=>{
-        const coingeckoItem = resolvedCoingeckoList.find((item:any)=>item.platforms?.[(chainToCoingeckoId as any)[chain]]?.toLowerCase() === result.input.target.toLowerCase())
-        if(coingeckoItem !== undefined){
-          result.output = coingeckoItem.symbol.toUpperCase()
-        }
-        return result
-      })
-    });
-  }
-  return { allChainTokenDecimals, allChainTokenSymbols };
+function getChainSymbolsAndDecimals(ids: { [chain: string]: string[] }) {
+  const allCoins = Object.entries(ids).map(chain=>chain[1].map(coin=>`${chain[0]}:${coin.toLowerCase()}`)).reduce((acc, coins)=>acc.concat(coins), [])
+  return fetch('https://api.llama.fi/coins', {
+    method: 'POST',
+    body: JSON.stringify({
+      coins: allCoins
+    })
+  }).then(response=>response.json())
 }
 
 export default async function (
@@ -213,10 +192,7 @@ export default async function (
     }
   }
 
-  const {
-    allChainTokenDecimals,
-    allChainTokenSymbols,
-  } = getChainSymbolsAndDecimals(chainIds, getCoingeckoLock, coingeckoMaxRetries);
+  const symbolsAndDecimals = getChainSymbolsAndDecimals(chainIds);
   const allChainTokenPrices = await getChainPrices(
     chainIds,
     timestamp,
@@ -239,19 +215,15 @@ export default async function (
               normalizedAddress = address.slice(chain.length +1);
             }
           })
-          const chainTokenSymbols = allChainTokenSymbols[chainSelector];
-          const chainTokenDecimals = allChainTokenDecimals[chainSelector];
           const chainTokenPrices = allChainTokenPrices[chainSelector];
+          const chainAddress = `${chainSelector}:${normalizedAddress.toLowerCase()}`
+          const coinData = (await symbolsAndDecimals).find((coin:any)=>coin.coin === chainAddress)
 
-          tokenSymbol = (await chainTokenSymbols).find(
-            (call) => call.input.target === normalizedAddress
-          )?.output;
+          tokenSymbol = coinData?.symbol?.toUpperCase()
           if (tokenSymbol === undefined || tokenSymbol === null) {
             tokenSymbol = `UNKNOWN (${address})`;
           }
-          const tokenDecimals = (await chainTokenDecimals).find(
-            (call) => call.input.target === normalizedAddress
-          )?.output;
+          const tokenDecimals = coinData?.decimals
           if (tokenDecimals === undefined) {
             if (verbose) {
               console.warn(
