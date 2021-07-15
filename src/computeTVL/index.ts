@@ -113,11 +113,16 @@ async function getChainPrices(
 }
 
 function getChainSymbolsAndDecimals(ids: { [chain: string]: string[] }) {
-  const allCoins = Object.entries(ids).map(chain=>chain[1].map(coin=>`${chain[0]}:${coin.toLowerCase()}`)).reduce((acc, coins)=>acc.concat(coins), [])
+  const allCoins = Object.entries(ids).map(chain=>chain[1].map(coin=>`${chain[0]}:${coin.toLowerCase()}`)).reduce((acc, coins)=>{
+    coins.forEach(coin=>{
+      acc.add(coin)
+    })
+    return acc
+  }, new Set([] as string[]))
   return fetch('https://api.llama.fi/coins', {
     method: 'POST',
     body: JSON.stringify({
-      coins: allCoins
+      coins: Array.from(allCoins)
     })
   }).then(response=>response.json())
 }
