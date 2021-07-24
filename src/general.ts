@@ -3,7 +3,7 @@ import { ethers, BigNumber } from "ethers";
 const providers = {
   ethereum: new ethers.providers.StaticJsonRpcProvider(
     process.env.ETHEREUM_RPC ??
-      "https://eth-mainnet.alchemyapi.io/v2/50pap1Pw6npcNypxG15YCjj4W_K5kb3Z",
+      "https://eth-mainnet.gateway.pokt.network/v1/5f3453978e354ab992c4da79",
     {
       name: "ethereum",
       chainId: 1,
