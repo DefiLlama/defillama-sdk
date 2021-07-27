@@ -27,34 +27,39 @@ export async function lookupBlock(
     chain?: Chain | "terra";
   } = {}
 ) {
-  const provider =
-    extraParams.chain === "terra"
-      ? terraBlockProvider
-      : getProvider(extraParams.chain);
-  const lastBlock = await provider.getBlock("latest");
-  if (Math.abs(lastBlock.timestamp - timestamp) < 60) {
-    // Short-circuit in case we are trying to get the current block
-    return {
-      block: lastBlock.number,
-      timestamp: lastBlock.timestamp,
-    };
-  }
-  let high = lastBlock.number;
-  let low = 0;
-  let block: TimestampBlock;
-  do {
-    const mid = Math.floor((high + low) / 2);
-    block = await provider.getBlock(mid);
-    if (block.timestamp < timestamp) {
-      low = mid + 1;
-    } else {
-      high = mid - 1;
+  try {
+    const provider =
+      extraParams.chain === "terra"
+        ? terraBlockProvider
+        : getProvider(extraParams.chain);
+    const lastBlock = await provider.getBlock("latest");
+    if (Math.abs(lastBlock.timestamp - timestamp) < 60) {
+      // Short-circuit in case we are trying to get the current block
+      return {
+        block: lastBlock.number,
+        timestamp: lastBlock.timestamp,
+      };
     }
-  } while (high - low > 4); // We lose some precision (~4 blocks) but reduce #calls needed
-  return {
-    block: block.number,
-    timestamp: block.timestamp,
-  };
+    let high = lastBlock.number;
+    let low = 0;
+    let block: TimestampBlock;
+    do {
+      const mid = Math.floor((high + low) / 2);
+      block = await provider.getBlock(mid);
+      if (block.timestamp < timestamp) {
+        low = mid + 1;
+      } else {
+        high = mid - 1;
+      }
+    } while (high - low > 4); // We lose some precision (~4 blocks) but reduce #calls needed
+    return {
+      block: block.number,
+      timestamp: block.timestamp,
+    };
+  } catch (e) {
+    console.log(e)
+    throw new Error(`Couldn't find block height for chain ${extraParams.chain ?? 'ethereum'}, RPC node rugged`)
+  }
 }
 
 // TODO: Pull the data from somewhere like coingecko
