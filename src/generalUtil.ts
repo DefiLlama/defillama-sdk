@@ -17,7 +17,7 @@ export function sumMultiBalanceOf(
       };
     }[];
   },
-  allCallsMustBeSuccessful = false,
+  allCallsMustBeSuccessful = true,
   transformAddress = (addr:string)=>addr
 ) {
   results.output.map((result) => {
