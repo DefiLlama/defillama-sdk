@@ -33,6 +33,9 @@ export async function lookupBlock(
         ? terraBlockProvider
         : getProvider(extraParams.chain);
     const lastBlock = await provider.getBlock("latest");
+    if((lastBlock.timestamp - timestamp)<-30*60){
+      throw new Error(`Last block of chain "${extraParams.chain}" is further than 30 minutes into the past. Provider is "${(provider as any)?.connection?.url}"`)
+    }
     if (Math.abs(lastBlock.timestamp - timestamp) < 60) {
       // Short-circuit in case we are trying to get the current block
       return {
