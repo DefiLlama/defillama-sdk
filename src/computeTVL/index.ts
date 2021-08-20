@@ -50,11 +50,11 @@ function historicalCoingeckoUrls(chain:ChainOrCoingecko){
   throw new Error("Chain not supported")
 }
 
-const chainToCoingeckoId = {
+export const chainToCoingeckoId = {
   bsc: "binance-smart-chain",
   ethereum: "ethereum",
   polygon: "polygon-pos",
-  avax: "Avalanche",
+  avax: "avalanche",
   fantom: "fantom",
   xdai: "xdai",
   heco: "huobi-token",
