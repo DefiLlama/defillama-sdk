@@ -32,6 +32,7 @@ const providers = {
   okexchain: createProvider("okexchain", "https://exchainrpc.okex.org", 66),
   optimism: createProvider( "optimism", "https://mainnet.optimism.io/",10),
   arbitrum: createProvider("arbitrum", "https://arb1.arbitrum.io/rpc", 42161),
+  kcc: createProvider("kcc", "https://rpc-mainnet.kcc.network", 321),
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
