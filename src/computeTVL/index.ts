@@ -74,7 +74,7 @@ function currentCoingeckoUrls(chain:ChainOrCoingecko){
   throw new Error("Chain not supported")
 }
 
-const chains = ["bsc", "ethereum", "polygon", "avax", "fantom", "xdai", "heco", "okexchain"] as ChainOrCoingecko[];
+const chains = Object.keys(chainToCoingeckoId) as ChainOrCoingecko[];
 
 async function getChainPrices(
   ids: {
