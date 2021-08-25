@@ -1,36 +1,30 @@
 import { ethers, BigNumber } from "ethers";
 
 function createProvider(name: string, defaultRpc: string, chainId: number) {
-  return new ethers.providers.FallbackProvider(
-    (process.env[name.toUpperCase() + "_RPC"] ?? defaultRpc).split(',').map((url, i) => ({
-      provider: new ethers.providers.StaticJsonRpcProvider(
-        url,
-        {
-          name,
-          chainId,
-        }
-      ),
-      priority: i
-    })),
-    1
+  return new ethers.providers.StaticJsonRpcProvider(
+    process.env[name.toUpperCase() + "_RPC"]?.[0] ?? defaultRpc,
+    {
+      name,
+      chainId,
+    }
   )
 }
 
 const providers = {
   ethereum: createProvider("ethereum", "https://eth-mainnet.gateway.pokt.network/v1/5f3453978e354ab992c4da79", 1),
-  bsc: createProvider("bsc","https://bsc-dataseed.binance.org/",56),
-  polygon: createProvider( "polygon","https://rpc-mainnet.maticvigil.com/",137),
+  bsc: createProvider("bsc", "https://bsc-dataseed.binance.org/", 56),
+  polygon: createProvider("polygon", "https://rpc-mainnet.maticvigil.com/", 137),
   heco: createProvider("heco", "https://http-mainnet.hecochain.com", 128),
   fantom: createProvider("fantom", "https://rpcapi.fantom.network", 250),
   rsk: createProvider("rsk", "https://public-node.rsk.co", 30),
   tomochain: createProvider("tomochain", "https://rpc.tomochain.com", 88),
   xdai: createProvider("xdai", "https://xdai.poanetwork.dev", 100),
-  avax: createProvider("avax","https://api.avax.network/ext/bc/C/rpc",43114),
+  avax: createProvider("avax", "https://api.avax.network/ext/bc/C/rpc", 43114),
   wan: createProvider("wan", "https://gwan-ssl.wandevs.org:56891", 888),
   harmony: createProvider("harmony", "https://api.s0.t.hmny.io", 1666600000),
   thundercore: createProvider("thundercore", "https://mainnet-rpc.thundercore.com", 108),
   okexchain: createProvider("okexchain", "https://exchainrpc.okex.org", 66),
-  optimism: createProvider( "optimism", "https://mainnet.optimism.io/",10),
+  optimism: createProvider("optimism", "https://mainnet.optimism.io/", 10),
   arbitrum: createProvider("arbitrum", "https://arb1.arbitrum.io/rpc", 42161),
   kcc: createProvider("kcc", "https://rpc-mainnet.kcc.network", 321),
 } as {
