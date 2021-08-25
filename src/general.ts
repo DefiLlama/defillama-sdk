@@ -2,7 +2,7 @@ import { ethers, BigNumber } from "ethers";
 
 function createProvider(name: string, defaultRpc: string, chainId: number) {
   return new ethers.providers.StaticJsonRpcProvider(
-    process.env[name.toUpperCase() + "_RPC"]?.[0] ?? defaultRpc,
+    process.env[name.toUpperCase() + "_RPC"]?.split(',')[0] ?? defaultRpc,
     {
       name,
       chainId,
