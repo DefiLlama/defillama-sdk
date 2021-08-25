@@ -22,7 +22,7 @@
     "build"
   ],
   "dependencies": {
-    "ethers": "^5.0.32",
+    "ethers": "^5.4.5",
     "graphql": "^15.5.0",
     "graphql-request": "^3.4.0",
     "lodash": "^4.17.21",
