@@ -1,13 +1,32 @@
 import { ethers, BigNumber } from "ethers";
 
 function createProvider(name: string, defaultRpc: string, chainId: number) {
-  return new ethers.providers.StaticJsonRpcProvider(
-    process.env[name.toUpperCase() + "_RPC"]?.split(',')[0] ?? defaultRpc,
-    {
-      name,
-      chainId,
+  if (process.env.HISTORICAL) {
+    if(chainId === 1){
+      console.log("RPC providers set to historical, only the first RPC provider will be used")
     }
-  )
+    return new ethers.providers.StaticJsonRpcProvider(
+      process.env[name.toUpperCase() + "_RPC"]?.split(',')[0] ?? defaultRpc,
+      {
+        name,
+        chainId,
+      }
+    )
+  } else {
+    return new ethers.providers.FallbackProvider(
+      (process.env[name.toUpperCase() + "_RPC"] ?? defaultRpc).split(',').map((url, i) => ({
+        provider: new ethers.providers.StaticJsonRpcProvider(
+          url,
+          {
+            name,
+            chainId,
+          }
+        ),
+        priority: i
+      })),
+      1
+    )
+  }
 }
 
 const providers = {
@@ -27,6 +46,7 @@ const providers = {
   optimism: createProvider("optimism", "https://mainnet.optimism.io/", 10),
   arbitrum: createProvider("arbitrum", "https://arb1.arbitrum.io/rpc", 42161),
   kcc: createProvider("kcc", "https://rpc-mainnet.kcc.network", 321),
+  celo: createProvider("celo", "https://forno.celo.org", 42220),
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
