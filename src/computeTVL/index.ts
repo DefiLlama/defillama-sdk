@@ -60,7 +60,8 @@ export const chainToCoingeckoId = {
   heco: "huobi-token",
   okexchain: "okex-chain",
   harmony: "harmony-shard-0",
-  kcc: "kucoin-community-chain"
+  kcc: "kucoin-community-chain",
+  celo: "celo"
 }
 
 function currentCoingeckoUrls(chain:ChainOrCoingecko){
