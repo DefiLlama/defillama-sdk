@@ -47,6 +47,7 @@ const providers = {
   arbitrum: createProvider("arbitrum", "https://arb1.arbitrum.io/rpc", 42161),
   kcc: createProvider("kcc", "https://rpc-mainnet.kcc.network", 321),
   celo: createProvider("celo", "https://forno.celo.org", 42220),
+  iotex: createProvider("iotex", "https://babel-api.mainnet.iotex.io", 4689),
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
@@ -62,6 +63,7 @@ export type Chain =
   | "xdai"
   | "avax"
   | "wan"
+  | "iotex"
   | "harmony"
   | "thundercore"
   | "okexchain"
