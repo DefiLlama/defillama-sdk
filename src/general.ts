@@ -48,6 +48,7 @@ const providers = {
   kcc: createProvider("kcc", "https://rpc-mainnet.kcc.network", 321),
   celo: createProvider("celo", "https://forno.celo.org", 42220),
   iotex: createProvider("iotex", "https://babel-api.mainnet.iotex.io", 4689),
+  moonriver: createProvider("moonriver", "https://rpc.moonriver.moonbeam.network/", 1285),
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
