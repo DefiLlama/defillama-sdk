@@ -49,6 +49,7 @@ const providers = {
   celo: createProvider("celo", "https://forno.celo.org", 42220),
   iotex: createProvider("iotex", "https://babel-api.mainnet.iotex.io", 4689),
   moonriver: createProvider("moonriver", "https://rpc.moonriver.moonbeam.network/", 1285),
+  palm: createProvider("palm", "https://palm-mainnet.infura.io/v3/3a961d6501e54add9a41aa53f15de99b", 11297108109),
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
