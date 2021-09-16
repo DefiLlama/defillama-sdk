@@ -30,17 +30,18 @@ function createProvider(name: string, defaultRpc: string, chainId: number) {
 }
 
 const providers = {
-  ethereum: createProvider("ethereum", "https://eth-mainnet.gateway.pokt.network/v1/5f3453978e354ab992c4da79", 1),
-  bsc: createProvider("bsc", "https://bsc-dataseed.binance.org/", 56),
-  polygon: createProvider("polygon", "https://rpc-mainnet.maticvigil.com/", 137),
-  heco: createProvider("heco", "https://http-mainnet.hecochain.com", 128),
-  fantom: createProvider("fantom", "https://rpcapi.fantom.network", 250),
+  // https://ethereumnodes.com/
+  ethereum: createProvider("ethereum", "https://eth-mainnet.gateway.pokt.network/v1/5f3453978e354ab992c4da79,https://cloudflare-eth.com/,https://main-light.eth.linkpool.io/,https://api.mycryptoapi.com/eth", 1),
+  bsc: createProvider("bsc", "https://bsc-dataseed.binance.org/,https://bsc-dataseed1.defibit.io/,https://bsc-dataseed1.ninicoin.io/,https://bsc-dataseed2.defibit.io/,https://bsc-dataseed2.ninicoin.io/", 56),
+  polygon: createProvider("polygon", "https://polygon-rpc.com/,https://rpc-mainnet.maticvigil.com/", 137),
+  heco: createProvider("heco", "https://http-mainnet.hecochain.com,https://http-mainnet-node.huobichain.com,https://pub001.hg.network/rpc", 128),
+  fantom: createProvider("fantom", "https://rpc.ftm.tools/,https://rpcapi.fantom.network", 250),
   rsk: createProvider("rsk", "https://public-node.rsk.co", 30),
   tomochain: createProvider("tomochain", "https://rpc.tomochain.com", 88),
-  xdai: createProvider("xdai", "https://xdai.poanetwork.dev", 100),
+  xdai: createProvider("xdai", "https://rpc.xdaichain.com/,https://xdai.poanetwork.dev,https://dai.poa.network,https://xdai-archive.blockscout.com", 100),
   avax: createProvider("avax", "https://api.avax.network/ext/bc/C/rpc", 43114),
   wan: createProvider("wan", "https://gwan-ssl.wandevs.org:56891", 888),
-  harmony: createProvider("harmony", "https://api.s0.t.hmny.io", 1666600000),
+  harmony: createProvider("harmony", "https://api.harmony.one,https://api.s0.t.hmny.io", 1666600000),
   thundercore: createProvider("thundercore", "https://mainnet-rpc.thundercore.com", 108),
   okexchain: createProvider("okexchain", "https://exchainrpc.okex.org", 66),
   optimism: createProvider("optimism", "https://mainnet.optimism.io/", 10),
