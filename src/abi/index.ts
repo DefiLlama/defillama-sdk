@@ -94,7 +94,7 @@ export async function multiCall(params: {
       params.chain ?? "ethereum",
       params.block
     ).then((partialCalls) => {
-      result[i] = partialCalls;
+      result[i/500] = partialCalls;
     });
     multicallCalls.push(pendingResult);
     if (i % 20000) {
@@ -104,6 +104,6 @@ export async function multiCall(params: {
   }
   await Promise.all(multicallCalls);
   return {
-    output: [].concat.apply([], result) as any[],
+    output: [].concat.apply([], result) as any[], // flatten array
   };
 }
