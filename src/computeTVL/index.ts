@@ -61,7 +61,8 @@ export const chainToCoingeckoId = {
   okexchain: "okex-chain",
   harmony: "harmony-shard-0",
   kcc: "kucoin-community-chain",
-  celo: "celo"
+  celo: "celo",
+  arbitrum: "arbitrum-one",
 }
 
 function currentCoingeckoUrls(chain:ChainOrCoingecko){
@@ -233,11 +234,6 @@ export default async function (
           }
           const tokenDecimals = coinData?.decimals
           if (tokenDecimals === undefined) {
-            if (verbose) {
-              console.warn(
-                `Couldn't query decimals() for token ${tokenSymbol} (${address}) so we'll ignore and assume it's amount is 0`
-              );
-            }
             amount = 0;
           } else {
             amount = Number(balance) / 10 ** Number(tokenDecimals);
@@ -251,7 +247,7 @@ export default async function (
         if (price === undefined) {
           if (verbose) {
             console.log(
-              `Couldn't find the price of token at ${address}, assuming a price of 0 for it...`
+              `Token ${address} is not on coingecko, it'll be ignored`
             );
           }
           price = 0;
