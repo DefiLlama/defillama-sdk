@@ -21,6 +21,14 @@ const terraBlockProvider = {
       })),
 };
 
+async function getBlock(provider: typeof terraBlockProvider, height: number | "latest", chain:string|undefined){
+  const block = await provider.getBlock(height)
+  if(block === null){
+    throw new Error(`Can't get block of chain ${chain ?? 'ethereum'}`)
+  }
+  return block
+}
+
 export async function lookupBlock(
   timestamp: number,
   extraParams: {
@@ -32,7 +40,7 @@ export async function lookupBlock(
       extraParams.chain === "terra"
         ? terraBlockProvider
         : getProvider(extraParams.chain);
-    const lastBlock = await provider.getBlock("latest");
+    const lastBlock = await getBlock(provider, "latest", extraParams.chain);
     if((lastBlock.timestamp - timestamp)<-30*60){
       throw new Error(`Last block of chain "${extraParams.chain}" is further than 30 minutes into the past. Provider is "${(provider as any)?.connection?.url}"`)
     }
@@ -48,7 +56,7 @@ export async function lookupBlock(
     let block: TimestampBlock;
     do {
       const mid = Math.floor((high + low) / 2);
-      block = await provider.getBlock(mid);
+      block = await getBlock(provider, mid, extraParams.chain);
       if (block.timestamp < timestamp) {
         low = mid + 1;
       } else {
