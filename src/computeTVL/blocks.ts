@@ -2,7 +2,7 @@ import { getProvider } from "../general";
 import { lookupBlock } from "../util/index";
 import type { Chain } from "../general";
 
-const chainsForBlocks = ["avax", "bsc", "polygon", "xdai", "fantom"] as Chain[];
+const chainsForBlocks = ["avax", "bsc", "polygon", "xdai", "fantom", "arbitrum"] as Chain[];
 const blockRetries = 5;
 
 async function getChainBlocks(timestamp: number) {
