@@ -55,7 +55,8 @@ const providers = {
   songbird: createProvider("songbird", "https://songbird.towolabs.com/rpc", 19),
   hpb: createProvider("hpb", "https://hpbnode.com", 269),
   gochain: createProvider("gochain", "https://rpc.gochain.io", 60),
-  ethereumclassic: createProvider("ethereumclassic", "https://blockscout.com/etc/mainnet/api/eth-rpc,https://www.ethercluster.com/etc", 61),
+  ethclassic: createProvider("ethclassic", "https://blockscout.com/etc/mainnet/api/eth-rpc,https://www.ethercluster.com/etc", 61),
+  aox: createProvider("aox", "https://arbitrum.xdaichain.com", 200),
   
 } as {
   [chain: string]: ethers.providers.BaseProvider;
@@ -82,7 +83,8 @@ export type Chain =
   | "songbird";
   | "hpb";
   | "gochain";
-  | "ethereumclassic";
+  | "ethclassic";
+  | "aox";
 export function getProvider(chain: Chain = "ethereum") {
   return providers[chain];
 }
