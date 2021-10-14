@@ -56,7 +56,7 @@ const providers = {
   hpb: createProvider("hpb", "https://hpbnode.com", 269),
   gochain: createProvider("gochain", "https://rpc.gochain.io", 60),
   ethclassic: createProvider("ethclassic", "https://blockscout.com/etc/mainnet/api/eth-rpc,https://www.ethercluster.com/etc", 61),
-  aox: createProvider("aox", "https://arbitrum.xdaichain.com", 200),
+  xdaiarb: createProvider("xdaiarb", "https://arbitrum.xdaichain.com", 200),
   
 } as {
   [chain: string]: ethers.providers.BaseProvider;
@@ -78,13 +78,13 @@ export type Chain =
   | "thundercore"
   | "okexchain"
   | "optimism"
-  | "arbitrum";
-  | "energyweb";
-  | "songbird";
-  | "hpb";
-  | "gochain";
-  | "ethclassic";
-  | "aox";
+  | "arbitrum"
+  | "energyweb"
+  | "songbird"
+  | "hpb"
+  | "gochain"
+  | "ethclassic"
+  | "xdaiarb"
 export function getProvider(chain: Chain = "ethereum") {
   return providers[chain];
 }
