@@ -52,6 +52,11 @@ const providers = {
   moonriver: createProvider("moonriver", "https://rpc.moonriver.moonbeam.network/", 1285),
   palm: createProvider("palm", "https://palm-mainnet.infura.io/v3/3a961d6501e54add9a41aa53f15de99b", 11297108109),
   energyweb: createProvider("energyweb", "https://rpc.energyweb.org", 246),
+  songbird: createProvider("songbird", "https://songbird.towolabs.com/rpc", 19),
+  hpb: createProvider("hpb", "https://hpbnode.com", 269),
+  gochain: createProvider("gochain", "https://rpc.gochain.io", 60),
+  ethereumclassic: createProvider("ethereumclassic", "https://blockscout.com/etc/mainnet/api/eth-rpc,https://www.ethercluster.com/etc", 61),
+  
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
@@ -73,6 +78,11 @@ export type Chain =
   | "okexchain"
   | "optimism"
   | "arbitrum";
+  | "energyweb";
+  | "songbird";
+  | "hpb";
+  | "gochain";
+  | "ethereumclassic";
 export function getProvider(chain: Chain = "ethereum") {
   return providers[chain];
 }
