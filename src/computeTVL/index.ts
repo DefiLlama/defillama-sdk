@@ -63,6 +63,7 @@ export const chainToCoingeckoId = {
   kcc: "kucoin-community-chain",
   celo: "celo",
   arbitrum: "arbitrum-one",
+  iotex: "iotex"
 }
 
 function currentCoingeckoUrls(chain:ChainOrCoingecko){
