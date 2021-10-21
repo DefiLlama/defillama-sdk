@@ -11,9 +11,19 @@ interface TimestampBlock {
   timestamp: number;
 }
 
+const kavaBlockProvider = {
+  getBlock: async (height: number | "latest") =>
+    fetch(`https://api.data.kava.io/blocks/${height}`)
+      .then((res) => res.json())
+      .then((block) => ({
+        number: Number(block.block.header.height),
+        timestamp: Math.round(Date.parse(block.block.header.time) / 1000),
+      })),
+};
+
 const terraBlockProvider = {
-  getBlock: async (time: number | "latest") =>
-    fetch(`https://lcd.terra.dev/blocks/${time}`)
+  getBlock: async (height: number | "latest") =>
+    fetch(`https://lcd.terra.dev/blocks/${height}`)
       .then((res) => res.json())
       .then((block) => ({
         number: Number(block.block.header.height),
@@ -29,17 +39,23 @@ async function getBlock(provider: typeof terraBlockProvider, height: number | "l
   return block
 }
 
+function getExtraProvider(chain:string|undefined){
+  if(chain === "terra"){
+    return terraBlockProvider
+  } else if(chain === "kava"){
+    return kavaBlockProvider
+  }
+  return getProvider(chain as any);
+}
+
 export async function lookupBlock(
   timestamp: number,
   extraParams: {
-    chain?: Chain | "terra";
+    chain?: Chain | "terra" | "kava";
   } = {}
 ) {
   try {
-    const provider =
-      extraParams.chain === "terra"
-        ? terraBlockProvider
-        : getProvider(extraParams.chain);
+    const provider = getExtraProvider(extraParams.chain)
     const lastBlock = await getBlock(provider, "latest", extraParams.chain);
     if((lastBlock.timestamp - timestamp)<-30*60){
       throw new Error(`Last block of chain "${extraParams.chain}" is further than 30 minutes into the past. Provider is "${(provider as any)?.connection?.url}"`)
@@ -63,6 +79,9 @@ export async function lookupBlock(
         high = mid - 1;
       }
     } while (high - low > 4); // We lose some precision (~4 blocks) but reduce #calls needed
+    if(Math.abs(block.timestamp - timestamp) > 3600){
+      throw new Error("Block selected is more than 1 hour away from the requested timestamp")
+    }
     return {
       block: block.number,
       timestamp: block.timestamp,
