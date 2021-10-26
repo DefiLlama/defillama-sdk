@@ -48,6 +48,11 @@ function getExtraProvider(chain:string|undefined){
   return getProvider(chain as any);
 }
 
+export async function getLatestBlock(chain:string){
+  const provider = getExtraProvider(chain)
+  return getBlock(provider, "latest", chain);
+}
+
 export async function lookupBlock(
   timestamp: number,
   extraParams: {

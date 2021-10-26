@@ -57,7 +57,7 @@ const providers = {
   gochain: createProvider("gochain", "https://rpc.gochain.io", 60),
   ethclassic: createProvider("ethclassic", "https://blockscout.com/etc/mainnet/api/eth-rpc,https://www.ethercluster.com/etc", 61),
   xdaiarb: createProvider("xdaiarb", "https://arbitrum.xdaichain.com", 200),
-  
+  kardia: createProvider("kardia", "https://rpc.kardiachain.io/", 0),
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
@@ -85,6 +85,7 @@ export type Chain =
   | "gochain"
   | "ethclassic"
   | "xdaiarb"
+  | "kardia"
 export function getProvider(chain: Chain = "ethereum") {
   return providers[chain];
 }
