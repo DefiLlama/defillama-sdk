@@ -58,6 +58,7 @@ const providers = {
   ethclassic: createProvider("ethclassic", "https://blockscout.com/etc/mainnet/api/eth-rpc,https://www.ethercluster.com/etc", 61),
   xdaiarb: createProvider("xdaiarb", "https://arbitrum.xdaichain.com", 200),
   kardia: createProvider("kardia", "https://rpc.kardiachain.io/", 0),
+  fuse: createProvider("fuse", "https://rpc.fuse.io", 122),
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
@@ -86,6 +87,7 @@ export type Chain =
   | "ethclassic"
   | "xdaiarb"
   | "kardia"
+  | "fuse"
 export function getProvider(chain: Chain = "ethereum") {
   return providers[chain];
 }
