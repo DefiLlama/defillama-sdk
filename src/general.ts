@@ -60,6 +60,7 @@ const providers = {
   xdaiarb: createProvider("xdaiarb", "https://arbitrum.xdaichain.com", 200),
   kardia: createProvider("kardia", "https://rpc.kardiachain.io/", 0),
   fuse: createProvider("fuse", "https://rpc.fuse.io", 122),
+  smartbch: createProvider("smartbch", "https://smartbch.fountainhead.cash/mainnet", 10000),
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
