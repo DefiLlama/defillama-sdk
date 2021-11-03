@@ -8,8 +8,8 @@ import {
   GetCoingeckoLog,
 } from "./prices";
 import fetch from "node-fetch";
-import {sumSingleBalance} from '../generalUtil'
-import {Balances as NormalizedBalances} from '../types'
+import { sumSingleBalance } from '../generalUtil'
+import { Balances as NormalizedBalances } from '../types'
 
 type Balances = {
   [tokenAddressOrName: string]: StringNumber | Object;
@@ -39,12 +39,12 @@ function addTokenBalance(
 }
 
 type ChainOrCoingecko = "bsc" | "ethereum" | "coingecko" | "polygon" | 'avax' | 'fantom' | 'xdai' | 'heco' | 'okexchain';
-function historicalCoingeckoUrls(chain:ChainOrCoingecko){
-  if(chain === 'coingecko'){
+function historicalCoingeckoUrls(chain: ChainOrCoingecko) {
+  if (chain === 'coingecko') {
     return "https://api.coingecko.com/api/v3/coins"
   }
   const platformId = chainToCoingeckoId[chain]
-  if(platformId!== undefined){
+  if (platformId !== undefined) {
     return `https://api.coingecko.com/api/v3/coins/${platformId}/contract`
   }
   throw new Error("Chain not supported")
@@ -63,15 +63,16 @@ export const chainToCoingeckoId = {
   kcc: "kucoin-community-chain",
   celo: "celo",
   arbitrum: "arbitrum-one",
-  iotex: "iotex"
+  iotex: "iotex",
+
 }
 
-function currentCoingeckoUrls(chain:ChainOrCoingecko){
-  if(chain === 'coingecko'){
+function currentCoingeckoUrls(chain: ChainOrCoingecko) {
+  if (chain === 'coingecko') {
     return "v3/simple/price?ids"
   }
   const platformId = chainToCoingeckoId[chain]
-  if(platformId!== undefined){
+  if (platformId !== undefined) {
     return `v3/simple/token_price/${platformId}?contract_addresses`
   }
   throw new Error("Chain not supported")
@@ -79,11 +80,11 @@ function currentCoingeckoUrls(chain:ChainOrCoingecko){
 
 const chains = Object.keys(chainToCoingeckoId) as ChainOrCoingecko[];
 
-async function getChainPrices(
+async function getHistoricalChainPrices(
   ids: {
     [chain: string]: string[];
   },
-  timestamp: number | "now",
+  timestamp: number,
   knownTokenPrices: TokenPrices,
   getCoingeckoLock: GetCoingeckoLog,
   coingeckoMaxRetries: number
@@ -95,41 +96,33 @@ async function getChainPrices(
     if (ids[chain].length === 0) {
       chainPrices[chain] = {};
     } else {
-      if (timestamp === "now") {
-        chainPrices[chain] = await getTokenPrices(
-          ids[chain],
-          currentCoingeckoUrls(chain as ChainOrCoingecko),
-          knownTokenPrices,
-          getCoingeckoLock,
-          coingeckoMaxRetries
-        );
-      } else {
-        chainPrices[chain] = await getHistoricalTokenPrices(
-          ids[chain],
-          historicalCoingeckoUrls(chain as ChainOrCoingecko),
-          timestamp,
-          getCoingeckoLock,
-          coingeckoMaxRetries
-        );
-      }
+      chainPrices[chain] = await getHistoricalTokenPrices(
+        ids[chain],
+        historicalCoingeckoUrls(chain as ChainOrCoingecko),
+        timestamp,
+        getCoingeckoLock,
+        coingeckoMaxRetries
+      );
     }
   }
   return chainPrices;
 }
 
 function getChainSymbolsAndDecimals(ids: { [chain: string]: string[] }) {
-  const allCoins = Object.entries(ids).map(chain=>chain[1].map(coin=>`${chain[0]}:${coin.toLowerCase()}`)).reduce((acc, coins)=>{
-    coins.forEach(coin=>{
-      acc.add(coin)
-    })
-    return acc
-  }, new Set([] as string[]))
+  const allCoins = Object.entries(ids).map(chain =>
+    chain[1].map(coin => chain[0] === "coingecko" ? coin.toLowerCase() : `${chain[0]}:${coin.toLowerCase()}`))
+    .reduce((acc, coins) => {
+      coins.forEach(coin => {
+        acc.add(coin)
+      })
+      return acc
+    }, new Set([] as string[]))
   return fetch('https://api.llama.fi/coins', {
     method: 'POST',
     body: JSON.stringify({
       coins: Array.from(allCoins)
     })
-  }).then(response=>response.json())
+  }).then(response => response.json())
 }
 
 export default async function (
@@ -172,9 +165,9 @@ export default async function (
   const chainIds = {
     coingecko: [],
   } as {
-    [chain:string]:Address[]
+    [chain: string]: Address[]
   };
-  for(const chain of chains){
+  for (const chain of chains) {
     chainIds[chain] = [];
   }
 
@@ -196,20 +189,44 @@ export default async function (
       chainIds.ethereum.push(normalizedAddressOrName)
     } else if (normalizedAddressOrName.includes(":")) {
       const chain = normalizedAddressOrName.split(':')[0]
-      chainIds[chain].push(normalizedAddressOrName.slice(chain.length+1))
+      chainIds[chain].push(normalizedAddressOrName.slice(chain.length + 1))
     } else {
       chainIds.coingecko.push(normalizedAddressOrName)
     }
   }
 
   const symbolsAndDecimals = getChainSymbolsAndDecimals(chainIds);
-  const allChainTokenPrices = await getChainPrices(
-    chainIds,
-    timestamp,
-    knownTokenPrices,
-    getCoingeckoLock,
-    coingeckoMaxRetries
-  );
+  let allChainTokenPrices: {
+    [chain: string]: TokenPrices;
+  };
+  if (timestamp === "now") {
+    allChainTokenPrices = (await symbolsAndDecimals).reduce((prices:typeof allChainTokenPrices, item:{
+      "coin": string,
+      "price": number,
+    }) => {
+      let chain: string, address: string;
+      if (item.coin.includes(":")) {
+        chain = item.coin.split(':')[0]
+        address = item.coin.split(':')[1]
+      } else {
+        chain = "coingecko"
+        address = item.coin
+      }
+      if (prices[chain] === undefined) {
+        prices[chain] = {}
+      }
+      prices[chain][address]={usd:item.price}
+      return prices
+    }, {})
+  } else {
+    allChainTokenPrices = await getHistoricalChainPrices(
+      chainIds,
+      timestamp,
+      knownTokenPrices,
+      getCoingeckoLock,
+      coingeckoMaxRetries
+    );
+  }
   const usdTokenBalances = {} as ReturnedTokenBalances;
   const tokenBalances = {} as ReturnedTokenBalances;
   const usdAmounts = Object.entries(normalizedBalances).map(
@@ -219,15 +236,15 @@ export default async function (
         if (address.startsWith("0x") || address.includes(":")) {
           let normalizedAddress = address;
           let chainSelector: ChainOrCoingecko = "ethereum";
-          chains.forEach(chain=>{
-            if(address.startsWith(chain)){
+          chains.forEach(chain => {
+            if (address.startsWith(chain)) {
               chainSelector = chain;
-              normalizedAddress = address.slice(chain.length +1);
+              normalizedAddress = address.slice(chain.length + 1);
             }
           })
           const chainTokenPrices = allChainTokenPrices[chainSelector];
           const chainAddress = `${chainSelector}:${normalizedAddress.toLowerCase()}`
-          const coinData = (await symbolsAndDecimals).find((coin:any)=>coin.coin === chainAddress)
+          const coinData = (await symbolsAndDecimals).find((coin: any) => coin.coin === chainAddress)
 
           tokenSymbol = coinData?.symbol?.toUpperCase()
           if (tokenSymbol === undefined || tokenSymbol === null) {
