@@ -64,6 +64,28 @@ export const chainToCoingeckoId = {
   celo: "celo",
   arbitrum: "arbitrum-one",
   iotex: "iotex",
+  moonriver: "moonriver",
+  solana: "solana",
+  terra: "terra",
+  tron: "tron",
+  waves: "waves",
+  klaytn: "klay-token",
+  osmosis: "osmosis",
+  kava: "kava",
+  icon: "icon",
+  optimism: "optimistic-ethereum",
+  eos: "eos",
+  secret: "secret",
+  rsk: "rootstock",
+  neo: "neo",
+  tezos: "tezos",
+  wanchain: "wanchain",
+  ontology: "ontology",
+  algorand: "algorand",
+  zilliqa: "zilliqa",
+  kardia: "kardiachain",
+  kucoin: "kucoin-community-chain", 
+  
 
 }
 
