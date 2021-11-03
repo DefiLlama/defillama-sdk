@@ -79,14 +79,11 @@ export const chainToCoingeckoId = {
   rsk: "rootstock",
   neo: "neo",
   tezos: "tezos",
-  wanchain: "wanchain",
+  wan: "wanchain",
   ontology: "ontology",
   algorand: "algorand",
   zilliqa: "zilliqa",
   kardia: "kardiachain",
-  kucoin: "kucoin-community-chain", 
-  
-
 }
 
 function currentCoingeckoUrls(chain: ChainOrCoingecko) {
