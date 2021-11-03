@@ -64,6 +64,7 @@ const providers = {
   esc: createProvider("esc", "https://api.elastos.io/eth,https://api.trinity-tech.cn/eth", 20),
   hoo: createProvider("hoo", "https://http-mainnet.hoosmartchain.com", 70),
   fusion: createProvider("fusion", "https://mainnet.anyswap.exchange,https://mainway.freemoon.xyz/gate", 32659),
+  aurora: createProvider("aurora", "https://mainnet.aurora.dev", 1313161554)
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
