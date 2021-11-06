@@ -66,6 +66,7 @@ const providers = {
   fusion: createProvider("fusion", "https://mainnet.anyswap.exchange,https://mainway.freemoon.xyz/gate", 32659),
   aurora: createProvider("aurora", "https://mainnet.aurora.dev", 1313161554),
   ronin: createProvider("ronin", "https://api.roninchain.com/rpc", 2020),
+  boba: createProvider("boba", "https://mainnet.boba.network/", 288),
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
