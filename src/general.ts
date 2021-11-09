@@ -61,7 +61,7 @@ const providers = {
   kardia: createProvider("kardia", "https://rpc.kardiachain.io/", 0),
   fuse: createProvider("fuse", "https://rpc.fuse.io", 122),
   smartbch: createProvider("smartbch", "https://smartbch.fountainhead.cash/mainnet", 10000),
-  esc: createProvider("esc", "https://api.elastos.io/eth,https://api.trinity-tech.cn/eth", 20),
+  elastos: createProvider("esc", "https://api.elastos.io/eth,https://api.trinity-tech.cn/eth", 20),
   hoo: createProvider("hoo", "https://http-mainnet.hoosmartchain.com", 70),
   fusion: createProvider("fusion", "https://mainnet.anyswap.exchange,https://mainway.freemoon.xyz/gate", 32659),
   aurora: createProvider("aurora", "https://mainnet.aurora.dev", 1313161554),
