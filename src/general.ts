@@ -96,11 +96,14 @@ export type Chain =
   | "ethclassic"
   | "xdaiarb"
   | "kardia"
-  | "fuse"
-  | "fusion"
+  | "fuse"  
   | "smartbch"
-  | "hoo"
   | "elastos"
+  | "hoo"
+  | "fusion"  
+  | "aurora"
+  | "ronin"
+  | "boba"
   | "cronos"
 export function getProvider(chain: Chain = "ethereum") {
   return providers[chain];
