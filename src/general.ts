@@ -68,6 +68,7 @@ const providers = {
   ronin: createProvider("ronin", "https://api.roninchain.com/rpc", 2020),
   boba: createProvider("boba", "https://mainnet.boba.network/", 288),
   cronos: createProvider("cronos", "https://evm-cronos.crypto.org/", 25),
+  polis: createProvider("polis", "https://rpc.polis.tech", 333999)
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
