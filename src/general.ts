@@ -107,6 +107,8 @@ export type Chain =
   | "ronin"
   | "boba"
   | "cronos"
+  | "polis"
+  | "zyx"
 export function getProvider(chain: Chain = "ethereum") {
   return providers[chain];
 }
