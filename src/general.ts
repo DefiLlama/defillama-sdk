@@ -110,6 +110,7 @@ export type Chain =
   | "cronos"
   | "polis"
   | "zyx"
+  | "telos"
 export function getProvider(chain: Chain = "ethereum") {
   return providers[chain];
 }
