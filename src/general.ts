@@ -70,6 +70,7 @@ const providers = {
   cronos: createProvider("cronos", "https://evm-cronos.crypto.org/", 25),
   polis: createProvider("polis", "https://rpc.polis.tech", 333999),
   zyx: createProvider("zyx", "https://rpc-1.zyx.network/,https://rpc-2.zyx.network/,https://rpc-3.zyx.network/,https://rpc-5.zyx.network/", 55),
+  telos: createProvider("telos", "https://mainnet.telos.net/evm/,https://rpc1.eu.telos.net/evm/,https://rpc1.us.telos.net/evm", 40),
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
