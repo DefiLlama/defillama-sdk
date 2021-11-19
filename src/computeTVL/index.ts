@@ -261,7 +261,7 @@ export default async function (
               normalizedAddress = address.slice(chain.length + 1);
             }
           })
-          const chainTokenPrices = allChainTokenPrices[chainSelector];
+          const chainTokenPrices = allChainTokenPrices[chainSelector] ?? {};
           const chainAddress = `${chainSelector}:${normalizedAddress.toLowerCase()}`
           const coinData = (await symbolsAndDecimals).find((coin: any) => coin.coin === chainAddress)
 
