@@ -127,7 +127,7 @@ async function getHistoricalChainPrices(
   return chainPrices;
 }
 
-function getChainSymbolsAndDecimals(ids: { [chain: string]: string[] }) {
+async function getChainSymbolsAndDecimals(ids: { [chain: string]: string[] }, maxRetries: number) {
   const allCoins = Object.entries(ids).map(chain =>
     chain[1].map(coin => chain[0] === "coingecko" ? coin.toLowerCase() : `${chain[0]}:${coin.toLowerCase()}`))
     .reduce((acc, coins) => {
@@ -136,12 +136,18 @@ function getChainSymbolsAndDecimals(ids: { [chain: string]: string[] }) {
       })
       return acc
     }, new Set([] as string[]))
-  return fetch('https://api.llama.fi/coins', {
-    method: 'POST',
-    body: JSON.stringify({
-      coins: Array.from(allCoins)
-    })
-  }).then(response => response.json())
+  for (let i = 0; i < maxRetries; i++) {
+    const response = await fetch('https://api.llama.fi/coins', {
+      method: 'POST',
+      body: JSON.stringify({
+        coins: Array.from(allCoins)
+      })
+    }).then(response => response.json())
+    if (Array.isArray(response)) {
+      return response
+    }
+  }
+  throw new Error("api.llama.fi/coins failed")
 }
 
 export default async function (
@@ -214,7 +220,7 @@ export default async function (
     }
   }
 
-  const symbolsAndDecimals = await getChainSymbolsAndDecimals(chainIds);
+  const symbolsAndDecimals = await getChainSymbolsAndDecimals(chainIds, coingeckoMaxRetries);
   let allChainTokenPrices: {
     [chain: string]: TokenPrices;
   };
