@@ -214,12 +214,12 @@ export default async function (
     }
   }
 
-  const symbolsAndDecimals = getChainSymbolsAndDecimals(chainIds);
+  const symbolsAndDecimals = await getChainSymbolsAndDecimals(chainIds);
   let allChainTokenPrices: {
     [chain: string]: TokenPrices;
   };
   if (timestamp === "now") {
-    allChainTokenPrices = (await symbolsAndDecimals).reduce((prices:typeof allChainTokenPrices, item:{
+    allChainTokenPrices = symbolsAndDecimals.reduce((prices:typeof allChainTokenPrices, item:{
       "coin": string,
       "price": number,
     }) => {
@@ -263,7 +263,7 @@ export default async function (
           })
           const chainTokenPrices = allChainTokenPrices[chainSelector] ?? {};
           const chainAddress = `${chainSelector}:${normalizedAddress.toLowerCase()}`
-          const coinData = (await symbolsAndDecimals).find((coin: any) => coin.coin === chainAddress)
+          const coinData = symbolsAndDecimals.find((coin: any) => coin.coin === chainAddress)
 
           tokenSymbol = coinData?.symbol?.toUpperCase()
           if (tokenSymbol === undefined || tokenSymbol === null) {
