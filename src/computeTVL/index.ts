@@ -84,6 +84,7 @@ export const chainToCoingeckoId = {
   algorand: "algorand",
   zilliqa: "zilliqa",
   kardia: "kardiachain",
+  cronos: "cronos",
 }
 
 function currentCoingeckoUrls(chain: ChainOrCoingecko) {
