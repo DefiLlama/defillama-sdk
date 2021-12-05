@@ -73,6 +73,7 @@ const providers = {
   telos: createProvider("telos", "https://mainnet.telos.net/evm/,https://rpc1.eu.telos.net/evm/,https://rpc1.us.telos.net/evm", 40),
   metis: createProvider("metis", "https://andromeda.metis.io/?owner=1088", 1088),
   ubiq: createProvider("ubiq", "https://rpc.octano.dev", 8),
+  velas: createProvide("velas", "https://evmexplorer.velas.com/rpc", 106),
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
@@ -115,6 +116,7 @@ export type Chain =
   | "telos"
   | "metis"
   | "ubiq"
+  | "velas"
 export function getProvider(chain: Chain = "ethereum") {
   return providers[chain];
 }
