@@ -74,6 +74,7 @@ const providers = {
   metis: createProvider("metis", "https://andromeda.metis.io/?owner=1088", 1088),
   ubiq: createProvider("ubiq", "https://rpc.octano.dev", 8),
   velas: createProvider("velas", "https://evmexplorer.velas.com/rpc", 106),
+  callisto: createProvider("callisto", "https://clo-geth.0xinfra.com/", 820),
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
@@ -117,6 +118,7 @@ export type Chain =
   | "metis"
   | "ubiq"
   | "velas"
+  | "callisto"
 export function getProvider(chain: Chain = "ethereum") {
   return providers[chain];
 }
