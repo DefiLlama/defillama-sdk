@@ -75,6 +75,7 @@ const providers = {
   ubiq: createProvider("ubiq", "https://rpc.octano.dev", 8),
   velas: createProvider("velas", "https://evmexplorer.velas.com/rpc", 106),
   callisto: createProvider("callisto", "https://clo-geth.0xinfra.com/", 820),
+  klaytn: createProvider("klaytn", "http://175.209.78.135:8551", 8217),
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
