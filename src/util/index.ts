@@ -23,7 +23,7 @@ const kavaBlockProvider = {
 
 const terraBlockProvider = {
   getBlock: async (height: number | "latest") =>
-    fetch(`https://lcd.terra.dev/blocks/${height}`)
+    fetch(`${process.env["TERRA_RPC"] ??  "https://lcd.terra.dev"}/blocks/${height}`)
       .then((res) => res.json())
       .then((block) => ({
         number: Number(block.block.header.height),
@@ -73,7 +73,7 @@ export async function lookupBlock(
       };
     }
     let high = lastBlock.number;
-    let low = 0;
+    let low = extraParams?.chain === "terra" ? 4724001 : 0;
     let block: TimestampBlock;
     do {
       const mid = Math.floor((high + low) / 2);
