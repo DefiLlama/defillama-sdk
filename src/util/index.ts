@@ -23,7 +23,7 @@ const kavaBlockProvider = {
 
 const terraBlockProvider = {
   getBlock: async (height: number | "latest") =>
-    fetch(`${process.env["TERRA_RPC"] ??  "https://lcd.terra.dev"}/blocks/${height}`)
+    fetch(`https://lcd.terra.dev/blocks/${height}`)
       .then((res) => res.json())
       .then((block) => ({
         number: Number(block.block.header.height),
