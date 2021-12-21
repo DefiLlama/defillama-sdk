@@ -76,6 +76,7 @@ const providers = {
   velas: createProvider("velas", "https://evmexplorer.velas.com/rpc", 106),
   callisto: createProvider("callisto", "https://clo-geth.0xinfra.com/", 820),
   klaytn: createProvider("klaytn", "http://175.209.78.135:8551", 8217),
+  csc: createProvider("csc", "https://rpc.coinex.net/,https://rpc1.coinex.net/,https://rpc2.coinex.net/,https://rpc3.coinex.net/,https://rpc4.coinex.net/", 52),
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
@@ -120,6 +121,7 @@ export type Chain =
   | "ubiq"
   | "velas"
   | "callisto"
+  | "csc"
 export function getProvider(chain: Chain = "ethereum") {
   return providers[chain];
 }
