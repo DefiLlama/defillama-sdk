@@ -75,6 +75,7 @@ export async function multiCall(params: {
   block?: number;
   target?: Address; // Used when calls.target is not provided
   chain?: Chain;
+  requery?:boolean;
 }) {
   const abi = resolveABI(params.abi);
   const contractCalls = params.calls.map((call, index) => {
@@ -103,7 +104,22 @@ export async function multiCall(params: {
     }
   }
   await Promise.all(multicallCalls);
+  const flatResults = [].concat.apply([], result) as any[]
+
+  if (params.requery === true && flatResults.some(r => !r.success)) {
+    const failed = flatResults.map((r, i) => [r, i]).filter(r => !r[0].success)
+    const newResults = await multiCall({
+      abi: params.abi,
+      chain: params.chain,
+      calls: failed.map((f) => f[0].input),
+      block: params.block,
+      requery: params.requery,
+    }).then(({ output }) => output);
+    failed.forEach((f, i) => {
+      flatResults[f[1]] = newResults[i]
+    })
+  }
   return {
-    output: [].concat.apply([], result) as any[], // flatten array
+    output: flatResults, // flatten array
   };
 }
