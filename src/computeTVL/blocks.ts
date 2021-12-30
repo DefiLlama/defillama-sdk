@@ -5,12 +5,12 @@ import type { Chain } from "../general";
 export const chainsForBlocks = ["avax", "bsc", "polygon", "xdai", "fantom", "arbitrum"] as Chain[];
 const blockRetries = 5;
 
-async function getChainBlocks(timestamp: number) {
+export async function getChainBlocks(timestamp: number, chains: Chain[] = chainsForBlocks) {
   const chainBlocks = {} as {
     [chain: string]: number;
   };
   await Promise.all(
-    chainsForBlocks.map(async (chain) => {
+    chains.map(async (chain) => {
       for (let i = 0; i < blockRetries; i++) {
         try {
           chainBlocks[chain] = await lookupBlock(timestamp, {
