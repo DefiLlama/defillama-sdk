@@ -79,6 +79,8 @@ export const providers = {
   csc: createProvider("csc", "https://rpc.coinex.net/,https://rpc1.coinex.net/,https://rpc2.coinex.net/,https://rpc3.coinex.net/,https://rpc4.coinex.net/", 52),
   nahmii: createProvider("nahmii", "https://l2.nahmii.io/", 5551),
   liquidchain: createProvider("xlc", "https://rpc.liquidchain.net/,https://rpc.xlcscan.com/", 5050),
+  meter: createProvider("meter", 'https://rpc.meter.io', 82), 
+  theta: createProvider("theta", 'https://eth-rpc-api.thetatoken.org/rpc', 361)
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
