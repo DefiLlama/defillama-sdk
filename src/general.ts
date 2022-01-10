@@ -81,7 +81,8 @@ export const providers = {
   liquidchain: createProvider("xlc", "https://rpc.liquidchain.net/,https://rpc.xlcscan.com/", 5050),
   meter: createProvider("meter", 'https://rpc.meter.io', 82), 
   theta: createProvider("theta", 'https://eth-rpc-api.thetatoken.org/rpc', 361),
-  emerald: createProvider("emerald", 'https://emerald.oasis.dev/', 42262)
+  emerald: createProvider("emerald", 'https://emerald.oasis.dev/', 42262),
+  syscoin: createProvider("syscoin", 'https://rpc.syscoin.org', 57)
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
