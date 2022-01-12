@@ -41,7 +41,7 @@ export const providers = {
   xdai: createProvider("xdai", "https://rpc.xdaichain.com/,https://xdai.poanetwork.dev,https://dai.poa.network,https://xdai-archive.blockscout.com", 100),
   avax: createProvider("avax", "https://api.avax.network/ext/bc/C/rpc", 43114),
   wan: createProvider("wan", "https://gwan-ssl.wandevs.org:56891", 888),
-  harmony: createProvider("harmony", "https://api.harmony.one,https://api.s0.t.hmny.io", 1666600000),
+  harmony: createProvider("harmony", "https://harmony-0-rpc.gateway.pokt.network,https://api.harmony.one,https://api.s0.t.hmny.io", 1666600000),
   thundercore: createProvider("thundercore", "https://mainnet-rpc.thundercore.com", 108),
   okexchain: createProvider("okexchain", "https://exchainrpc.okex.org", 66),
   optimism: createProvider("optimism", "https://mainnet.optimism.io/", 10),
