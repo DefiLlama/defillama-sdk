@@ -128,6 +128,12 @@ export type Chain =
   | "velas"
   | "callisto"
   | "csc"
+  | "nahmii"
+  | "liquidchain"
+  | "meter"
+  | "theta"
+  | "oasis"
+  | "syscoin"
 export function getProvider(chain: Chain = "ethereum") {
   return providers[chain];
 }
