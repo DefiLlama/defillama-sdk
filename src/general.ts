@@ -135,6 +135,7 @@ export type Chain =
   | "theta"
   | "oasis"
   | "syscoin"
+  | "moonbeam"
 export function getProvider(chain: Chain = "ethereum") {
   return providers[chain];
 }
