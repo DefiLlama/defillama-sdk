@@ -89,6 +89,7 @@ export const chainToCoingeckoId = {
   boba: "boba",
   metis: "metis-andromeda",
   telos: "telos",
+  moonbeam: "moonbeam",
 }
 
 const chains = Object.keys(chainToCoingeckoId) as ChainOrCoingecko[];
