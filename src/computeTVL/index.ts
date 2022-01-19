@@ -87,17 +87,8 @@ export const chainToCoingeckoId = {
   cronos: "cronos",
   aurora: "aurora",
   boba: "boba",
-}
-
-function currentCoingeckoUrls(chain: ChainOrCoingecko) {
-  if (chain === 'coingecko') {
-    return "v3/simple/price?ids"
-  }
-  const platformId = chainToCoingeckoId[chain]
-  if (platformId !== undefined) {
-    return `v3/simple/token_price/${platformId}?contract_addresses`
-  }
-  throw new Error("Chain not supported")
+  metis: "metis-andromeda",
+  telos: "telos",
 }
 
 const chains = Object.keys(chainToCoingeckoId) as ChainOrCoingecko[];
