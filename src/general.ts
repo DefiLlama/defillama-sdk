@@ -35,7 +35,7 @@ export const providers = {
   bsc: createProvider("bsc", "https://bsc-dataseed.binance.org/,https://bsc-dataseed1.defibit.io/,https://bsc-dataseed1.ninicoin.io/,https://bsc-dataseed2.defibit.io/,https://bsc-dataseed2.ninicoin.io/", 56),
   polygon: createProvider("polygon", "https://polygon-rpc.com/,https://rpc-mainnet.maticvigil.com/", 137),
   heco: createProvider("heco", "https://http-mainnet.hecochain.com,https://http-mainnet-node.huobichain.com,https://pub001.hg.network/rpc", 128),
-  fantom: createProvider("fantom", "https://rpc.ftm.tools/,https://rpcapi.fantom.network", 250),
+  fantom: createProvider("fantom", "https://rpc.ankr.com/fantom,https://rpc.ftm.tools/,https://rpcapi.fantom.network", 250),
   rsk: createProvider("rsk", "https://public-node.rsk.co", 30),
   tomochain: createProvider("tomochain", "https://rpc.tomochain.com", 88),
   xdai: createProvider("xdai", "https://rpc.xdaichain.com/,https://xdai.poanetwork.dev,https://dai.poa.network,https://xdai-archive.blockscout.com", 100),

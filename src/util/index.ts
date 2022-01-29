@@ -181,6 +181,9 @@ export async function getLogs(params: {
   topics?: string[]; // This is an outdated part of DefiPulse's API which is still used in some old adapters
   chain?: Chain;
 }) {
+  if(params.toBlock === undefined || params.fromBlock === undefined){
+    throw new Error("toBlock and fromBlock need to be defined in all calls to getLogs")
+  }
   const filter = {
     address: params.target,
     topics: params.topics ?? [utils.id(params.topic)],
