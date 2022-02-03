@@ -83,7 +83,8 @@ export const providers = {
   theta: createProvider("theta", 'https://eth-rpc-api.thetatoken.org/rpc', 361),
   oasis: createProvider("oasis", 'https://emerald.oasis.dev/', 42262),
   syscoin: createProvider("syscoin", 'https://rpc.syscoin.org', 57),
-  moonbeam: createProvider("moonbeam", 'https://rpc.api.moonbeam.network', 1284)
+  moonbeam: createProvider("moonbeam", 'https://rpc.api.moonbeam.network', 1284),
+  curio: createProvider("curio", 'https://mainnet-api.skalenodes.com/v1/fit-betelgeuse', 836542336838601)
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
@@ -136,6 +137,7 @@ export type Chain =
   | "oasis"
   | "syscoin"
   | "moonbeam"
+  | "curio"
 export function getProvider(chain: Chain = "ethereum") {
   return providers[chain];
 }
