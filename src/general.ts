@@ -139,6 +139,7 @@ export type Chain =
   | "syscoin"
   | "moonbeam"
   | "curio"
+  | "astar"
 export function getProvider(chain: Chain = "ethereum") {
   return providers[chain];
 }
