@@ -84,7 +84,8 @@ export const providers = {
   oasis: createProvider("oasis", 'https://emerald.oasis.dev/', 42262),
   syscoin: createProvider("syscoin", 'https://rpc.syscoin.org', 57),
   moonbeam: createProvider("moonbeam", 'https://rpc.api.moonbeam.network', 1284),
-  curio: createProvider("curio", 'https://mainnet-api.skalenodes.com/v1/fit-betelgeuse', 836542336838601)
+  curio: createProvider("curio", 'https://mainnet-api.skalenodes.com/v1/fit-betelgeuse', 836542336838601),
+  astar: createProvider("astar", "https://rpc.astar.network:8545", 592)
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
