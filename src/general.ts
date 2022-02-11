@@ -85,7 +85,8 @@ export const providers = {
   syscoin: createProvider("syscoin", 'https://rpc.syscoin.org', 57),
   moonbeam: createProvider("moonbeam", 'https://rpc.api.moonbeam.network', 1284),
   curio: createProvider("curio", 'https://mainnet-api.skalenodes.com/v1/fit-betelgeuse', 836542336838601),
-  astar: createProvider("astar", "https://rpc.astar.network:8545", 592)
+  astar: createProvider("astar", "https://rpc.astar.network:8545", 592),
+  godwoken: createProvider("godwoken", "https://mainnet.godwoken.io/rpc/eth-wallet", 71394)
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
@@ -140,6 +141,7 @@ export type Chain =
   | "moonbeam"
   | "curio"
   | "astar"
+  | "godwoken"
 export function getProvider(chain: Chain = "ethereum") {
   return providers[chain];
 }
