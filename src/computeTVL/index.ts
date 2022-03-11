@@ -90,6 +90,7 @@ export const chainToCoingeckoId = {
   metis: "metis-andromeda",
   telos: "telos",
   moonbeam: "moonbeam",
+  crab: "darwinia-crab-network-native-token",
 }
 
 const chains = Object.keys(chainToCoingeckoId) as ChainOrCoingecko[];

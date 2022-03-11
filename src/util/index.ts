@@ -74,6 +74,7 @@ export async function lookupBlock(
     }
     let high = lastBlock.number;
     let low = extraParams?.chain === "terra" ? 4724001 : 0;
+    low = extraParams?.chain === "crab" ? 4969901 : 0;
     let block: TimestampBlock;
     do {
       const mid = Math.floor((high + low) / 2);

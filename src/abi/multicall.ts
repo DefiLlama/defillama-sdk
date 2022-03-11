@@ -17,6 +17,8 @@ export const MULTICALL_ADDRESS_BSC =
   "0x1Ee38d535d541c55C9dae27B12edf090C608E6Fb";
 export const MULTICALL_ADDRESS_FANTOM =
   "0xb828C456600857abd4ed6C32FAcc607bD0464F4F";
+export const MULTICALL_ADDRESS_CRAB =
+  "0x8859cd9f64a4cbcB496Fb6CC1411C8b234eC6589";
 export const AGGREGATE_SELECTOR = "0x252dba42";
 
 export default async function makeMultiCall(
@@ -154,6 +156,8 @@ function multicallAddress(chainId: number) {
       return MULTICALL_ADDRESS_BSC;
     case 250:
       return MULTICALL_ADDRESS_FANTOM;
+    case 44:
+      return MULTICALL_ADDRESS_CRAB;
     default:
       return null;
   }
