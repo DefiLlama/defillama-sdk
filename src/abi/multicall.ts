@@ -133,7 +133,6 @@ async function multicallAddressOrThrow(chain: Chain) {
 }
 
 export async function networkSupportsMulticall(chain?: Chain) {
-  if (!chain)  chain = 'ethereum'
   const network = await getProvider(chain).network;
   const address = multicallAddress(network.chainId);
   return address !== null;
