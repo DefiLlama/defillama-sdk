@@ -2,7 +2,7 @@ import { Address } from "../types";
 import catchedABIs from "./cachedABIs";
 import { ethers } from "ethers";
 import { getProvider, Chain } from "../general";
-import makeMultiCall from "./multicall";
+import makeMultiCall , { networkSupportsMulticall } from "./multicall";
 import convertResults from "./convertResults";
 
 function resolveABI(providedAbi: string | any) {
@@ -88,17 +88,22 @@ export async function multiCall(params: {
   // Only a max of around 500 calls are supported by multicall, we have to split bigger batches
   let multicallCalls = [];
   let result = [] as any[];
-  for (let i = 0; i < contractCalls.length; i += 500) {
+  let chunkSize = 500
+  const chainSupportsMulticall = await networkSupportsMulticall(params.chain)
+  if (!chainSupportsMulticall)
+    chunkSize = 50
+  for (let i = 0; i < contractCalls.length; i += chunkSize) {
     const pendingResult = makeMultiCall(
       abi,
-      contractCalls.slice(i, i + 500),
+      contractCalls.slice(i, i + chunkSize),
       params.chain ?? "ethereum",
       params.block
     ).then((partialCalls) => {
-      result[i/500] = partialCalls;
+      result[i/chunkSize] = partialCalls;
     });
     multicallCalls.push(pendingResult);
-    if (i % 20000) {
+    if (i % 20000 || !chainSupportsMulticall) {
+      // if chain does not support multicall, we do not want more than 50 parallel calls at the same time
       await Promise.all(multicallCalls); // It would be faster to just await on all of them, but if we do that at some point node crashes without error message, so to prevent that we have to periodically await smaller sets of calls
       multicallCalls = []; // Clear them from memory
     }
