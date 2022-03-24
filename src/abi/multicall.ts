@@ -2,6 +2,7 @@ import { ethers } from "ethers";
 import { ParamType } from "ethers/lib/utils";
 import { getProvider, Chain } from "../general";
 import convertResults from "./convertResults";
+import { call } from "./rpcCall";
 
 export const MULTICALL_ADDRESS_MAINNET =
   "0xeefba1e63905ef1d7acba5a8513c70307c1ce441";
@@ -93,7 +94,7 @@ async function executeCalls(
         data: callData,
       };
 
-      const returnData = await getProvider(chain).call(tx, block ?? "latest");
+      const returnData = await call(getProvider(chain), tx, block ?? "latest")
 
       const [blockNumber, returnValues] = ethers.utils.defaultAbiCoder.decode(
         ["uint256", "bytes[]"],
@@ -107,10 +108,10 @@ async function executeCalls(
     }
   }
   const values = await Promise.all(
-    contractCalls.map(async (call) => {
+    contractCalls.map(async ({ to, data }) => {
       try {
-        return await getProvider(chain).call(
-          { to: call.to, data: call.data },
+        return await call(getProvider(chain),
+          { to, data },
           block ?? "latest"
         );
       } catch (e) {
