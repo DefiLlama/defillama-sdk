@@ -88,14 +88,15 @@ export async function multiCall(params: {
   // Only a max of around 500 calls are supported by multicall, we have to split bigger batches
   let multicallCalls = [];
   let result = [] as any[];
-  for (let i = 0; i < contractCalls.length; i += 500) {
+  const chunkSize = 500
+  for (let i = 0; i < contractCalls.length; i += chunkSize) {
     const pendingResult = makeMultiCall(
       abi,
-      contractCalls.slice(i, i + 500),
+      contractCalls.slice(i, i + chunkSize),
       params.chain ?? "ethereum",
       params.block
     ).then((partialCalls) => {
-      result[i/500] = partialCalls;
+      result[i/chunkSize] = partialCalls;
     });
     multicallCalls.push(pendingResult);
     if (i % 20000) {

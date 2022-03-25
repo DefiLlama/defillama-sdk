@@ -25,7 +25,8 @@ export async function call(provider: BaseProvider, data: Deferrable<TransactionR
 
   if (DEBUG_MODE_ENABLED) {
     if (addedToQueue) counter.queueCount--
-    if (counter.queueCount && currentId % 50 === 0) console.log(`#: ${currentId} queue: ${counter.queueCount} active requests: ${counter.activeWorkers} chain: ${chain}`)
+    const showEveryX = counter.queueCount > 100 ? 50 : 10 // show log fewer times if lot more are queued up
+    if (currentId % showEveryX === 0) console.log(`chain: ${chain} request #: ${currentId} queue: ${counter.queueCount} active requests: ${counter.activeWorkers}`)
   }
 
   const response = await provider.call(data, block)
