@@ -94,7 +94,7 @@ async function executeCalls(
         data: callData,
       };
 
-      const returnData = await call(getProvider(chain), tx, block ?? "latest")
+      const returnData = await call(getProvider(chain), tx, block ?? "latest", chain)
 
       const [blockNumber, returnValues] = ethers.utils.defaultAbiCoder.decode(
         ["uint256", "bytes[]"],
@@ -112,7 +112,8 @@ async function executeCalls(
       try {
         return await call(getProvider(chain),
           { to, data },
-          block ?? "latest"
+          block ?? "latest",
+          chain,
         );
       } catch (e) {
         return null;
