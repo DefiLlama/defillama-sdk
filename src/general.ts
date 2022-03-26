@@ -56,7 +56,7 @@ export const providers = {
   songbird: createProvider("songbird", "https://songbird.towolabs.com/rpc", 19),
   hpb: createProvider("hpb", "https://hpbnode.com", 269),
   gochain: createProvider("gochain", "https://rpc.gochain.io", 60),
-  ethclassic: createProvider("ethclassic", "https://blockscout.com/etc/mainnet/api/eth-rpc,https://www.ethercluster.com/etc", 61),
+  ethereumclassic: createProvider("ethereumclassic", "https://www.ethercluster.com/etc,https://blockscout.com/etc/mainnet/api/eth-rpc", 61),
   xdaiarb: createProvider("xdaiarb", "https://arbitrum.xdaichain.com", 200),
   kardia: createProvider("kardia", "https://rpc.kardiachain.io/", 0),
   fuse: createProvider("fuse", "https://rpc.fuse.io", 122),
@@ -113,7 +113,7 @@ export type Chain =
   | "songbird"
   | "hpb"
   | "gochain"
-  | "ethclassic"
+  | "ethereumclassic"
   | "xdaiarb"
   | "kardia"
   | "fuse"  
