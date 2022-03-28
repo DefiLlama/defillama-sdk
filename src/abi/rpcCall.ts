@@ -2,11 +2,12 @@ import { Deferrable } from "@ethersproject/properties"
 import { BaseProvider, BlockTag, TransactionRequest } from "@ethersproject/providers"
 import { once, EventEmitter } from 'events'
 
-const emitter = new EventEmitter()
 const DEBUG_MODE_ENABLED = !!process.env.LLAMA_DEBUG_MODE
 const maxParallelCalls = !!process.env.LLAMA_SDK_MAX_PARALLEL ? +process.env.LLAMA_SDK_MAX_PARALLEL : 100
 
 const COUNTERS: Record<string, Counter> = {}
+const emitter = new EventEmitter()
+emitter.setMaxListeners(500000)
 
 export async function call(provider: BaseProvider, data: Deferrable<TransactionRequest>, block: BlockTag, chain?: string) {
   if (!chain) chain = 'noChain'
