@@ -66,6 +66,31 @@ export async function call(params: {
   };
 }
 
+import { once, EventEmitter } from 'events'
+const maxParallelCalls = !!process.env.LLAMA_SDK_MAX_PARALLEL ? +process.env.LLAMA_SDK_MAX_PARALLEL : 100
+
+interface Counter {
+  activeWorkers: number;
+  requestCount: number;
+  queue: (() => void)[];
+  pickFromTop: boolean;
+}
+const COUNTERS: Record<string, Counter> = {}
+const emitter = new EventEmitter()
+emitter.setMaxListeners(500000)
+
+function getChainCounter(chain: string) {
+  if (!COUNTERS[chain])
+    COUNTERS[chain] = {
+      activeWorkers: 0,
+      queue: [],
+      requestCount: 0,
+      pickFromTop: true,
+    }
+  return COUNTERS[chain]
+}
+
+
 export async function multiCall(params: {
   abi: string | any;
   calls: {
@@ -77,6 +102,7 @@ export async function multiCall(params: {
   chain?: Chain;
   requery?:boolean;
 }) {
+  const chain = params.chain ?? "ethereum";
   const abi = resolveABI(params.abi);
   const contractCalls = params.calls.map((call, index) => {
     const callParams = normalizeParams(call.params);
@@ -85,26 +111,40 @@ export async function multiCall(params: {
       contract: call.target ?? params.target,
     };
   });
+  let resolveAllCallsCompleted: Function;
+  const allCallsCompleted = new Promise((resolve)=>resolveAllCallsCompleted=resolve)
+  let callsCompleted = 0;
   // Only a max of around 500 calls are supported by multicall, we have to split bigger batches
-  let multicallCalls = [];
   let result = [] as any[];
   const chunkSize = 500
   for (let i = 0; i < contractCalls.length; i += chunkSize) {
+    const counter: Counter = getChainCounter(chain)
+    if (counter.activeWorkers > maxParallelCalls) {
+      let queueResolve: (value: unknown) => void;
+      const queuePromise = new Promise((resolve)=>queueResolve=resolve)
+      counter.queue.push(queueResolve! as any)
+      await queuePromise
+    }
+    counter.activeWorkers++;
     const pendingResult = makeMultiCall(
       abi,
       contractCalls.slice(i, i + chunkSize),
-      params.chain ?? "ethereum",
+      chain,
       params.block
     ).then((partialCalls) => {
       result[i/chunkSize] = partialCalls;
+      counter.activeWorkers--;
+      const bottomResolve = counter.queue.shift()
+      if(bottomResolve !== undefined){
+        bottomResolve()
+      }
+      callsCompleted++;
+      if(callsCompleted === contractCalls.length){
+        resolveAllCallsCompleted()
+      }
     });
-    multicallCalls.push(pendingResult);
-    if (i % 5000) {
-      await Promise.all(multicallCalls); // It would be faster to just await on all of them, but if we do that at some point node crashes without error message, so to prevent that we have to periodically await smaller sets of calls
-      multicallCalls = []; // Clear them from memory
-    }
   }
-  await Promise.all(multicallCalls);
+  await allCallsCompleted;
   const flatResults = [].concat.apply([], result) as any[]
 
   if (params.requery === true && flatResults.some(r => !r.success)) {

@@ -2,7 +2,8 @@ import { ethers } from "ethers";
 import { ParamType } from "ethers/lib/utils";
 import { getProvider, Chain } from "../general";
 import convertResults from "./convertResults";
-import { call } from "./rpcCall";
+import { Deferrable } from "@ethersproject/properties"
+import { BaseProvider, BlockTag, TransactionRequest } from "@ethersproject/providers"
 
 export const MULTICALL_ADDRESS_MAINNET =
   "0xeefba1e63905ef1d7acba5a8513c70307c1ce441";
@@ -19,6 +20,10 @@ export const MULTICALL_ADDRESS_BSC =
 export const MULTICALL_ADDRESS_FANTOM =
   "0xb828C456600857abd4ed6C32FAcc607bD0464F4F";
 export const AGGREGATE_SELECTOR = "0x252dba42";
+
+async function call(provider: BaseProvider, data: Deferrable<TransactionRequest>, block: BlockTag, chain?: string) {
+  return await provider.call(data, block)
+}
 
 export default async function makeMultiCall(
   functionABI: any,
