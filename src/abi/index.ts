@@ -99,7 +99,7 @@ export async function multiCall(params: {
       result[i/chunkSize] = partialCalls;
     });
     multicallCalls.push(pendingResult);
-    if (i % 20000) {
+    if (i % 5000) {
       await Promise.all(multicallCalls); // It would be faster to just await on all of them, but if we do that at some point node crashes without error message, so to prevent that we have to periodically await smaller sets of calls
       multicallCalls = []; // Clear them from memory
     }
