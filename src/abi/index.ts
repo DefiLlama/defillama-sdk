@@ -66,7 +66,6 @@ export async function call(params: {
   };
 }
 
-import { once, EventEmitter } from 'events'
 const maxParallelCalls = !!process.env.LLAMA_SDK_MAX_PARALLEL ? +process.env.LLAMA_SDK_MAX_PARALLEL : 100
 
 interface Counter {
@@ -76,8 +75,6 @@ interface Counter {
   pickFromTop: boolean;
 }
 const COUNTERS: Record<string, Counter> = {}
-const emitter = new EventEmitter()
-emitter.setMaxListeners(500000)
 
 function getChainCounter(chain: string) {
   if (!COUNTERS[chain])
@@ -89,7 +86,6 @@ function getChainCounter(chain: string) {
     }
   return COUNTERS[chain]
 }
-
 
 export async function multiCall(params: {
   abi: string | any;
@@ -126,7 +122,7 @@ export async function multiCall(params: {
       await queuePromise
     }
     counter.activeWorkers++;
-    const pendingResult = makeMultiCall(
+    makeMultiCall(
       abi,
       contractCalls.slice(i, i + chunkSize),
       chain,
@@ -138,8 +134,8 @@ export async function multiCall(params: {
       if(bottomResolve !== undefined){
         bottomResolve()
       }
-      callsCompleted++;
-      if(callsCompleted === contractCalls.length){
+      callsCompleted+=chunkSize;
+      if(callsCompleted >= contractCalls.length){
         resolveAllCallsCompleted()
       }
     });
