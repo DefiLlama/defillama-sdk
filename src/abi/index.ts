@@ -2,7 +2,7 @@ import { Address } from "../types";
 import catchedABIs from "./cachedABIs";
 import { ethers } from "ethers";
 import { getProvider, Chain } from "../general";
-import makeMultiCall from "./multicall";
+import makeMultiCall, { networkSupportsMulticall } from "./multicall";
 import convertResults from "./convertResults";
 
 function resolveABI(providedAbi: string | any) {
@@ -112,7 +112,11 @@ export async function multiCall(params: {
   let callsCompleted = 0;
   // Only a max of around 500 calls are supported by multicall, we have to split bigger batches
   let result = [] as any[];
-  const chunkSize = 500
+  let chunkSize = 500
+  const chainSupportsMulticall = await networkSupportsMulticall(chain)
+  if (!chainSupportsMulticall){
+    chunkSize = 50
+  }
   for (let i = 0; i < contractCalls.length; i += chunkSize) {
     const counter: Counter = getChainCounter(chain)
     if (counter.activeWorkers > maxParallelCalls) {
