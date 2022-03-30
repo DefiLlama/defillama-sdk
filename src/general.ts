@@ -89,7 +89,8 @@ export const providers = {
   godwoken: createProvider("godwoken", "https://mainnet.godwoken.io/rpc/eth-wallet", 71394),
   evmos: createProvider("evmos", "https://eth.bd.evmos.org:8545/", 9001),
   conflux: createProvider("conflux", "https://evm.confluxrpc.com", 1030),
-  milkomeda: createProvider("milkomeda", "https://rpc-mainnet-cardano-evm.c1.milkomeda.com", 2001)
+  milkomeda: createProvider("milkomeda", "https://rpc-mainnet-cardano-evm.c1.milkomeda.com", 2001),
+  dfk: createProvider("dfk", "https://subnets.avax.network/defi-kingdoms/dfk-chain/rpc", 53935),
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
@@ -148,6 +149,7 @@ export type Chain =
   | "evmos"
   | "conflux"
   | "milkomeda"
+  | "dfk"
 export function getProvider(chain: Chain = "ethereum") {
   return providers[chain];
 }
