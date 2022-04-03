@@ -91,6 +91,7 @@ export const chainToCoingeckoId = {
   telos: "telos",
   moonbeam: "moonbeam",
   velas: "velas",
+  milkomeda: "milkomeda-cardano",
 }
 
 const chains = Object.keys(chainToCoingeckoId) as ChainOrCoingecko[];
