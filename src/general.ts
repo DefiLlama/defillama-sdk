@@ -91,6 +91,7 @@ export const providers = {
   conflux: createProvider("conflux", "https://evm.confluxrpc.com", 1030),
   milkomeda: createProvider("milkomeda", "https://rpc-mainnet-cardano-evm.c1.milkomeda.com", 2001),
   dfk: createProvider("dfk", "https://subnets.avax.network/defi-kingdoms/dfk-chain/rpc", 53935),
+  crab: createProvider("crab", "https://crab-rpc.darwinia.network", 44),
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };

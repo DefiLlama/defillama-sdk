@@ -53,6 +53,13 @@ export async function getLatestBlock(chain:string){
   return getBlock(provider, "latest", chain);
 }
 
+const intialBlocks = {
+  terra: 4724001,
+  crab: 4969901
+} as {
+  [chain: string]:number|undefined
+}
+
 export async function lookupBlock(
   timestamp: number,
   extraParams: {
@@ -73,7 +80,7 @@ export async function lookupBlock(
       };
     }
     let high = lastBlock.number;
-    let low = extraParams?.chain === "terra" ? 4724001 : 0;
+    let low = intialBlocks[extraParams?.chain ?? "ethereum"] ?? 0;
     let block: TimestampBlock;
     do {
       const mid = Math.floor((high + low) / 2);
