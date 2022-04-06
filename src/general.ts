@@ -50,7 +50,7 @@ export const providers = {
   celo: createProvider("celo", "https://forno.celo.org", 42220),
   iotex: createProvider("iotex", "https://babel-api.mainnet.iotex.io", 4689),
   moonriver: createProvider("moonriver", "https://rpc.api.moonriver.moonbeam.network/,https://moonriver.api.onfinality.io/public", 1285),
-  shiden: createProvider("shiden", "https://rpc.shiden.astar.network:8545/", 336),
+  shiden: createProvider("shiden", "https://rpc.astar.network:8545,https://astar.api.onfinality.io/public", 336),
   palm: createProvider("palm", "https://palm-mainnet.infura.io/v3/3a961d6501e54add9a41aa53f15de99b", 11297108109),
   energyweb: createProvider("energyweb", "https://rpc.energyweb.org", 246),
   songbird: createProvider("songbird", "https://songbird.towolabs.com/rpc", 19),
