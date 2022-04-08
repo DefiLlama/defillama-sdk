@@ -4,6 +4,7 @@ import { ethers } from "ethers";
 import { getProvider, Chain } from "../general";
 import makeMultiCall from "./multicall";
 import convertResults from "./convertResults";
+import { PromisePool } from '@supercharge/promise-pool';
 
 function resolveABI(providedAbi: string | any) {
   let abi = providedAbi;
@@ -86,25 +87,26 @@ export async function multiCall(params: {
     };
   });
   // Only a max of around 500 calls are supported by multicall, we have to split bigger batches
-  let multicallCalls = [];
-  let result = [] as any[];
-  for (let i = 0; i < contractCalls.length; i += 500) {
-    const pendingResult = makeMultiCall(
+  const chunkSize = 500
+  const contractChunks = []
+  for (let i = 0; i < contractCalls.length; i += chunkSize)
+    contractChunks.push(contractCalls.slice(i, i + chunkSize))
+
+
+  const { results, errors } = await PromisePool
+    .withConcurrency(20)
+    .for(contractChunks)
+    .process(async (calls, i) => makeMultiCall(
       abi,
-      contractCalls.slice(i, i + 500),
+      calls,
       params.chain ?? "ethereum",
       params.block
-    ).then((partialCalls) => {
-      result[i/500] = partialCalls;
-    });
-    multicallCalls.push(pendingResult);
-    if (i % 20000) {
-      await Promise.all(multicallCalls); // It would be faster to just await on all of them, but if we do that at some point node crashes without error message, so to prevent that we have to periodically await smaller sets of calls
-      multicallCalls = []; // Clear them from memory
-    }
-  }
-  await Promise.all(multicallCalls);
-  const flatResults = [].concat.apply([], result) as any[]
+    ))
+
+  if (errors.length)
+    throw errors[0]
+
+  const flatResults = [].concat.apply([], results) as any[]
 
   if (params.requery === true && flatResults.some(r => !r.success)) {
     const failed = flatResults.map((r, i) => [r, i]).filter(r => !r[0].success)
