@@ -1,6 +1,6 @@
 {
   "name": "@defillama/sdk",
-  "version": "2.3.49",
+  "version": "2.3.53",
   "description": "SDK for calculating TVL",
   "main": "build/index.js",
   "scripts": {
@@ -22,6 +22,7 @@
     "build"
   ],
   "dependencies": {
+    "@supercharge/promise-pool": "^2.1.0",
     "ethers": "^5.4.5",
     "graphql": "^15.5.0",
     "graphql-request": "^3.4.0",

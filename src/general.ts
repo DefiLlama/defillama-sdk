@@ -56,7 +56,7 @@ export const providers = {
   songbird: createProvider("songbird", "https://songbird.towolabs.com/rpc", 19),
   hpb: createProvider("hpb", "https://hpbnode.com", 269),
   gochain: createProvider("gochain", "https://rpc.gochain.io", 60),
-  ethclassic: createProvider("ethclassic", "https://blockscout.com/etc/mainnet/api/eth-rpc,https://www.ethercluster.com/etc", 61),
+  ethereumclassic: createProvider("ethereumclassic", "https://www.ethercluster.com/etc,https://blockscout.com/etc/mainnet/api/eth-rpc", 61),
   xdaiarb: createProvider("xdaiarb", "https://arbitrum.xdaichain.com", 200),
   kardia: createProvider("kardia", "https://rpc.kardiachain.io/", 0),
   fuse: createProvider("fuse", "https://rpc.fuse.io", 122),
@@ -75,7 +75,7 @@ export const providers = {
   ubiq: createProvider("ubiq", "https://rpc.octano.dev", 8),
   velas: createProvider("velas", "https://evmexplorer.velas.com/rpc", 106),
   callisto: createProvider("callisto", "https://clo-geth.0xinfra.com/", 820),
-  klaytn: createProvider("klaytn", "http://175.209.78.135:8551", 8217),
+  klaytn: createProvider("klaytn", "https://public-node-api.klaytnapi.com/v1/cypress,http://175.209.78.135:8551", 8217),
   csc: createProvider("csc", "https://rpc.coinex.net/,https://rpc1.coinex.net/,https://rpc2.coinex.net/,https://rpc3.coinex.net/,https://rpc4.coinex.net/", 52),
   nahmii: createProvider("nahmii", "https://l2.nahmii.io/", 5551),
   liquidchain: createProvider("xlc", "https://rpc.liquidchain.net/,https://rpc.xlcscan.com/", 5050),
@@ -88,6 +88,9 @@ export const providers = {
   astar: createProvider("astar", "https://rpc.astar.network:8545", 592),
   godwoken: createProvider("godwoken", "https://mainnet.godwoken.io/rpc/eth-wallet", 71394),
   evmos: createProvider("evmos", "https://eth.bd.evmos.org:8545/", 9001),
+  conflux: createProvider("conflux", "https://evm.confluxrpc.com", 1030),
+  milkomeda: createProvider("milkomeda", "https://rpc-mainnet-cardano-evm.c1.milkomeda.com", 2001),
+  dfk: createProvider("dfk", "https://subnets.avax.network/defi-kingdoms/dfk-chain/rpc", 53935),
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
@@ -113,7 +116,7 @@ export type Chain =
   | "songbird"
   | "hpb"
   | "gochain"
-  | "ethclassic"
+  | "ethereumclassic"
   | "xdaiarb"
   | "kardia"
   | "fuse"  
@@ -144,6 +147,9 @@ export type Chain =
   | "astar"
   | "godwoken"
   | "evmos"
+  | "conflux"
+  | "milkomeda"
+  | "dfk"
 export function getProvider(chain: Chain = "ethereum") {
   return providers[chain];
 }
