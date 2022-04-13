@@ -86,7 +86,7 @@ export const providers = {
   moonbeam: createProvider("moonbeam", 'https://rpc.api.moonbeam.network', 1284),
   curio: createProvider("curio", 'https://mainnet-api.skalenodes.com/v1/fit-betelgeuse', 836542336838601),
   astar: createProvider("astar", "https://rpc.astar.network:8545", 592),
-  godwoken: createProvider("godwoken", "https://mainnet.godwoken.io/rpc/eth-wallet", 71394),
+  godwoken: createProvider("godwoken", "https://mainnet.godwoken.io/rpc", 71394),
   evmos: createProvider("evmos", "https://eth.bd.evmos.org:8545/", 9001),
   conflux: createProvider("conflux", "https://evm.confluxrpc.com", 1030),
   milkomeda: createProvider("milkomeda", "https://rpc-mainnet-cardano-evm.c1.milkomeda.com", 2001),
