@@ -92,7 +92,8 @@ export const providers = {
   milkomeda: createProvider("milkomeda", "https://rpc-mainnet-cardano-evm.c1.milkomeda.com", 2001),
   dfk: createProvider("dfk", "https://subnets.avax.network/defi-kingdoms/dfk-chain/rpc", 53935),
   crab: createProvider("crab", "https://crab-rpc.darwinia.network", 44),
-  bittorrent: createProvider("bittorrent", "https://rpc.bittorrentchain.io", 199)
+  bittorrent: createProvider("bittorrent", "https://rpc.bittorrentchain.io", 199),
+  findora: createProvider("findora", "https://prod-mainnet.prod.findora.org:8545", 2152)
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
@@ -153,6 +154,7 @@ export type Chain =
   | "milkomeda"
   | "dfk"
   | "bittorrent"
+  | "findora"
 export function getProvider(chain: Chain = "ethereum") {
   return providers[chain];
 }
