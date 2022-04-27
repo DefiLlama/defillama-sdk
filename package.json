@@ -1,6 +1,6 @@
 {
   "name": "@defillama/sdk",
-  "version": "2.3.58",
+  "version": "2.3.59",
   "description": "SDK for calculating TVL",
   "main": "build/index.js",
   "scripts": {
