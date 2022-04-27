@@ -101,12 +101,14 @@ export async function multiCall(params: {
       calls,
       params.chain ?? "ethereum",
       params.block
-    ))
+    ).then(calls=>[calls, i]))
 
   if (errors.length)
     throw errors[0]
 
-  const flatResults = [].concat.apply([], results) as any[]
+  const flatResults = [].concat.apply([], results
+    .sort(([c1, i1], [c2, i2])=>i1-i2).map(([c, i])=>c)
+    ) as any[]
 
   if (params.requery === true && flatResults.some(r => !r.success)) {
     const failed = flatResults.map((r, i) => [r, i]).filter(r => !r[0].success)

@@ -519,3 +519,11 @@ test("bsc multicall", async () => {
     ).output.every((call) => call.success)
   ).toBe(true);
 });
+
+import largeMulticall from './largeMulticall'
+test("order is maintained in multicall", async () => {
+  const result =  await multiCall(largeMulticall as any);
+  for(let i =0; i<largeMulticall.calls.length; i++){
+    expect(result.output[i].input.target).toBe(largeMulticall.calls[i].target)
+  }
+})
