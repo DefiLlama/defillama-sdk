@@ -93,7 +93,9 @@ export const providers = {
   dfk: createProvider("dfk", "https://subnets.avax.network/defi-kingdoms/dfk-chain/rpc", 53935),
   crab: createProvider("crab", "https://crab-rpc.darwinia.network", 44),
   bittorrent: createProvider("bittorrent", "https://rpc.bittorrentchain.io", 199),
-  findora: createProvider("findora", "https://prod-mainnet.prod.findora.org:8545", 2152)
+  findora: createProvider("findora", "https://prod-mainnet.prod.findora.org:8545", 2152),
+  candle: createProvider("candle", "https://network.cndlchain.com/,https://rpc.cndlchain.com", 534)
+
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
@@ -155,6 +157,7 @@ export type Chain =
   | "dfk"
   | "bittorrent"
   | "findora"
+  | "candle"
 export function getProvider(chain: Chain = "ethereum") {
   return providers[chain];
 }
