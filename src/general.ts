@@ -34,6 +34,7 @@ export const providers = {
   ethereum: createProvider("ethereum", "https://eth-mainnet.gateway.pokt.network/v1/5f3453978e354ab992c4da79,https://cloudflare-eth.com/,https://main-light.eth.linkpool.io/,https://api.mycryptoapi.com/eth", 1),
   bsc: createProvider("bsc", "https://bsc-dataseed.binance.org/,https://bsc-dataseed1.defibit.io/,https://bsc-dataseed1.ninicoin.io/,https://bsc-dataseed2.defibit.io/,https://bsc-dataseed2.ninicoin.io/", 56),
   polygon: createProvider("polygon", "https://polygon-rpc.com/,https://rpc-mainnet.maticvigil.com/", 137),
+  candle: createProvider("candle", "https://network.cndlchain.com/,https://rpc.cndlchain.com", 534),
   heco: createProvider("heco", "https://http-mainnet.hecochain.com,https://http-mainnet-node.huobichain.com,https://pub001.hg.network/rpc", 128),
   fantom: createProvider("fantom", "https://rpc.ankr.com/fantom,https://rpc.ftm.tools/,https://rpcapi.fantom.network", 250),
   rsk: createProvider("rsk", "https://public-node.rsk.co", 30),
@@ -102,6 +103,7 @@ export type Chain =
   | "ethereum"
   | "bsc"
   | "polygon"
+  | "candle"
   | "heco"
   | "fantom"
   | "rsk"
