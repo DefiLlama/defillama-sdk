@@ -94,7 +94,8 @@ export const providers = {
   crab: createProvider("crab", "https://crab-rpc.darwinia.network", 44),
   bittorrent: createProvider("bittorrent", "https://rpc.bittorrentchain.io", 199),
   findora: createProvider("findora", "https://prod-mainnet.prod.findora.org:8545", 2152),
-  candle: createProvider("candle", "https://network.cndlchain.com/,https://rpc.cndlchain.com", 534)
+  candle: createProvider("candle", "https://network.cndlchain.com/,https://rpc.cndlchain.com", 534),
+  lachain: createProvider("lachain", "https://rpc-mainnet.lachain.io", 225)
 
 } as {
   [chain: string]: ethers.providers.BaseProvider;
@@ -158,6 +159,7 @@ export type Chain =
   | "bittorrent"
   | "findora"
   | "candle"
+  | "lachain"
 export function getProvider(chain: Chain = "ethereum") {
   return providers[chain];
 }
