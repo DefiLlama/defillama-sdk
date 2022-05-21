@@ -31,34 +31,38 @@ const terraBlockProvider = {
       })),
 };
 
-async function getBlock(provider: typeof terraBlockProvider, height: number | "latest", chain:string|undefined){
-  const block = await provider.getBlock(height)
-  if(block === null){
-    throw new Error(`Can't get block of chain ${chain ?? 'ethereum'}`)
+async function getBlock(
+  provider: typeof terraBlockProvider,
+  height: number | "latest",
+  chain: string | undefined
+) {
+  const block = await provider.getBlock(height);
+  if (block === null) {
+    throw new Error(`Can't get block of chain ${chain ?? "ethereum"}`);
   }
-  return block
+  return block;
 }
 
-function getExtraProvider(chain:string|undefined){
-  if(chain === "terra"){
-    return terraBlockProvider
-  } else if(chain === "kava"){
-    return kavaBlockProvider
+function getExtraProvider(chain: string | undefined) {
+  if (chain === "terra") {
+    return terraBlockProvider;
+  } else if (chain === "kava") {
+    return kavaBlockProvider;
   }
   return getProvider(chain as any);
 }
 
-export async function getLatestBlock(chain:string){
-  const provider = getExtraProvider(chain)
+export async function getLatestBlock(chain: string) {
+  const provider = getExtraProvider(chain);
   return getBlock(provider, "latest", chain);
 }
 
 const intialBlocks = {
   terra: 4724001,
-  crab: 4969901
+  crab: 4969901,
 } as {
-  [chain: string]:number|undefined
-}
+  [chain: string]: number | undefined;
+};
 
 export async function lookupBlock(
   timestamp: number,
@@ -67,10 +71,16 @@ export async function lookupBlock(
   } = {}
 ) {
   try {
-    const provider = getExtraProvider(extraParams.chain)
+    const provider = getExtraProvider(extraParams.chain);
     const lastBlock = await getBlock(provider, "latest", extraParams.chain);
-    if((lastBlock.timestamp - timestamp)<-30*60){
-      throw new Error(`Last block of chain "${extraParams.chain}" is further than 30 minutes into the past. Provider is "${(provider as any)?.connection?.url}"`)
+    if (lastBlock.timestamp - timestamp < -30 * 60) {
+      throw new Error(
+        `Last block of chain "${
+          extraParams.chain
+        }" is further than 30 minutes into the past. Provider is "${
+          (provider as any)?.connection?.url
+        }"`
+      );
     }
     if (Math.abs(lastBlock.timestamp - timestamp) < 60) {
       // Short-circuit in case we are trying to get the current block
@@ -91,16 +101,22 @@ export async function lookupBlock(
         high = mid - 1;
       }
     } while (high - low > 4); // We lose some precision (~4 blocks) but reduce #calls needed
-    if(Math.abs(block.timestamp - timestamp) > 3600){
-      throw new Error("Block selected is more than 1 hour away from the requested timestamp")
+    if (Math.abs(block.timestamp - timestamp) > 3600) {
+      throw new Error(
+        "Block selected is more than 1 hour away from the requested timestamp"
+      );
     }
     return {
       block: block.number,
       timestamp: block.timestamp,
     };
   } catch (e) {
-    console.log(e)
-    throw new Error(`Couldn't find block height for chain ${extraParams.chain ?? 'ethereum'}, RPC node rugged`)
+    console.log(e);
+    throw new Error(
+      `Couldn't find block height for chain ${
+        extraParams.chain ?? "ethereum"
+      }, RPC node rugged`
+    );
   }
 }
 
@@ -188,8 +204,10 @@ export async function getLogs(params: {
   topics?: string[]; // This is an outdated part of DefiPulse's API which is still used in some old adapters
   chain?: Chain;
 }) {
-  if(params.toBlock === undefined || params.fromBlock === undefined){
-    throw new Error("toBlock and fromBlock need to be defined in all calls to getLogs")
+  if (params.toBlock === undefined || params.fromBlock === undefined) {
+    throw new Error(
+      "toBlock and fromBlock need to be defined in all calls to getLogs"
+    );
   }
   const filter = {
     address: params.target,

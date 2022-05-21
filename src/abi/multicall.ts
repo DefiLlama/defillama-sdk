@@ -32,7 +32,7 @@ export const MULTICALL_ADDRESS_MOONRIVER =
   "0xe05349d6fE12602F6084550995B247a5C80C0E2C";
 export const MULTICALL_ADDRESS_AURORA =
   "0xe0e3887b158F7F9c80c835a61ED809389BC08d1b";
-export const MULTICALL_ADDRESS_OPTIMISM = 
+export const MULTICALL_ADDRESS_OPTIMISM =
   "0xD0E99f15B24F265074747B2A1444eB02b9E30422";
 
 export const AGGREGATE_SELECTOR = "0x252dba42";
@@ -111,7 +111,12 @@ async function executeCalls(
         data: callData,
       };
 
-      const returnData = await call(getProvider(chain), tx, block ?? "latest", chain)
+      const returnData = await call(
+        getProvider(chain),
+        tx,
+        block ?? "latest",
+        chain
+      );
 
       const [blockNumber, returnValues] = ethers.utils.defaultAbiCoder.decode(
         ["uint256", "bytes[]"],
@@ -127,10 +132,11 @@ async function executeCalls(
   const values = await Promise.all(
     contractCalls.map(async ({ to, data }) => {
       try {
-        return await call(getProvider(chain),
+        return await call(
+          getProvider(chain),
           { to, data },
           block ?? "latest",
-          chain,
+          chain
         );
       } catch (e) {
         return null;

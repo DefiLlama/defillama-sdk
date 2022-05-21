@@ -1,49 +1,65 @@
-import { Deferrable } from "@ethersproject/properties"
-import { BaseProvider, BlockTag, TransactionRequest } from "@ethersproject/providers"
-import { once, EventEmitter } from 'events'
+import { Deferrable } from "@ethersproject/properties";
+import {
+  BaseProvider,
+  BlockTag,
+  TransactionRequest,
+} from "@ethersproject/providers";
+import { once, EventEmitter } from "events";
 
-const DEBUG_MODE_ENABLED = !!process.env.LLAMA_DEBUG_MODE
-const maxParallelCalls = !!process.env.LLAMA_SDK_MAX_PARALLEL ? +process.env.LLAMA_SDK_MAX_PARALLEL : 100
+const DEBUG_MODE_ENABLED = !!process.env.LLAMA_DEBUG_MODE;
+const maxParallelCalls = !!process.env.LLAMA_SDK_MAX_PARALLEL
+  ? +process.env.LLAMA_SDK_MAX_PARALLEL
+  : 100;
 
-const COUNTERS: Record<string, Counter> = {}
-const emitter = new EventEmitter()
-emitter.setMaxListeners(500000)
+const COUNTERS: Record<string, Counter> = {};
+const emitter = new EventEmitter();
+emitter.setMaxListeners(500000);
 
-export async function call(provider: BaseProvider, data: Deferrable<TransactionRequest>, block: BlockTag, chain?: string) {
-  if (!chain) chain = 'noChain'
-  const counter: Counter = getChainCounter(chain)
-  const currentId = counter.requestCount++
-  const eventId = `${chain}-${currentId}`
+export async function call(
+  provider: BaseProvider,
+  data: Deferrable<TransactionRequest>,
+  block: BlockTag,
+  chain?: string
+) {
+  if (!chain) chain = "noChain";
+  const counter: Counter = getChainCounter(chain);
+  const currentId = counter.requestCount++;
+  const eventId = `${chain}-${currentId}`;
 
   if (counter.activeWorkers > maxParallelCalls) {
-    counter.queue.push(eventId)
-    await once(emitter, eventId)
+    counter.queue.push(eventId);
+    await once(emitter, eventId);
   }
 
-  counter.activeWorkers++
+  counter.activeWorkers++;
 
   if (DEBUG_MODE_ENABLED) {
-    const showEveryX = counter.queue.length > 100 ? 50 : 10 // show log fewer times if lot more are queued up
-    if (currentId % showEveryX === 0) console.log(`chain: ${chain} request #: ${currentId} queue: ${counter.queue.length} active requests: ${counter.activeWorkers}`)
+    const showEveryX = counter.queue.length > 100 ? 50 : 10; // show log fewer times if lot more are queued up
+    if (currentId % showEveryX === 0)
+      console.log(
+        `chain: ${chain} request #: ${currentId} queue: ${counter.queue.length} active requests: ${counter.activeWorkers}`
+      );
   }
 
-  let response
+  let response;
   try {
-    response = await provider.call(data, block)
-    onComplete()
+    response = await provider.call(data, block);
+    onComplete();
   } catch (e) {
-    onComplete()
-    throw e
+    onComplete();
+    throw e;
   }
 
-  return response
+  return response;
 
   function onComplete() {
-    counter.activeWorkers--
+    counter.activeWorkers--;
     if (counter.queue.length) {
-      const nextRequestId = counter.pickFromTop ? counter.queue.shift() : counter.queue.pop()
-      counter.pickFromTop = !counter.pickFromTop
-      emitter.emit(<string> nextRequestId)
+      const nextRequestId = counter.pickFromTop
+        ? counter.queue.shift()
+        : counter.queue.pop();
+      counter.pickFromTop = !counter.pickFromTop;
+      emitter.emit(<string>nextRequestId);
     }
   }
 }
@@ -55,8 +71,8 @@ function getChainCounter(chain: string) {
       queue: [],
       requestCount: 0,
       pickFromTop: true,
-    }
-  return COUNTERS[chain]
+    };
+  return COUNTERS[chain];
 }
 
 interface Counter {

@@ -18,7 +18,7 @@ export function sumMultiBalanceOf(
     }[];
   },
   allCallsMustBeSuccessful = true,
-  transformAddress = (addr:string)=>addr
+  transformAddress = (addr: string) => addr
 ) {
   results.output.map((result) => {
     if (result.success) {
@@ -32,9 +32,9 @@ export function sumMultiBalanceOf(
       balances[address] = BigNumber.from(balances[address] ?? 0)
         .add(balance)
         .toString();
-    } else if(allCallsMustBeSuccessful){
-      console.error(result)
-      throw new Error(`balanceOf multicall failed`)
+    } else if (allCallsMustBeSuccessful) {
+      console.error(result);
+      throw new Error(`balanceOf multicall failed`);
     }
   });
 }
@@ -44,10 +44,12 @@ export function sumSingleBalance(
   token: string,
   balance: string | number
 ) {
-  if (typeof balance === 'number') {
-    const prevBalance = balances[token] ?? 0
-    if (typeof prevBalance !== 'number') {
-      throw new Error(`Trying to merge token balance and coingecko amount for ${token}`)
+  if (typeof balance === "number") {
+    const prevBalance = balances[token] ?? 0;
+    if (typeof prevBalance !== "number") {
+      throw new Error(
+        `Trying to merge token balance and coingecko amount for ${token}`
+      );
     }
     (balances[token] as number) = prevBalance + balance;
   } else {

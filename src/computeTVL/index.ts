@@ -8,8 +8,8 @@ import {
   GetCoingeckoLog,
 } from "./prices";
 import fetch from "node-fetch";
-import { sumSingleBalance } from '../generalUtil'
-import { Balances as NormalizedBalances } from '../types'
+import { sumSingleBalance } from "../generalUtil";
+import { Balances as NormalizedBalances } from "../types";
 
 type Balances = {
   [tokenAddressOrName: string]: StringNumber | Object;
@@ -27,7 +27,7 @@ function tokenMulticall(addresses: Address[], abi: string, chain?: string) {
       params: [],
     })),
     chain: chain as any,
-  })
+  });
 }
 
 function addTokenBalance(
@@ -38,16 +38,25 @@ function addTokenBalance(
   balances[symbol] = (balances[symbol] || 0) + amount;
 }
 
-type ChainOrCoingecko = "bsc" | "ethereum" | "coingecko" | "polygon" | 'avax' | 'fantom' | 'xdai' | 'heco' | 'okexchain';
+type ChainOrCoingecko =
+  | "bsc"
+  | "ethereum"
+  | "coingecko"
+  | "polygon"
+  | "avax"
+  | "fantom"
+  | "xdai"
+  | "heco"
+  | "okexchain";
 function historicalCoingeckoUrls(chain: ChainOrCoingecko) {
-  if (chain === 'coingecko') {
-    return "https://api.coingecko.com/api/v3/coins"
+  if (chain === "coingecko") {
+    return "https://api.coingecko.com/api/v3/coins";
   }
-  const platformId = chainToCoingeckoId[chain]
+  const platformId = chainToCoingeckoId[chain];
   if (platformId !== undefined) {
-    return `https://api.coingecko.com/api/v3/coins/${platformId}/contract`
+    return `https://api.coingecko.com/api/v3/coins/${platformId}/contract`;
   }
-  throw new Error("Chain not supported")
+  throw new Error("Chain not supported");
 }
 
 export const chainToCoingeckoId = {
@@ -92,7 +101,7 @@ export const chainToCoingeckoId = {
   moonbeam: "moonbeam",
   velas: "velas",
   milkomeda: "milkomeda-cardano",
-}
+};
 
 const chains = Object.keys(chainToCoingeckoId) as ChainOrCoingecko[];
 
@@ -124,27 +133,36 @@ async function getHistoricalChainPrices(
   return chainPrices;
 }
 
-async function getChainSymbolsAndDecimals(ids: { [chain: string]: string[] }, maxRetries: number) {
-  const allCoins = Object.entries(ids).map(chain =>
-    chain[1].map(coin => chain[0] === "coingecko" ? coin.toLowerCase() : `${chain[0]}:${coin.toLowerCase()}`))
+async function getChainSymbolsAndDecimals(
+  ids: { [chain: string]: string[] },
+  maxRetries: number
+) {
+  const allCoins = Object.entries(ids)
+    .map((chain) =>
+      chain[1].map((coin) =>
+        chain[0] === "coingecko"
+          ? coin.toLowerCase()
+          : `${chain[0]}:${coin.toLowerCase()}`
+      )
+    )
     .reduce((acc, coins) => {
-      coins.forEach(coin => {
-        acc.add(coin)
-      })
-      return acc
-    }, new Set([] as string[]))
+      coins.forEach((coin) => {
+        acc.add(coin);
+      });
+      return acc;
+    }, new Set([] as string[]));
   for (let i = 0; i < maxRetries; i++) {
-    const response = await fetch('https://api.llama.fi/coins', {
-      method: 'POST',
+    const response = await fetch("https://api.llama.fi/coins", {
+      method: "POST",
       body: JSON.stringify({
-        coins: Array.from(allCoins)
-      })
-    }).then(response => response.json())
+        coins: Array.from(allCoins),
+      }),
+    }).then((response) => response.json());
     if (Array.isArray(response)) {
-      return response
+      return response;
     }
   }
-  throw new Error("api.llama.fi/coins failed")
+  throw new Error("api.llama.fi/coins failed");
 }
 
 export default async function (
@@ -187,7 +205,7 @@ export default async function (
   const chainIds = {
     coingecko: [],
   } as {
-    [chain: string]: Address[]
+    [chain: string]: Address[];
   };
   for (const chain of chains) {
     chainIds[chain] = [];
@@ -205,41 +223,54 @@ export default async function (
         normalizedAddressOrName
       ] = (normalizedBalance as any).toFixed(); // Some adapters return a BigNumber from bignumber.js so the results must be normalized
     } else {
-      sumSingleBalance(normalizedBalances, normalizedAddressOrName, normalizedBalance)
+      sumSingleBalance(
+        normalizedBalances,
+        normalizedAddressOrName,
+        normalizedBalance
+      );
     }
     if (normalizedAddressOrName.startsWith("0x")) {
-      chainIds.ethereum.push(normalizedAddressOrName)
+      chainIds.ethereum.push(normalizedAddressOrName);
     } else if (normalizedAddressOrName.includes(":")) {
-      const chain = normalizedAddressOrName.split(':')[0]
-      chainIds[chain].push(normalizedAddressOrName.slice(chain.length + 1))
+      const chain = normalizedAddressOrName.split(":")[0];
+      chainIds[chain].push(normalizedAddressOrName.slice(chain.length + 1));
     } else {
-      chainIds.coingecko.push(normalizedAddressOrName)
+      chainIds.coingecko.push(normalizedAddressOrName);
     }
   }
 
-  const symbolsAndDecimals = await getChainSymbolsAndDecimals(chainIds, coingeckoMaxRetries);
+  const symbolsAndDecimals = await getChainSymbolsAndDecimals(
+    chainIds,
+    coingeckoMaxRetries
+  );
   let allChainTokenPrices: {
     [chain: string]: TokenPrices;
   };
   if (timestamp === "now") {
-    allChainTokenPrices = symbolsAndDecimals.reduce((prices:typeof allChainTokenPrices, item:{
-      "coin": string,
-      "price": number,
-    }) => {
-      let chain: string, address: string;
-      if (item.coin.includes(":")) {
-        chain = item.coin.split(':')[0]
-        address = item.coin.split(':')[1]
-      } else {
-        chain = "coingecko"
-        address = item.coin
-      }
-      if (prices[chain] === undefined) {
-        prices[chain] = {}
-      }
-      prices[chain][address]={usd:item.price}
-      return prices
-    }, {})
+    allChainTokenPrices = symbolsAndDecimals.reduce(
+      (
+        prices: typeof allChainTokenPrices,
+        item: {
+          coin: string;
+          price: number;
+        }
+      ) => {
+        let chain: string, address: string;
+        if (item.coin.includes(":")) {
+          chain = item.coin.split(":")[0];
+          address = item.coin.split(":")[1];
+        } else {
+          chain = "coingecko";
+          address = item.coin;
+        }
+        if (prices[chain] === undefined) {
+          prices[chain] = {};
+        }
+        prices[chain][address] = { usd: item.price };
+        return prices;
+      },
+      {}
+    );
   } else {
     allChainTokenPrices = await getHistoricalChainPrices(
       chainIds,
@@ -258,21 +289,23 @@ export default async function (
         if (address.startsWith("0x") || address.includes(":")) {
           let normalizedAddress = address;
           let chainSelector: ChainOrCoingecko = "ethereum";
-          chains.forEach(chain => {
+          chains.forEach((chain) => {
             if (address.startsWith(chain)) {
               chainSelector = chain;
               normalizedAddress = address.slice(chain.length + 1);
             }
-          })
+          });
           const chainTokenPrices = allChainTokenPrices[chainSelector] ?? {};
-          const chainAddress = `${chainSelector}:${normalizedAddress.toLowerCase()}`
-          const coinData = symbolsAndDecimals.find((coin: any) => coin.coin === chainAddress)
+          const chainAddress = `${chainSelector}:${normalizedAddress.toLowerCase()}`;
+          const coinData = symbolsAndDecimals.find(
+            (coin: any) => coin.coin === chainAddress
+          );
 
-          tokenSymbol = coinData?.symbol?.toUpperCase()
+          tokenSymbol = coinData?.symbol?.toUpperCase();
           if (tokenSymbol === undefined || tokenSymbol === null) {
             tokenSymbol = `UNKNOWN (${address})`;
           }
-          const tokenDecimals = coinData?.decimals
+          const tokenDecimals = coinData?.decimals;
           if (tokenDecimals === undefined) {
             amount = 0;
           } else {

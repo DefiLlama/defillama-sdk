@@ -2,10 +2,20 @@ import { getProvider } from "../general";
 import { lookupBlock } from "../util/index";
 import type { Chain } from "../general";
 
-export const chainsForBlocks = ["avax", "bsc", "polygon", "xdai", "fantom", "arbitrum"] as Chain[];
+export const chainsForBlocks = [
+  "avax",
+  "bsc",
+  "polygon",
+  "xdai",
+  "fantom",
+  "arbitrum",
+] as Chain[];
 const blockRetries = 5;
 
-export async function getChainBlocks(timestamp: number, chains: Chain[] = chainsForBlocks) {
+export async function getChainBlocks(
+  timestamp: number,
+  chains: Chain[] = chainsForBlocks
+) {
   const chainBlocks = {} as {
     [chain: string]: number;
   };
@@ -29,8 +39,11 @@ export async function getChainBlocks(timestamp: number, chains: Chain[] = chains
 }
 
 export async function getBlocks(timestamp: number) {
-  const [ethBlock, chainBlocks] = await Promise.all([lookupBlock(timestamp), getChainBlocks(timestamp)]);
-  chainBlocks['ethereum'] = ethBlock.block;
+  const [ethBlock, chainBlocks] = await Promise.all([
+    lookupBlock(timestamp),
+    getChainBlocks(timestamp),
+  ]);
+  chainBlocks["ethereum"] = ethBlock.block;
   return {
     ethereumBlock: ethBlock.block,
     chainBlocks,
@@ -42,7 +55,7 @@ export async function getCurrentBlocks() {
   const lastBlockNumber = await provider.getBlockNumber();
   const block = await provider.getBlock(lastBlockNumber - 5); // To allow indexers to catch up
   const chainBlocks = await getChainBlocks(block.timestamp);
-  chainBlocks['ethereum'] = block.number;
+  chainBlocks["ethereum"] = block.number;
   return {
     timestamp: block.timestamp,
     ethereumBlock: block.number,

@@ -4,7 +4,7 @@ import { ethers } from "ethers";
 function stringifyBigNumbers(result: any, final: any) {
   Object.keys(result).forEach((key) => {
     try {
-      final[key] = {}
+      final[key] = {};
       if (
         BigNumber.isBigNumber(result[key]) ||
         typeof result[key] === "number"
