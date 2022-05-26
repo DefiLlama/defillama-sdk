@@ -1,19 +1,19 @@
 import { BigNumber } from "@ethersproject/bignumber";
 import { ethers } from "ethers";
+import lodash from "lodash";
 
 function stringifyBigNumbers(result: any, final: any) {
   Object.keys(result).forEach((key) => {
     try {
-      final[key] = {}
+      final[key] = lodash.cloneDeep(result[key]);
       if (
         BigNumber.isBigNumber(result[key]) ||
         typeof result[key] === "number"
       ) {
         final[key] = result[key].toString();
-      } else if (typeof result[key] === "object") {
+      }
+      if (typeof final[key] === "object") {
         stringifyBigNumbers(result[key], final[key]);
-      } else {
-        final[key] = JSON.parse(JSON.stringify(result[key]));
       }
     } catch (e) {
       console.log(e);
