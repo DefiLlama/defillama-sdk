@@ -95,7 +95,8 @@ export const providers = {
   bittorrent: createProvider("bittorrent", "https://rpc.bittorrentchain.io", 199),
   findora: createProvider("findora", "https://prod-mainnet.prod.findora.org:8545", 2152),
   candle: createProvider("candle", "https://network.cndlchain.com/,https://rpc.cndlchain.com", 534),
-  lachain: createProvider("lachain", "https://rpc-mainnet.lachain.io", 225)
+  lachain: createProvider("lachain", "https://rpc-mainnet.lachain.io", 225),
+  rei: createProvider("rei", "https://rei-rpc.moonrhythm.io", 55555),
 
 } as {
   [chain: string]: ethers.providers.BaseProvider;
