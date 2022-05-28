@@ -191,8 +191,6 @@ function multicallAddress(chainId: number) {
       return MULTICALL_ADDRESS_OPTIMISM;
     case 25:
       return "0x5e954f5972EC6BFc7dECd75779F10d848230345F"; // cronos
-    case 128:
-      return "0x2c55d51804cf5b436ba5af37bd7b8e5db70ebf29"; // heco
     default:
       return null;
   }
