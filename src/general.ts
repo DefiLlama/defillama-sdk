@@ -96,9 +96,9 @@ export const providers = {
   findora: createProvider("findora", "https://prod-mainnet.prod.findora.org:8545", 2152),
   candle: createProvider("candle", "https://network.cndlchain.com/,https://rpc.cndlchain.com", 534),
   lachain: createProvider("lachain", "https://rpc-mainnet.lachain.io", 225),
-  rei55555: createProvider("rei55555", "https://rei-rpc.moonrhythm.io", 55555),
+  reichain: createProvider("reichain", "https://rei-rpc.moonrhythm.io", 55555),
   rei: createProvider("rei", "https://rpc.rei.network", 47805),
-  clover: createProvider("rei", "https://api-para.clover.finance", 1024),
+  clover: createProvider("clover", "https://api-para.clover.finance", 1024),
 
 } as {
   [chain: string]: ethers.providers.BaseProvider;
