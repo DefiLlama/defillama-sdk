@@ -100,6 +100,8 @@ export const providers = {
   reichain: createProvider("reichain", "https://rei-rpc.moonrhythm.io", 55555),
   rei: createProvider("rei", "https://rpc.rei.network", 47805),
   clover: createProvider("clover", "https://api-para.clover.finance", 1024),
+  echelon: createProvider("echelon", "https://rpc.ech.network", 3000),
+  multivac: createProvider("multivac", "https://rpc.mtv.ac", 62621)
 
 } as {
   [chain: string]: ethers.providers.BaseProvider;
@@ -164,6 +166,8 @@ export type Chain =
   | "findora"
   | "candle"
   | "lachain"
+  | "echelon"
+  | "multivac"
 export function getProvider(chain: Chain = "ethereum") {
   return providers[chain];
 }
