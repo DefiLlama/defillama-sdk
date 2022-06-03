@@ -100,8 +100,8 @@ export const providers = {
   reichain: createProvider("reichain", "https://rei-rpc.moonrhythm.io", 55555),
   rei: createProvider("rei", "https://rpc.rei.network", 47805),
   clover: createProvider("clover", "https://api-para.clover.finance", 1024),
-  echelon: createProvider("echelon", "https://rpc.ech.network", 3000),
-  multivac: createProvider("multivac", "https://rpc.mtv.ac", 62621)
+  echelon: createProvider("echelon", "https://rpc.ech.network,https://evm.ech.network,https://draco.ech.network", 3000),
+  multivac: createProvider("multivac", "https://rpc.mtv.ac,https://rpc-eu.mtv.ac", 62621)
 
 } as {
   [chain: string]: ethers.providers.BaseProvider;
@@ -124,7 +124,13 @@ export type Chain =
   | "okexchain"
   | "optimism"
   | "arbitrum"
+  | "kcc"
+  | "celo"
+  | "moonriver"
+  | "shiden"
+  | "palm"
   | "energyweb"
+  | "energi"
   | "songbird"
   | "hpb"
   | "gochain"
@@ -166,6 +172,9 @@ export type Chain =
   | "findora"
   | "candle"
   | "lachain"
+  | "reichain"
+  | "rei"
+  | "clover"
   | "echelon"
   | "multivac"
 export function getProvider(chain: Chain = "ethereum") {

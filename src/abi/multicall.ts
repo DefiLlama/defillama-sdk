@@ -32,7 +32,7 @@ export const MULTICALL_ADDRESS_MOONRIVER =
   "0xe05349d6fE12602F6084550995B247a5C80C0E2C";
 export const MULTICALL_ADDRESS_AURORA =
   "0xe0e3887b158F7F9c80c835a61ED809389BC08d1b";
-export const MULTICALL_ADDRESS_OPTIMISM = 
+export const MULTICALL_ADDRESS_OPTIMISM =
   "0xD0E99f15B24F265074747B2A1444eB02b9E30422";
 
 export const AGGREGATE_SELECTOR = "0x252dba42";
@@ -191,6 +191,14 @@ function multicallAddress(chainId: number) {
       return MULTICALL_ADDRESS_OPTIMISM;
     case 25:
       return "0x5e954f5972EC6BFc7dECd75779F10d848230345F"; // cronos
+    case 246:
+      return "0x18fA376d92511Dd04090566AB6144847c03557d8"; // energy web chain
+    case 336:
+      return "0x18fA376d92511Dd04090566AB6144847c03557d8"; // shiden
+    case 592:
+      return "0x18fA376d92511Dd04090566AB6144847c03557d8"; // astar
+    case 269:
+      return "0x18fA376d92511Dd04090566AB6144847c03557d8"; // High performance blockchain
     default:
       return null;
   }
