@@ -101,8 +101,8 @@ export const providers = {
   rei: createProvider("rei", "https://rpc.rei.network", 47805),
   clover: createProvider("clover", "https://api-para.clover.finance", 1024),
   echelon: createProvider("echelon", "https://rpc.ech.network,https://evm.ech.network,https://draco.ech.network", 3000),
-  multivac: createProvider("multivac", "https://rpc.mtv.ac,https://rpc-eu.mtv.ac", 62621)
-
+  multivac: createProvider("multivac", "https://rpc.mtv.ac,https://rpc-eu.mtv.ac", 62621),
+  kava: createProvider("kava", "https://evm.kava.io", 2222),
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
