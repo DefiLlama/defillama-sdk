@@ -195,6 +195,8 @@ function multicallAddress(chainId: number) {
       return "0x80Ae459D058436ecB4e043ac48cfd209B578CBF0"; // boba
     case 4689:
       return "0x5a6787fc349665c5b0c4b93126a0b62f14935731"; // iotex
+    case 82:
+      return "0x59177c9e5d0488e21355816094a047bdf8f14ebe"; // meter
     case 246: // energy web chain
     case 336: // shiden
     case 592: // astar
@@ -212,6 +214,16 @@ function multicallAddress(chainId: number) {
     case 2001: // Milkomeda C1
     case 9001: // evmos
     case 106: // velas
+    case 888: // wanchain
+    case 24: // kardia
+    case 108: // thundercore
+    case 361: // Theta
+    case 57: // Syscoin
+    case 61: // etc
+    case 70: // hoo
+    case 61: // etc
+    case 60: // go
+    case 66: // okxchain
       return "0x18fA376d92511Dd04090566AB6144847c03557d8";
     case 2222:
       return "0x30A62aA52Fa099C4B227869EB6aeaDEda054d121" // kava
