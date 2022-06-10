@@ -190,15 +190,29 @@ function multicallAddress(chainId: number) {
     case 10:
       return MULTICALL_ADDRESS_OPTIMISM;
     case 25:
-      return "0x5e954f5972EC6BFc7dECd75779F10d848230345F"; // cronos
-    case 246:
-      return "0x18fA376d92511Dd04090566AB6144847c03557d8"; // energy web chain
-    case 336:
-      return "0x18fA376d92511Dd04090566AB6144847c03557d8"; // shiden
-    case 592:
-      return "0x18fA376d92511Dd04090566AB6144847c03557d8"; // astar
-    case 269:
-      return "0x18fA376d92511Dd04090566AB6144847c03557d8"; // High performance blockchain
+      return "0x5e954f5972EC6BFc7dECd75779F10d848230345F"; // cronos 
+    case 288:
+      return "0x80Ae459D058436ecB4e043ac48cfd209B578CBF0"; // boba
+    case 4689:
+      return "0x5a6787fc349665c5b0c4b93126a0b62f14935731"; // iotex
+    case 246: // energy web chain
+    case 336: // shiden
+    case 592: // astar
+    case 269: // High performance blockchain
+    case 321: // KCC
+    case 8217: // Klaytn
+    case 122: // Fuse
+    case 42220: // Celo
+    case 42262: // ROSE
+    case 39797: // energi
+    case 1284: // moonbeam
+    case 30: // rsk
+    case 1088: // metis
+    case 10000: // smartbch
+    case 2001: // Milkomeda C1
+    case 9001: // evmos
+    case 106: // velas
+      return "0x18fA376d92511Dd04090566AB6144847c03557d8";
     case 2222:
       return "0x30A62aA52Fa099C4B227869EB6aeaDEda054d121" // kava
     default:
