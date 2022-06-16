@@ -197,12 +197,17 @@ function multicallAddress(chainId: number) {
       return "0x5a6787fc349665c5b0c4b93126a0b62f14935731"; // iotex
     case 82:
       return "0x59177c9e5d0488e21355816094a047bdf8f14ebe"; // meter
-    case 246: // energy web chain
+    case 11297108109:
+      return "0xfFE2FF36c5b8D948f788a34f867784828aa7415D"; // palm
+    case 416:
+      return "0x834a005DDCF990Ba1a79f259e840e58F2D14F49a"; // sx
+    case 246: // energy web chain 
     case 336: // shiden
     case 592: // astar
     case 269: // High performance blockchain
     case 321: // KCC
-    case 8217: // Klaytn
+    // case 8217: // Klaytn - multicall doesnt work for some reason
+    // case 88: // tomochain - multicall doesnt work for some reason
     case 122: // Fuse
     case 42220: // Celo
     case 42262: // ROSE
@@ -224,6 +229,7 @@ function multicallAddress(chainId: number) {
     case 61: // etc
     case 60: // go
     case 66: // okxchain
+    case 19: // songbird
       return "0x18fA376d92511Dd04090566AB6144847c03557d8";
     case 2222:
       return "0x30A62aA52Fa099C4B227869EB6aeaDEda054d121" // kava
