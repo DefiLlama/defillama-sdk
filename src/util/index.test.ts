@@ -1,8 +1,6 @@
 import {
   lookupBlock,
-  tokenList,
   kyberTokens,
-  toSymbols,
   getLogs,
 } from "./index";
 
@@ -27,10 +25,6 @@ test("lookupBlock on xdai and terra", async () => {
     );
   }
   await Promise.all(calls);
-});
-
-test("tokenList", async () => {
-  expect((await tokenList()).length).toMatchInlineSnapshot(`811`);
 });
 
 test("kyberTokens", async () => {
@@ -62,42 +56,6 @@ test("kyberTokens", async () => {
         ethPrice: 0.002,
       },
     },
-  });
-});
-
-const sortSymbols = (a: any, b: any) => (a.address > b.address ? 1 : -1);
-
-test("toSymbols", async () => {
-  expect(
-    (
-      await toSymbols({
-        "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE": "2.363644408933851e+23", // Curve's ETH address
-        "0x6B175474E89094C44Da98b954EedeAC495271d0F": "2.3462351944349785e+26",
-        "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48": "370186290673080",
-        "0xdAC17F958D2ee523a2206206994597C13D831ec7": "411511818650054",
-        "0xC2cB1040220768554cf699b0d863A3cd4324ce32": "1.232581672477717e+25",
-      })
-    ).output.sort(sortSymbols)
-  ).toEqual(
-    JSON.parse(
-      '[{"symbol":"ETH","address":"0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee","balance":"236364.440893"},{"symbol":"DAI","address":"0x6b175474e89094c44da98b954eedeac495271d0f","balance":"234623519.443498"},{"symbol":"USDC","address":"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48","balance":"370186290.673080"},{"symbol":"USDT","address":"0xdac17f958d2ee523a2206206994597c13d831ec7","balance":"411511818.650054"},{"symbol":"yDAI","address":"0xc2cb1040220768554cf699b0d863a3cd4324ce32","balance":"12325816.724777"}]'
-    ).sort(sortSymbols)
-  );
-});
-
-test("toSymbols works well with 0x0 as an ETH address", async () => {
-  expect(
-    await toSymbols({
-      "0x0000000000000000000000000000000000000000": "2100000000000000000", // ETH
-    })
-  ).toEqual({
-    output: [
-      {
-        symbol: "ETH",
-        address: "0x0000000000000000000000000000000000000000",
-        balance: "2.100000",
-      },
-    ],
   });
 });
 
