@@ -76,7 +76,7 @@ export const providers = {
   ubiq: createProvider("ubiq", "https://rpc.octano.dev", 8),
   velas: createProvider("velas", "https://evmexplorer.velas.com/rpc", 106),
   callisto: createProvider("callisto", "https://clo-geth.0xinfra.com/", 820),
-  klaytn: createProvider("klaytn", "https://public-node-api.klaytnapi.com/v1/cypress,http://175.209.78.135:8551", 8217),
+  klaytn: createProvider("klaytn", "https://public-node-api.klaytnapi.com/v1/cypress", 8217),
   csc: createProvider("csc", "https://rpc.coinex.net/,https://rpc1.coinex.net/,https://rpc2.coinex.net/,https://rpc3.coinex.net/,https://rpc4.coinex.net/", 52),
   nahmii: createProvider("nahmii", "https://l2.nahmii.io/", 5551),
   liquidchain: createProvider("xlc", "https://rpc.liquidchain.net/,https://rpc.xlcscan.com/", 5050),
@@ -103,6 +103,7 @@ export const providers = {
   echelon: createProvider("echelon", "https://rpc.ech.network,https://evm.ech.network,https://draco.ech.network", 3000),
   multivac: createProvider("multivac", "https://rpc.mtv.ac,https://rpc-eu.mtv.ac", 62621),
   kava: createProvider("kava", "https://evm.kava.io", 2222),
+  sx: createProvider("sx", "https://rpc.sx.technology", 416),
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
@@ -177,6 +178,7 @@ export type Chain =
   | "clover"
   | "echelon"
   | "multivac"
+  | "sx"
 export function getProvider(chain: Chain = "ethereum") {
   return providers[chain];
 }
