@@ -1,10 +1,8 @@
 import { getProvider, Chain } from "../general";
 import fetch from "node-fetch";
-import rawTokenList from "./tokenList";
 import type { Address } from "../types";
 import { utils } from "ethers";
 import type { Log } from "@ethersproject/abstract-provider";
-import { symbol, decimals } from "../erc20";
 
 interface TimestampBlock {
   number: number;
@@ -104,11 +102,6 @@ export async function lookupBlock(
   }
 }
 
-// TODO: Pull the data from somewhere like coingecko
-export async function tokenList() {
-  return rawTokenList;
-}
-
 export async function kyberTokens() {
   const pairs = await fetch(
     `https://api.kyber.network/api/tokens/pairs`
@@ -133,48 +126,6 @@ export async function kyberTokens() {
   );
   return {
     output: tokens,
-  };
-}
-
-export async function toSymbols(tokenBalances: { [address: string]: string }) {
-  const tokens = await tokenList();
-  const output = Object.entries(tokenBalances).map(async ([token, balance]) => {
-    let tokenData = tokens.find(
-      (possibleToken) =>
-        possibleToken.contract.toLowerCase() === token.toLowerCase()
-    );
-    if (token.toLowerCase() === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee") {
-      tokenData = {
-        symbol: "ETH",
-        contract: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-        decimals: "18",
-      };
-    }
-    if (tokenData === undefined) {
-      try {
-        const tokenSymbol = symbol(token);
-        const tokenDecimals = decimals(token);
-        tokenData = {
-          decimals: (await tokenDecimals).output,
-          contract: token.toLowerCase(),
-          symbol: (await tokenSymbol).output,
-        };
-      } catch (e) {
-        throw new Error(`Failed to get token data for token at ${token}`);
-      }
-    }
-    const decimalBalance = (
-      Number(balance) /
-      10 ** Number(tokenData?.decimals ?? (await decimals(token)).output)
-    ).toFixed(6);
-    return {
-      symbol: tokenData.symbol,
-      address: tokenData.contract,
-      balance: decimalBalance,
-    };
-  });
-  return {
-    output: await Promise.all(output),
   };
 }
 

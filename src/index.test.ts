@@ -36,8 +36,6 @@ test("imports", async () => {
           "getLogs": [Function],
           "kyberTokens": [Function],
           "lookupBlock": [Function],
-          "toSymbols": [Function],
-          "tokenList": [Function],
         },
       },
       "util": Object {
