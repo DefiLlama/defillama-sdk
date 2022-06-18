@@ -90,6 +90,8 @@ export const chainToCoingeckoId = {
   metis: "metis-andromeda",
   telos: "telos",
   moonbeam: "moonbeam",
+  meter: "meter",
+  sx: "sx-network",
   velas: "velas",
   milkomeda: "milkomeda-cardano",
 }
