@@ -206,7 +206,8 @@ function multicallAddress(chainId: number) {
     case 592: // astar
     case 269: // High performance blockchain
     case 321: // KCC
-    // case 8217: // Klaytn - multicall doesnt work for some reason
+    case 20: // elastos
+    case 8217: // Klaytn - multicall doesnt work for some reason
     // case 88: // tomochain - multicall doesnt work for some reason
     case 122: // Fuse
     case 42220: // Celo
