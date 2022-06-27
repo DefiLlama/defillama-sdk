@@ -2,7 +2,7 @@ import { ethers, BigNumber } from "ethers";
 
 function createProvider(name: string, defaultRpc: string, chainId: number) {
   if (process.env.HISTORICAL) {
-    if(chainId === 1){
+    if (chainId === 1) {
       console.log("RPC providers set to historical, only the first RPC provider will be used")
     }
     return new ethers.providers.StaticJsonRpcProvider(
@@ -80,7 +80,7 @@ export const providers = {
   csc: createProvider("csc", "https://rpc.coinex.net/,https://rpc1.coinex.net/,https://rpc2.coinex.net/,https://rpc3.coinex.net/,https://rpc4.coinex.net/", 52),
   nahmii: createProvider("nahmii", "https://l2.nahmii.io/", 5551),
   liquidchain: createProvider("xlc", "https://rpc.liquidchain.net/,https://rpc.xlcscan.com/", 5050),
-  meter: createProvider("meter", 'https://rpc.meter.io', 82), 
+  meter: createProvider("meter", 'https://rpc.meter.io', 82),
   theta: createProvider("theta", 'https://eth-rpc-api.thetatoken.org/rpc', 361),
   oasis: createProvider("oasis", 'https://emerald.oasis.dev/', 42262),
   syscoin: createProvider("syscoin", 'https://rpc.syscoin.org', 57),
@@ -104,6 +104,7 @@ export const providers = {
   multivac: createProvider("multivac", "https://rpc.mtv.ac,https://rpc-eu.mtv.ac", 62621),
   kava: createProvider("kava", "https://evm.kava.io", 2222),
   sx: createProvider("sx", "https://rpc.sx.technology", 416),
+  nova: createProvider("nova", "https://rpc.novanetwork.io:9070", 87),
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
@@ -138,11 +139,11 @@ export type Chain =
   | "ethereumclassic"
   | "xdaiarb"
   | "kardia"
-  | "fuse"  
+  | "fuse"
   | "smartbch"
   | "elastos"
   | "hoo"
-  | "fusion"  
+  | "fusion"
   | "aurora"
   | "ronin"
   | "boba"
@@ -179,6 +180,7 @@ export type Chain =
   | "echelon"
   | "multivac"
   | "sx"
+  | "nova"
 export function getProvider(chain: Chain = "ethereum") {
   return providers[chain];
 }
