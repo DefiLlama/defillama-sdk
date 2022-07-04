@@ -104,7 +104,7 @@ export const providers = {
   multivac: createProvider("multivac", "https://rpc.mtv.ac,https://rpc-eu.mtv.ac", 62621),
   kava: createProvider("kava", "https://evm.kava.io", 2222),
   sx: createProvider("sx", "https://rpc.sx.technology", 416),
-  nova: createProvider("nova", "https://rpc.novanetwork.io:9070", 87),
+  nova: createProvider("nova", "http://dataseed-0.rpc.novanetwork.io:8545,https://rpc.novanetwork.io:9070", 87),
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
