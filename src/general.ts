@@ -75,7 +75,7 @@ export const providers = {
   metis: createProvider("metis", "https://andromeda.metis.io/?owner=1088", 1088),
   ubiq: createProvider("ubiq", "https://rpc.octano.dev", 8),
   velas: createProvider("velas", "https://evmexplorer.velas.com/rpc", 106),
-  callisto: createProvider("callisto", "https://clo-geth.0xinfra.com/", 820),
+  callisto: createProvider("callisto", "https://rpc.callisto.network,https://clo-geth.0xinfra.com/", 820),
   klaytn: createProvider("klaytn", "https://public-node-api.klaytnapi.com/v1/cypress", 8217),
   csc: createProvider("csc", "https://rpc.coinex.net/,https://rpc1.coinex.net/,https://rpc2.coinex.net/,https://rpc3.coinex.net/,https://rpc4.coinex.net/", 52),
   nahmii: createProvider("nahmii", "https://l2.nahmii.io/", 5551),
@@ -104,7 +104,7 @@ export const providers = {
   multivac: createProvider("multivac", "https://rpc.mtv.ac,https://rpc-eu.mtv.ac", 62621),
   kava: createProvider("kava", "https://evm.kava.io", 2222),
   sx: createProvider("sx", "https://rpc.sx.technology", 416),
-  nova: createProvider("nova", "https://rpc.novanetwork.io:9070", 87),
+  nova: createProvider("nova", "http://dataseed-0.rpc.novanetwork.io:8545,https://rpc.novanetwork.io:9070", 87),
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };

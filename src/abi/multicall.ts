@@ -234,6 +234,10 @@ function multicallAddress(chainId: number) {
       return "0x18fA376d92511Dd04090566AB6144847c03557d8";
     case 2222:
       return "0x30A62aA52Fa099C4B227869EB6aeaDEda054d121" // kava
+    case 87:
+      return "0x7A5a7579eb8DdEd352848cFDD0a5530C4e56FF7f" // nova
+    case 820:
+      return "0xB2fB6dA40DF36CcFFDc3B0F99df4871C7b86FCe7" // callisto
     default:
       return null;
   }
