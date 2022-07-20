@@ -105,6 +105,7 @@ export const providers = {
   kava: createProvider("kava", "https://evm.kava.io", 2222),
   sx: createProvider("sx", "https://rpc.sx.technology", 416),
   nova: createProvider("nova", "http://dataseed-0.rpc.novanetwork.io:8545,https://rpc.novanetwork.io:9070", 87),
+  jfin: createProvider("jfin", "https://rpc.jfinchain.com/", 3501),
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
@@ -181,6 +182,7 @@ export type Chain =
   | "multivac"
   | "sx"
   | "nova"
+  | "jfin"
 export function getProvider(chain: Chain = "ethereum") {
   return providers[chain];
 }
