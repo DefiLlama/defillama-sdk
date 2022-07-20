@@ -106,6 +106,7 @@ export const providers = {
   sx: createProvider("sx", "https://rpc.sx.technology", 416),
   nova: createProvider("nova", "http://dataseed-0.rpc.novanetwork.io:8545,https://rpc.novanetwork.io:9070", 87),
   ontology_evm: createProvider("ontology_evm", "https://dappnode1.ont.io:10339", 58),
+  jfin: createProvider("jfin", "https://rpc.jfinchain.com/", 3501),
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
@@ -183,6 +184,7 @@ export type Chain =
   | "sx"
   | "nova"
   | "ontology_evm"
+  | "jfin"
 export function getProvider(chain: Chain = "ethereum") {
   return providers[chain];
 }
