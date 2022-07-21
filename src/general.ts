@@ -93,9 +93,9 @@ export const providers = {
   milkomeda: createProvider("milkomeda", "https://rpc-mainnet-cardano-evm.c1.milkomeda.com", 2001),
   dfk: createProvider("dfk", "https://subnets.avax.network/defi-kingdoms/dfk-chain/rpc", 53935),
   crab: createProvider("crab", "https://crab-rpc.darwinia.network", 44),
-  bittorrent: createProvider("bittorrent", "https://rpc.bittorrentchain.io", 199),
+  bittorrent: createProvider("bittorrent", "https://rpc.bt.io,https://rpc.bittorrentchain.io", 199),
   findora: createProvider("findora", "https://prod-mainnet.prod.findora.org:8545", 2152),
-  candle: createProvider("candle", "https://network.cndlchain.com/,https://rpc.cndlchain.com", 534),
+  candle: createProvider("candle", "https://candle-rpc.com,https://rpc.cndlchain.com", 534),
   lachain: createProvider("lachain", "https://rpc-mainnet.lachain.io", 225),
   reichain: createProvider("reichain", "https://rei-rpc.moonrhythm.io", 55555),
   rei: createProvider("rei", "https://rpc.rei.network", 47805),
@@ -105,6 +105,7 @@ export const providers = {
   kava: createProvider("kava", "https://evm.kava.io", 2222),
   sx: createProvider("sx", "https://rpc.sx.technology", 416),
   nova: createProvider("nova", "http://dataseed-0.rpc.novanetwork.io:8545,https://rpc.novanetwork.io:9070", 87),
+  ontology_evm: createProvider("ontology_evm", "https://dappnode1.ont.io:10339", 58),
   jfin: createProvider("jfin", "https://rpc.jfinchain.com/", 3501),
 } as {
   [chain: string]: ethers.providers.BaseProvider;
@@ -182,6 +183,7 @@ export type Chain =
   | "multivac"
   | "sx"
   | "nova"
+  | "ontology_evm"
   | "jfin"
 export function getProvider(chain: Chain = "ethereum") {
   return providers[chain];
