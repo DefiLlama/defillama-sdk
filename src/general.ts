@@ -68,7 +68,7 @@ export const providers = {
   aurora: createProvider("aurora", "https://mainnet.aurora.dev", 1313161554),
   ronin: createProvider("ronin", "https://api.roninchain.com/rpc", 2020),
   boba: createProvider("boba", "https://mainnet.boba.network/", 288),
-  cronos: createProvider("cronos", "https://rpc.vvs.finance,https://evm-cronos.crypto.org,https://evm.cronos.org", 25),
+  cronos: createProvider("cronos", "https://cronosrpc-1.xstaking.sg,https://evm.cronos.org,https://rpc.vvs.finance,https://evm-cronos.crypto.org", 25),
   polis: createProvider("polis", "https://rpc.polis.tech", 333999),
   zyx: createProvider("zyx", "https://rpc-1.zyx.network/,https://rpc-2.zyx.network/,https://rpc-3.zyx.network/,https://rpc-5.zyx.network/", 55),
   telos: createProvider("telos", "https://mainnet.telos.net/evm,https://rpc1.eu.telos.net/evm,https://rpc1.us.telos.net/evm", 40),
@@ -104,6 +104,7 @@ export const providers = {
   multivac: createProvider("multivac", "https://rpc.mtv.ac,https://rpc-eu.mtv.ac", 62621),
   kava: createProvider("kava", "https://evm.kava.io", 2222),
   sx: createProvider("sx", "https://rpc.sx.technology", 416),
+  karura_evm: createProvider("karura_evm", "https://eth-rpc-karura.aca-api.network", 686),
   nova: createProvider("nova", "http://dataseed-0.rpc.novanetwork.io:8545,https://rpc.novanetwork.io:9070", 87),
   ontology_evm: createProvider("ontology_evm", "https://dappnode1.ont.io:10339", 58),
   jfin: createProvider("jfin", "https://rpc.jfinchain.com/", 3501),
@@ -182,6 +183,7 @@ export type Chain =
   | "echelon"
   | "multivac"
   | "sx"
+  | "karura_evm"
   | "nova"
   | "ontology_evm"
   | "jfin"
