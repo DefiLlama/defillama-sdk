@@ -231,6 +231,7 @@ function multicallAddress(chainId: number) {
     case 60: // go
     case 66: // okxchain
     case 19: // songbird
+    case 1030: // conflux
       return "0x18fA376d92511Dd04090566AB6144847c03557d8";
     case 2222:
       return "0x30A62aA52Fa099C4B227869EB6aeaDEda054d121" // kava
