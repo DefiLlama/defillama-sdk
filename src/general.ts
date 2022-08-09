@@ -68,7 +68,7 @@ export const providers = {
   aurora: createProvider("aurora", "https://mainnet.aurora.dev", 1313161554),
   ronin: createProvider("ronin", "https://api.roninchain.com/rpc", 2020),
   boba: createProvider("boba", "https://mainnet.boba.network/", 288),
-  cronos: createProvider("cronos", "https://rpc.vvs.finance,https://evm-cronos.crypto.org,https://evm.cronos.org", 25),
+  cronos: createProvider("cronos", "https://cronosrpc-1.xstaking.sg,https://evm.cronos.org,https://rpc.vvs.finance,https://evm-cronos.crypto.org", 25),
   polis: createProvider("polis", "https://rpc.polis.tech", 333999),
   zyx: createProvider("zyx", "https://rpc-1.zyx.network/,https://rpc-2.zyx.network/,https://rpc-3.zyx.network/,https://rpc-5.zyx.network/", 55),
   telos: createProvider("telos", "https://mainnet.telos.net/evm,https://rpc1.eu.telos.net/evm,https://rpc1.us.telos.net/evm", 40),
@@ -83,12 +83,12 @@ export const providers = {
   meter: createProvider("meter", 'https://rpc.meter.io', 82),
   theta: createProvider("theta", 'https://eth-rpc-api.thetatoken.org/rpc', 361),
   oasis: createProvider("oasis", 'https://emerald.oasis.dev/', 42262),
-  syscoin: createProvider("syscoin", 'https://rpc.syscoin.org', 57),
+  syscoin: createProvider("syscoin", 'https://rpc.ankr.com/syscoin,https://rpc.syscoin.org', 57),
   moonbeam: createProvider("moonbeam", 'https://rpc.api.moonbeam.network', 1284),
   curio: createProvider("curio", 'https://mainnet-api.skalenodes.com/v1/fit-betelgeuse', 836542336838601),
   astar: createProvider("astar", "https://rpc.astar.network:8545,https://astar.api.onfinality.io/public", 592),
   godwoken: createProvider("godwoken", "https://mainnet.godwoken.io/rpc", 71394),
-  evmos: createProvider("evmos", "https://eth.bd.evmos.org:8545/", 9001),
+  evmos: createProvider("evmos", "https://jsonrpc-evmos-ia.notional.ventures,https://evmos-json-rpc.stakely.io,https://evmos-mainnet.gateway.pokt.network/v1/lb/627586ddea1b320039c95205,https://eth.bd.evmos.org:8545/", 9001),
   conflux: createProvider("conflux", "https://evm.confluxrpc.com", 1030),
   milkomeda: createProvider("milkomeda", "https://rpc-mainnet-cardano-evm.c1.milkomeda.com", 2001),
   dfk: createProvider("dfk", "https://subnets.avax.network/defi-kingdoms/dfk-chain/rpc", 53935),
@@ -104,6 +104,7 @@ export const providers = {
   multivac: createProvider("multivac", "https://rpc.mtv.ac,https://rpc-eu.mtv.ac", 62621),
   kava: createProvider("kava", "https://evm.kava.io", 2222),
   sx: createProvider("sx", "https://rpc.sx.technology", 416),
+  karura_evm: createProvider("karura_evm", "https://eth-rpc-karura.aca-api.network", 686),
   nova: createProvider("nova", "http://dataseed-0.rpc.novanetwork.io:8545,https://rpc.novanetwork.io:9070", 87),
   ontology_evm: createProvider("ontology_evm", "https://dappnode1.ont.io:10339", 58),
   jfin: createProvider("jfin", "https://rpc.jfinchain.com/", 3501),
@@ -182,6 +183,7 @@ export type Chain =
   | "echelon"
   | "multivac"
   | "sx"
+  | "karura_evm"
   | "nova"
   | "ontology_evm"
   | "jfin"
