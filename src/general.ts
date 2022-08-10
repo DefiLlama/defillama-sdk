@@ -122,6 +122,7 @@ export type Chain =
   | "tomochain"
   | "xdai"
   | "avax"
+  | "avalanche"
   | "wan"
   | "iotex"
   | "harmony"
