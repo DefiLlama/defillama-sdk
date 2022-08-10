@@ -188,7 +188,7 @@ export type Chain =
   | "ontology_evm"
   | "jfin"
 export function getProvider(chain: Chain = "ethereum") {
-  return providers[chain];
+  return providers[chain === "avalanche" ? "avax" : chain];
 }
 
 export const TEN = BigNumber.from(10);
