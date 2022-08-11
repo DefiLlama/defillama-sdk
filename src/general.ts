@@ -6,7 +6,7 @@ function createProvider(name: string, defaultRpc: string, chainId: number) {
       console.log("RPC providers set to historical, only the first RPC provider will be used")
     }
     return new ethers.providers.StaticJsonRpcProvider(
-      process.env[name.toUpperCase() + "_RPC"]?.split(',')[0] ?? defaultRpc,
+      (process.env[name.toUpperCase() + "_RPC"] ?? defaultRpc)?.split(',')[0],
       {
         name,
         chainId,
