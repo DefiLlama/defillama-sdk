@@ -243,6 +243,8 @@ function multicallAddress(chainId: number) {
     case 820: // callisto
     case 199: // bittorrent
       return "0xB2fB6dA40DF36CcFFDc3B0F99df4871C7b86FCe7"
+    case 568:  // dogechain
+      return "0x8856C24Ba82F737CFb99Ec4785CEe4d48A842F33"
     default:
       return null;
   }
