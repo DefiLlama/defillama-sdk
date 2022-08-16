@@ -6,7 +6,7 @@ function createProvider(name: string, defaultRpc: string, chainId: number) {
       console.log("RPC providers set to historical, only the first RPC provider will be used")
     }
     return new ethers.providers.StaticJsonRpcProvider(
-      process.env[name.toUpperCase() + "_RPC"]?.split(',')[0] ?? defaultRpc,
+      (process.env[name.toUpperCase() + "_RPC"] ?? defaultRpc)?.split(',')[0],
       {
         name,
         chainId,
@@ -68,7 +68,7 @@ export const providers = {
   aurora: createProvider("aurora", "https://mainnet.aurora.dev", 1313161554),
   ronin: createProvider("ronin", "https://api.roninchain.com/rpc", 2020),
   boba: createProvider("boba", "https://mainnet.boba.network/", 288),
-  cronos: createProvider("cronos", "https://cronosrpc-1.xstaking.sg,https://evm.cronos.org,https://rpc.vvs.finance,https://evm-cronos.crypto.org", 25),
+  cronos: createProvider("cronos", "https://rpc.vvs.finance,https://evm-cronos.crypto.org,https://evm.cronos.org", 25),
   polis: createProvider("polis", "https://rpc.polis.tech", 333999),
   zyx: createProvider("zyx", "https://rpc-1.zyx.network/,https://rpc-2.zyx.network/,https://rpc-3.zyx.network/,https://rpc-5.zyx.network/", 55),
   telos: createProvider("telos", "https://mainnet.telos.net/evm,https://rpc1.eu.telos.net/evm,https://rpc1.us.telos.net/evm", 40),
@@ -109,6 +109,8 @@ export const providers = {
   ontology_evm: createProvider("ontology_evm", "https://dappnode1.ont.io:10339", 58),
   jfin: createProvider("jfin", "https://rpc.jfinchain.com/", 3501),
   bitkub: createProvider("bitkub", "https://rpc.bitkubchain.io/", 96),
+  canto: createProvider("canto", "https://jsonrpc.canto.nodestake.top,https://canto.evm.chandrastation.com/", 7700),
+  dogechain: createProvider("dogechain", "https://rpc01-sg.dogechain.dog,https://rpc02-sg.dogechain.dog,https://rpc03-sg.dogechain.dog", 568),
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
@@ -189,6 +191,8 @@ export type Chain =
   | "ontology_evm"
   | "jfin"
   | "bitkub"
+  | "canto"
+  | "dogechain"
 export function getProvider(chain: Chain = "ethereum") {
   return providers[chain];
 }

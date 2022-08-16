@@ -232,6 +232,7 @@ function multicallAddress(chainId: number) {
     case 66: // okxchain
     case 19: // songbird
     case 1030: // conflux
+    case 333999: // polis
       return "0x18fA376d92511Dd04090566AB6144847c03557d8";
     case 2222:
       return "0x30A62aA52Fa099C4B227869EB6aeaDEda054d121" // kava
@@ -242,6 +243,8 @@ function multicallAddress(chainId: number) {
     case 820: // callisto
     case 199: // bittorrent
       return "0xB2fB6dA40DF36CcFFDc3B0F99df4871C7b86FCe7"
+    case 568:  // dogechain
+      return "0x8856C24Ba82F737CFb99Ec4785CEe4d48A842F33"
     default:
       return null;
   }
