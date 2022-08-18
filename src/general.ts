@@ -108,6 +108,7 @@ export const providers = {
   nova: createProvider("nova", "http://dataseed-0.rpc.novanetwork.io:8545,https://rpc.novanetwork.io:9070", 87),
   ontology_evm: createProvider("ontology_evm", "https://dappnode1.ont.io:10339", 58),
   jfin: createProvider("jfin", "https://rpc.jfinchain.com/", 3501),
+  bitkub: createProvider("bitkub", "https://rpc.bitkubchain.io/", 96),
   canto: createProvider("canto", "https://jsonrpc.canto.nodestake.top,https://canto.evm.chandrastation.com/", 7700),
   dogechain: createProvider("dogechain", "https://rpc01-sg.dogechain.dog,https://rpc02-sg.dogechain.dog,https://rpc03-sg.dogechain.dog", 568),
 } as {
@@ -189,6 +190,7 @@ export type Chain =
   | "nova"
   | "ontology_evm"
   | "jfin"
+  | "bitkub"
   | "canto"
   | "dogechain"
 export function getProvider(chain: Chain = "ethereum") {
