@@ -190,7 +190,7 @@ function multicallAddress(chainId: number) {
     case 10:
       return MULTICALL_ADDRESS_OPTIMISM;
     case 25:
-      return "0x5e954f5972EC6BFc7dECd75779F10d848230345F"; // cronos 
+      return "0x5e954f5972EC6BFc7dECd75779F10d848230345F"; // cronos
     case 288:
       return "0x80Ae459D058436ecB4e043ac48cfd209B578CBF0"; // boba
     case 4689:
@@ -201,7 +201,7 @@ function multicallAddress(chainId: number) {
       return "0xfFE2FF36c5b8D948f788a34f867784828aa7415D"; // palm
     case 416:
       return "0x834a005DDCF990Ba1a79f259e840e58F2D14F49a"; // sx
-    case 246: // energy web chain 
+    case 246: // energy web chain
     case 336: // shiden
     case 592: // astar
     case 269: // High performance blockchain
@@ -247,6 +247,8 @@ function multicallAddress(chainId: number) {
       return "0xB2fB6dA40DF36CcFFDc3B0F99df4871C7b86FCe7"
     case 2000:  // dogechain
       return "0x8856C24Ba82F737CFb99Ec4785CEe4d48A842F33"
+    case 96: // bitkub chain
+      return "0xcc515Aa7eE9Be4491c98DE68ee2147F0A063759D"
     default:
       return null;
   }
