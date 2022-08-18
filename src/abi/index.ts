@@ -110,8 +110,9 @@ export async function multiCall(params: {
     .sort(([c1, i1], [c2, i2])=>i1-i2).map(([c, i])=>c)
     ) as any[]
 
-  if(process.env.SDK_DEBUG === "true"){
-    console.log("Failed multicalls:", flatResults.filter(r => !r.success).map(r=>r.input))
+  const failedQueries = flatResults.filter(r => !r.success)
+  if(failedQueries.length && (process.env.SDK_DEBUG === "true"  || process.env.LLAMA_DEBUG_MODE)){
+    console.log("Failed multicalls:", failedQueries.map(r=>r.input))
   }
 
   if (params.requery === true && flatResults.some(r => !r.success)) {

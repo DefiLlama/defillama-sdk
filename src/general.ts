@@ -110,7 +110,7 @@ export const providers = {
   jfin: createProvider("jfin", "https://rpc.jfinchain.com/", 3501),
   bitkub: createProvider("bitkub", "https://rpc.bitkubchain.io/", 96),
   canto: createProvider("canto", "https://jsonrpc.canto.nodestake.top,https://canto.evm.chandrastation.com/", 7700),
-  dogechain: createProvider("dogechain", "https://rpc01-sg.dogechain.dog,https://rpc02-sg.dogechain.dog,https://rpc03-sg.dogechain.dog", 568),
+  dogechain: createProvider("dogechain", "https://rpc01-sg.dogechain.dog,https://rpc02-sg.dogechain.dog,https://rpc03-sg.dogechain.dog", 2000),
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
