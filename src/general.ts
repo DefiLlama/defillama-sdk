@@ -86,7 +86,7 @@ export const providers = {
   syscoin: createProvider("syscoin", 'https://rpc.ankr.com/syscoin,https://rpc.syscoin.org', 57),
   moonbeam: createProvider("moonbeam", 'https://rpc.api.moonbeam.network', 1284),
   curio: createProvider("curio", 'https://mainnet-api.skalenodes.com/v1/fit-betelgeuse', 836542336838601),
-  astar: createProvider("astar", "https://rpc.astar.network:8545,https://astar.api.onfinality.io/public", 592),
+  astar: createProvider("astar", "https://evm.astar.network/,https://rpc.astar.network:8545,https://astar.api.onfinality.io/public", 592),
   godwoken: createProvider("godwoken", "https://mainnet.godwoken.io/rpc", 71394),
   evmos: createProvider("evmos", "https://jsonrpc-evmos-ia.notional.ventures,https://evmos-json-rpc.stakely.io,https://evmos-mainnet.gateway.pokt.network/v1/lb/627586ddea1b320039c95205,https://eth.bd.evmos.org:8545/", 9001),
   conflux: createProvider("conflux", "https://evm.confluxrpc.com", 1030),
