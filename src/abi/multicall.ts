@@ -242,6 +242,8 @@ function multicallAddress(chainId: number) {
       return "0x9eE9904815B80C39C1a27294E69a8626EAa7952d" // rei network
     case 87:
       return "0x7A5a7579eb8DdEd352848cFDD0a5530C4e56FF7f" // nova
+    case 32520:
+      return "0x5AE90c229d7A8AFc12bFa263AC672548aEb1D765" // bitgert/brise
     case 820: // callisto
     case 199: // bittorrent
       return "0xB2fB6dA40DF36CcFFDc3B0F99df4871C7b86FCe7"
