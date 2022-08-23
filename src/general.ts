@@ -29,6 +29,11 @@ function createProvider(name: string, defaultRpc: string, chainId: number) {
   }
 }
 
+export const chainInfo  = {
+  posichain: {name: "posichain", rpc:["https://api.posichain.org/"], chainId: 900000},
+  bsc: {name: "bsc", rpc:["https://bsc-dataseed.binance.org/","https://bsc-dataseed1.defibit.io/","https://bsc-dataseed1.ninicoin.io/","https://bsc-dataseed2.defibit.io/","https://bsc-dataseed2.ninicoin.io/"], chainId: 56},
+}
+
 export const providers = {
   // https://ethereumnodes.com/
   ethereum: createProvider("ethereum", "https://eth-mainnet.gateway.pokt.network/v1/5f3453978e354ab992c4da79,https://cloudflare-eth.com/,https://main-light.eth.linkpool.io/,https://api.mycryptoapi.com/eth", 1),
@@ -113,6 +118,7 @@ export const providers = {
   bitgert: createProvider("bitgert", "https://chainrpc.com", 32520),
   canto: createProvider("canto", "https://jsonrpc.canto.nodestake.top,https://canto.evm.chandrastation.com/", 7700),
   dogechain: createProvider("dogechain", "https://dogechain.ankr.com,https://rpc.dogechain.dog,https://rpc01-sg.dogechain.dog,https://rpc02-sg.dogechain.dog,https://rpc03-sg.dogechain.dog", 2000),
+  posichain: createProvider("posichain", "https://api.posichain.org/", 900000),
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
@@ -196,6 +202,7 @@ export type Chain =
   | "bitgert"
   | "canto"
   | "dogechain"
+  | "posichain"
 export function getProvider(chain: Chain = "ethereum") {
   return providers[chain];
 }
