@@ -113,6 +113,7 @@ export const providers = {
   bitgert: createProvider("bitgert", "https://chainrpc.com", 32520),
   canto: createProvider("canto", "https://jsonrpc.canto.nodestake.top,https://canto.evm.chandrastation.com/", 7700),
   dogechain: createProvider("dogechain", "https://dogechain.ankr.com,https://rpc.dogechain.dog,https://rpc01-sg.dogechain.dog,https://rpc02-sg.dogechain.dog,https://rpc03-sg.dogechain.dog", 2000),
+  posi: createProvider("posi", "https://api.posichain.org,https://api.s0.posichain.org", 900000),
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
@@ -196,6 +197,7 @@ export type Chain =
   | "bitgert"
   | "canto"
   | "dogechain"
+  | "posi"
 export function getProvider(chain: Chain = "ethereum") {
   return providers[chain];
 }

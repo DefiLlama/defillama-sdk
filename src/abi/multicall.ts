@@ -207,7 +207,7 @@ function multicallAddress(chainId: number) {
     case 269: // High performance blockchain
     case 321: // KCC
     case 20: // elastos
-    case 8217: // Klaytn - multicall doesnt work for some reason
+    // case 8217: // Klaytn - multicall doesnt work for some reason
     // case 88: // tomochain - multicall doesnt work for some reason
     case 122: // Fuse
     case 42220: // Celo
@@ -235,6 +235,7 @@ function multicallAddress(chainId: number) {
     case 333999: // polis
     case 7700: // canto
     case 62621: // multivac
+    case 900000: // posi
       return "0x18fA376d92511Dd04090566AB6144847c03557d8";
     case 2222:
       return "0x30A62aA52Fa099C4B227869EB6aeaDEda054d121" // kava
@@ -249,6 +250,12 @@ function multicallAddress(chainId: number) {
       return "0xB2fB6dA40DF36CcFFDc3B0F99df4871C7b86FCe7"
     case 2000:  // dogechain
       return "0x8856C24Ba82F737CFb99Ec4785CEe4d48A842F33"
+    // case 71394: // Godwoken v0 chain
+      // return "0x285aF41aC18BA105407555f49c59c58574b8e284"
+    case 71402: // Godwoken v1 chain
+    case 8217: // Klaytn - multicall doesnt work for some reason
+      // https://github.com/mds1/multicall
+      return "0xcA11bde05977b3631167028862bE2a173976CA11"
     case 96: // bitkub chain
       return "0xcc515Aa7eE9Be4491c98DE68ee2147F0A063759D"
     default:
