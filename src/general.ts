@@ -114,6 +114,7 @@ export const providers = {
   canto: createProvider("canto", "https://jsonrpc.canto.nodestake.top,https://canto.evm.chandrastation.com/", 7700),
   dogechain: createProvider("dogechain", "https://dogechain.ankr.com,https://rpc.dogechain.dog,https://rpc01-sg.dogechain.dog,https://rpc02-sg.dogechain.dog,https://rpc03-sg.dogechain.dog", 2000),
   posi: createProvider("posi", "https://api.posichain.org,https://api.s0.posichain.org", 900000),
+  arbitrum_nova: createProvider("posi", "https://nova.arbitrum.io/rpc", 42170),
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
@@ -198,6 +199,7 @@ export type Chain =
   | "canto"
   | "dogechain"
   | "posi"
+  | "arbitrum_nova"
 export function getProvider(chain: Chain = "ethereum") {
   return providers[chain];
 }

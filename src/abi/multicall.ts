@@ -251,13 +251,15 @@ function multicallAddress(chainId: number) {
     case 2000:  // dogechain
       return "0x8856C24Ba82F737CFb99Ec4785CEe4d48A842F33"
     // case 71394: // Godwoken v0 chain
-      // return "0x285aF41aC18BA105407555f49c59c58574b8e284"
+    // return "0x285aF41aC18BA105407555f49c59c58574b8e284"
     case 71402: // Godwoken v1 chain
     case 8217: // Klaytn - multicall doesnt work for some reason
       // https://github.com/mds1/multicall
       return "0xcA11bde05977b3631167028862bE2a173976CA11"
     case 96: // bitkub chain
       return "0xcc515Aa7eE9Be4491c98DE68ee2147F0A063759D"
+    case 42170: // arbitrum nova chain
+      return "0x2fe78f55c39dc437c4c025f8a1ffc54edb4a34c3"
     default:
       return null;
   }
