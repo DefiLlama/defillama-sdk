@@ -68,7 +68,7 @@ export const providers = {
   aurora: createProvider("aurora", "https://mainnet.aurora.dev", 1313161554),
   ronin: createProvider("ronin", "https://api.roninchain.com/rpc", 2020),
   boba: createProvider("boba", "https://mainnet.boba.network/", 288),
-  cronos: createProvider("cronos", "https://rpc.vvs.finance,https://evm-cronos.crypto.org,https://evm.cronos.org", 25),
+  cronos: createProvider("cronos", "https://cronosrpc-1.xstaking.sg,https://evm.cronos.org,https://rpc.vvs.finance,https://evm-cronos.crypto.org", 25),
   polis: createProvider("polis", "https://rpc.polis.tech", 333999),
   zyx: createProvider("zyx", "https://rpc-1.zyx.network/,https://rpc-2.zyx.network/,https://rpc-3.zyx.network/,https://rpc-5.zyx.network/", 55),
   telos: createProvider("telos", "https://mainnet.telos.net/evm,https://rpc1.eu.telos.net/evm,https://rpc1.us.telos.net/evm", 40),
