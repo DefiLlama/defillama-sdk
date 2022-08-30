@@ -116,6 +116,7 @@ export const providers = {
   posi: createProvider("posi", "https://api.posichain.org,https://api.s0.posichain.org", 900000),
   arbitrum_nova: createProvider("posi", "https://nova.arbitrum.io/rpc", 42170),
   ultron: createProvider("ultron", "https://ultron-rpc.net", 1231),
+  tombchain: createProvider("tombchain", "https://rpc.tombchain.com/", 6969)
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
@@ -202,6 +203,7 @@ export type Chain =
   | "posi"
   | "arbitrum_nova"
   | "ultron"
+  | "tombchain"
 export function getProvider(chain: Chain = "ethereum") {
   return providers[chain];
 }
