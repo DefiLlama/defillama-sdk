@@ -262,6 +262,8 @@ function multicallAddress(chainId: number) {
       return "0xcc515Aa7eE9Be4491c98DE68ee2147F0A063759D"
     case 42170: // arbitrum nova chain
       return "0x2fe78f55c39dc437c4c025f8a1ffc54edb4a34c3"
+    case 55555: // reichain
+      return "0x5CCBA81867AE1F9d470a9514fb9B175E84D47979";
     default:
       return null;
   }
