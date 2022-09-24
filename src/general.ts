@@ -117,7 +117,8 @@ export const providers = {
   arbitrum_nova: createProvider("posi", "https://nova.arbitrum.io/rpc", 42170),
   ultron: createProvider("ultron", "https://ultron-rpc.net", 1231),
   tombchain: createProvider("tombchain", "https://rpc.tombchain.com/", 6969),
-  vision: createProvider("vision", "https://infragrid.v.network/ethereum/compatible", 888888)
+  vision: createProvider("vision", "https://infragrid.v.network/ethereum/compatible", 888888),
+  ethpow: createProvider("ethpow", "https://mainnet.ethereumpow.org/", 10001)
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
@@ -206,6 +207,7 @@ export type Chain =
   | "ultron"
   | "tombchain"
   | "vision"
+  | "ethpow"
 export function getProvider(chain: Chain = "ethereum") {
   return providers[chain];
 }
