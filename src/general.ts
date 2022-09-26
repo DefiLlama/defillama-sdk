@@ -118,7 +118,8 @@ export const providers = {
   ultron: createProvider("ultron", "https://ultron-rpc.net", 1231),
   tombchain: createProvider("tombchain", "https://rpc.tombchain.com/", 6969),
   vision: createProvider("vision", "https://infragrid.v.network/ethereum/compatible", 888888),
-  ethpow: createProvider("ethpow", "https://mainnet.ethereumpow.org/", 10001)
+  ethpow: createProvider("ethpow", "https://mainnet.ethereumpow.org/", 10001),
+  cube: createProvider("cube", "https://http-mainnet.cube.network/", 1818)
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
@@ -208,6 +209,7 @@ export type Chain =
   | "tombchain"
   | "vision"
   | "ethpow"
+  | "cube"
 export function getProvider(chain: Chain = "ethereum") {
   return providers[chain];
 }
