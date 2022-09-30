@@ -264,6 +264,8 @@ function multicallAddress(chainId: number) {
       return "0x2fe78f55c39dc437c4c025f8a1ffc54edb4a34c3"
     case 55555: // reichain
       return "0x5CCBA81867AE1F9d470a9514fb9B175E84D47979";
+    case 530: // functionx
+      return "0xC43a7181654639556e4caca1bf9219C14a106401";
     case 1818: // cube
       return "0x28d2ebdb36369db1c51355cdc0898754d1a1c3c5";
     default:
