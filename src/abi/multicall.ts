@@ -269,6 +269,8 @@ function multicallAddress(chainId: number) {
       return "0xC43a7181654639556e4caca1bf9219C14a106401";
     case 1818: // cube
       return "0x28d2ebdb36369db1c51355cdc0898754d1a1c3c5";
+    case 1234:
+      return "0x176CcFFbAB792Aaa0da7C430FE20a7106d969f66"
     default:
       return null;
   }
