@@ -120,6 +120,7 @@ export const providers = {
   vision: createProvider("vision", "https://infragrid.v.network/ethereum/compatible", 888888),
   ethpow: createProvider("ethpow", "https://mainnet.ethereumpow.org/", 10001),
   functionx: createProvider("functionx", "https://fx-json-web3.functionx.io:8545", 530),
+  xdc: createProvider("xdc", "https://rpc.xinfin.network,https://rpc1.xinfin.network,https://erpc.xinfin.network", 50),
   cube: createProvider("cube", "https://http-mainnet.cube.network/", 1818)
 } as {
   [chain: string]: ethers.providers.BaseProvider;
@@ -212,6 +213,7 @@ export type Chain =
   | "ethpow"
   | "functionx"
   | "cube"
+  | "xdc"
 export function getProvider(chain: Chain = "ethereum") {
   return providers[chain];
 }
