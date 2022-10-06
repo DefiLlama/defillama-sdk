@@ -160,6 +160,7 @@ async function networkSupportsMulticall(chain: Chain) {
 function multicallAddress(chainId: number) {
   switch (chainId) {
     case 1:
+    case 10001:
       return MULTICALL_ADDRESS_MAINNET;
     case 42:
       return MULTICALL_ADDRESS_KOVAN;
