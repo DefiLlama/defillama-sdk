@@ -67,7 +67,7 @@ export async function lookupBlock(
   try {
     const provider = getExtraProvider(extraParams.chain)
     const lastBlock = await getBlock(provider, "latest", extraParams.chain);
-    if((lastBlock.timestamp - timestamp)<-30*60){
+    if(extraParams.chain !== 'bsc' && (lastBlock.timestamp - timestamp)<-30*60){
       throw new Error(`Last block of chain "${extraParams.chain}" is further than 30 minutes into the past. Provider is "${(provider as any)?.connection?.url}"`)
     }
     if (Math.abs(lastBlock.timestamp - timestamp) < 60) {
@@ -89,7 +89,7 @@ export async function lookupBlock(
         high = mid - 1;
       }
     } while (high - low > 4); // We lose some precision (~4 blocks) but reduce #calls needed
-    if(Math.abs(block.timestamp - timestamp) > 3600){
+    if(extraParams.chain !== 'bsc' && Math.abs(block.timestamp - timestamp) > 3600){
       throw new Error("Block selected is more than 1 hour away from the requested timestamp")
     }
     return {
