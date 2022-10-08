@@ -40,14 +40,19 @@ export async function getCurrentBlocks(chains: Chain[]|undefined = undefined) {
   };
 }
 
-const blockCache = {} as {
-  [key: string | number]: {
-    [chain: string]: any;
-  };
+type chainCache = {
+  [chain: string]: any;
+}
+const blockCache = {
+  current: {}
+} as {
+  current: chainCache;
+  [key: number ]: chainCache;
 }
 
 export async function getBlock(chain: Chain, timestamp: number | undefined = undefined): Promise<any> {
   if (!timestamp) {
+    if (chain !== 'ethereum') throw new Error('Timestamp  is missing!!!')
     if (!blockCache.current) blockCache.current = {}
     if (!blockCache.current.ethereum) {
       blockCache.current.ethereum = getCurrentEthBlock()
