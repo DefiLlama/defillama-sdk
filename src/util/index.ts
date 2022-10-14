@@ -183,3 +183,15 @@ export async function getLogs(params: {
     output: logs,
   };
 }
+
+export function normalizeAddress(address: string) {
+  // sol amd tezos case sensitive so no normalising
+  const prefix = address.substring(0, address.indexOf(":"));
+  if (["solana", "tezos"].includes(prefix)) return address;
+
+  return address.startsWith("0x")
+    ? `ethereum:${address.toLowerCase()}`
+    : !address.includes(":")
+    ? `coingecko:${address.toLowerCase()}`
+    : address.toLowerCase();
+}
