@@ -23,6 +23,7 @@
   ],
   "dependencies": {
     "@supercharge/promise-pool": "^2.1.0",
+    "bignumber.js": "^9.1.0",
     "ethers": "^5.4.5",
     "graphql": "^15.5.0",
     "graphql-request": "^3.4.0",

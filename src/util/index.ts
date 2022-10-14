@@ -1,8 +1,10 @@
+import BigNumber from "bignumber.js";
 import { getProvider, Chain } from "../general";
 import fetch from "node-fetch";
 import type { Address } from "../types";
 import { utils } from "ethers";
 import type { Log } from "@ethersproject/abstract-provider";
+import { sumSingleBalance } from "../generalUtil"
 
 interface TimestampBlock {
   number: number;
@@ -194,4 +196,29 @@ export function normalizeAddress(address: string) {
     : !address.includes(":")
     ? `coingecko:${address.toLowerCase()}`
     : address.toLowerCase();
+}
+
+const ethereumAddress = "0x0000000000000000000000000000000000000000";
+const weth = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
+export function normalizeBalances(balances: { [address: string]: string }) {
+  Object.keys(balances).map((key) => {
+    if (+balances[key] === 0) {
+      delete balances[key];
+      return;
+    }
+    
+    const eth = balances[ethereumAddress];
+    if (eth !== undefined) {
+      balances[weth] = new BigNumber(balances[weth] ?? 0).plus(eth).toFixed(0);
+      delete balances[ethereumAddress];
+    }
+
+    const normalisedKey = normalizeAddress(key)
+    if (normalisedKey == key) return
+
+    sumSingleBalance(balances, normalisedKey, balances[key]);
+    delete balances[key];
+  });
+
+  return balances;
 }
