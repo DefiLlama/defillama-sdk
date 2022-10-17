@@ -274,6 +274,8 @@ function multicallAddress(chainId: number) {
       return "0x176CcFFbAB792Aaa0da7C430FE20a7106d969f66"
     case 53935: // dfk
       return "0x5b24224dC16508DAD755756639E420817DD4c99E"
+    case 3000: // echelon
+      return "0xe6d0cEE385992029Cb64C94A2dF6d0331937B2C8"
     default:
       return null;
   }

@@ -110,7 +110,7 @@ export const providers = {
   ontology_evm: createProvider("ontology_evm", "https://dappnode1.ont.io:10339", 58),
   jfin: createProvider("jfin", "https://rpc.jfinchain.com/", 3501),
   bitkub: createProvider("bitkub", "https://rpc.bitkubchain.io/", 96),
-  bitgert: createProvider("bitgert", "https://chainrpc.com", 32520),
+  bitgert: createProvider("bitgert", "https://rpc.icecreamswap.com,https://serverrpc.com,https://chainrpc.com,https://mainnet-rpc.brisescan.com", 32520),
   canto: createProvider("canto", "https://jsonrpc.canto.nodestake.top,https://canto.evm.chandrastation.com/", 7700),
   dogechain: createProvider("dogechain", "https://dogechain.ankr.com,https://rpc.dogechain.dog,https://rpc01-sg.dogechain.dog,https://rpc02-sg.dogechain.dog,https://rpc03-sg.dogechain.dog", 2000),
   posi: createProvider("posi", "https://api.posichain.org,https://api.s0.posichain.org", 900000),
