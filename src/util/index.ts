@@ -185,12 +185,16 @@ export async function getLogs(params: {
     output: logs,
   };
 }
-
-export function normalizeAddress(address: string) {
+export function normalizeAddress(address: string): string {
   // sol amd tezos case sensitive so no normalising
   const prefix = address.substring(0, address.indexOf(":"));
   if (["solana", "tezos"].includes(prefix)) return address;
-
+  return address.toLowerCase();
+}
+export function normalizePrefixes(address: string): string {
+  const normalizedAddress = normalizeAddress(address)
+  if (address != normalizedAddress) return address
+  
   return address.startsWith("0x")
     ? `ethereum:${address.toLowerCase()}`
     : !address.includes(":")
