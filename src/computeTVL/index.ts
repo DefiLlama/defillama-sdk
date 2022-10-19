@@ -2,7 +2,6 @@ import { StringNumber, Address } from "../types";
 import { multiCall } from "../abi";
 import { humanizeNumber } from "./humanizeNumber";
 import {
-  getTokenPrices,
   getHistoricalTokenPrices,
   TokenPrices,
   GetCoingeckoLog,
@@ -253,6 +252,7 @@ export default async function (
   }
   const usdTokenBalances = {} as ReturnedTokenBalances;
   const tokenBalances = {} as ReturnedTokenBalances;
+  const rawTokenBalances = {} as ReturnedTokenBalances;
   const usdAmounts = Object.entries(normalizedBalances).map(
     async ([address, balance]) => {
       let amount: number, price: number | undefined, tokenSymbol: string;
@@ -281,10 +281,12 @@ export default async function (
             amount = Number(balance) / 10 ** Number(tokenDecimals);
           }
           price = chainTokenPrices[normalizedAddress.toLowerCase()]?.usd;
+          addTokenBalance(rawTokenBalances, normalizedAddress.toLowerCase(), amount)
         } else {
           tokenSymbol = address;
           price = allChainTokenPrices["coingecko"][address.toLowerCase()]?.usd;
           amount = Number(balance);
+          addTokenBalance(rawTokenBalances, `coingecko:${address.toLowerCase()}`, amount)
         }
         if (price === undefined) {
           if (verbose) {
@@ -327,5 +329,6 @@ export default async function (
     usdTvl,
     usdTokenBalances,
     tokenBalances,
+    rawTokenBalances
   };
 }
