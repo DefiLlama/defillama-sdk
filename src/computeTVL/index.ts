@@ -282,12 +282,12 @@ export default async function (
             amount = Number(balance) / 10 ** Number(tokenDecimals);
           }
           price = chainTokenPrices[normalizedAddress]?.usd;
-          addTokenBalance(rawTokenBalances, normalizedAddress, amount)
+          //addTokenBalance(rawTokenBalances, normalizedAddress, amount)
         } else {
           tokenSymbol = address;
           price = allChainTokenPrices["coingecko"][address.toLowerCase()]?.usd;
           amount = Number(balance);
-          addTokenBalance(rawTokenBalances, `coingecko:${address.toLowerCase()}`, amount)
+          //addTokenBalance(rawTokenBalances, `coingecko:${address.toLowerCase()}`, amount)
         }
         if (price === undefined) {
           if (verbose) {
@@ -330,6 +330,6 @@ export default async function (
     usdTvl,
     usdTokenBalances,
     tokenBalances,
-    rawTokenBalances
+    //rawTokenBalances
   };
 }
