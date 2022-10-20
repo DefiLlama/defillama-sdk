@@ -4,7 +4,7 @@ import fetch from "node-fetch";
 import type { Address } from "../types";
 import { utils } from "ethers";
 import type { Log } from "@ethersproject/abstract-provider";
-import { sumSingleBalance } from "../generalUtil"
+import { sumSingleBalance } from "../generalUtil";
 
 interface TimestampBlock {
   number: number;
@@ -17,8 +17,8 @@ const kavaBlockProvider = {
       .then((res) => res.json())
       .then((block) => ({
         number: Number(block.block.header.height),
-        timestamp: Math.round(Date.parse(block.block.header.time) / 1000),
-      })),
+        timestamp: Math.round(Date.parse(block.block.header.time) / 1000)
+      }))
 };
 
 const terraBlockProvider = {
@@ -27,29 +27,33 @@ const terraBlockProvider = {
       .then((res) => res.json())
       .then((block) => ({
         number: Number(block.block.header.height),
-        timestamp: Math.round(Date.parse(block.block.header.time) / 1000),
-      })),
+        timestamp: Math.round(Date.parse(block.block.header.time) / 1000)
+      }))
 };
 
-async function getBlock(provider: typeof terraBlockProvider, height: number | "latest", chain:string|undefined){
-  const block = await provider.getBlock(height)
-  if(block === null){
-    throw new Error(`Can't get block of chain ${chain ?? 'ethereum'}`)
+async function getBlock(
+  provider: typeof terraBlockProvider,
+  height: number | "latest",
+  chain: string | undefined
+) {
+  const block = await provider.getBlock(height);
+  if (block === null) {
+    throw new Error(`Can't get block of chain ${chain ?? "ethereum"}`);
   }
-  return block
+  return block;
 }
 
-function getExtraProvider(chain:string|undefined){
-  if(chain === "terra"){
-    return terraBlockProvider
-  } else if(chain === "kava"){
-    return kavaBlockProvider
+function getExtraProvider(chain: string | undefined) {
+  if (chain === "terra") {
+    return terraBlockProvider;
+  } else if (chain === "kava") {
+    return kavaBlockProvider;
   }
   return getProvider(chain as any);
 }
 
-export async function getLatestBlock(chain:string){
-  const provider = getExtraProvider(chain)
+export async function getLatestBlock(chain: string) {
+  const provider = getExtraProvider(chain);
   return getBlock(provider, "latest", chain);
 }
 
@@ -57,8 +61,8 @@ const intialBlocks = {
   terra: 4724001,
   crab: 4969901
 } as {
-  [chain: string]:number|undefined
-}
+  [chain: string]: number | undefined;
+};
 
 export async function lookupBlock(
   timestamp: number,
@@ -67,16 +71,25 @@ export async function lookupBlock(
   } = {}
 ) {
   try {
-    const provider = getExtraProvider(extraParams.chain)
+    const provider = getExtraProvider(extraParams.chain);
     const lastBlock = await getBlock(provider, "latest", extraParams.chain);
-    if(extraParams.chain !== 'bsc' && (lastBlock.timestamp - timestamp)<-30*60){
-      throw new Error(`Last block of chain "${extraParams.chain}" is further than 30 minutes into the past. Provider is "${(provider as any)?.connection?.url}"`)
+    if (
+      extraParams.chain !== "bsc" &&
+      lastBlock.timestamp - timestamp < -30 * 60
+    ) {
+      throw new Error(
+        `Last block of chain "${
+          extraParams.chain
+        }" is further than 30 minutes into the past. Provider is "${
+          (provider as any)?.connection?.url
+        }"`
+      );
     }
     if (Math.abs(lastBlock.timestamp - timestamp) < 60) {
       // Short-circuit in case we are trying to get the current block
       return {
         block: lastBlock.number,
-        timestamp: lastBlock.timestamp,
+        timestamp: lastBlock.timestamp
       };
     }
     let high = lastBlock.number;
@@ -91,16 +104,25 @@ export async function lookupBlock(
         high = mid - 1;
       }
     } while (high - low > 4); // We lose some precision (~4 blocks) but reduce #calls needed
-    if(extraParams.chain !== 'bsc' && Math.abs(block.timestamp - timestamp) > 3600){
-      throw new Error("Block selected is more than 1 hour away from the requested timestamp")
+    if (
+      extraParams.chain !== "bsc" &&
+      Math.abs(block.timestamp - timestamp) > 3600
+    ) {
+      throw new Error(
+        "Block selected is more than 1 hour away from the requested timestamp"
+      );
     }
     return {
       block: block.number,
-      timestamp: block.timestamp,
+      timestamp: block.timestamp
     };
   } catch (e) {
-    console.log(e)
-    throw new Error(`Couldn't find block height for chain ${extraParams.chain ?? 'ethereum'}, RPC node rugged`)
+    console.log(e);
+    throw new Error(
+      `Couldn't find block height for chain ${
+        extraParams.chain ?? "ethereum"
+      }, RPC node rugged`
+    );
   }
 }
 
@@ -114,7 +136,7 @@ export async function kyberTokens() {
       acc[pair.contractAddress] = {
         symbol: pair.symbol,
         decimals: pair.decimals,
-        ethPrice: pair.currentPrice,
+        ethPrice: pair.currentPrice
       };
       return acc;
     },
@@ -127,7 +149,7 @@ export async function kyberTokens() {
     }
   );
   return {
-    output: tokens,
+    output: tokens
   };
 }
 
@@ -141,14 +163,16 @@ export async function getLogs(params: {
   topics?: string[]; // This is an outdated part of DefiPulse's API which is still used in some old adapters
   chain?: Chain;
 }) {
-  if(params.toBlock === undefined || params.fromBlock === undefined){
-    throw new Error("toBlock and fromBlock need to be defined in all calls to getLogs")
+  if (params.toBlock === undefined || params.fromBlock === undefined) {
+    throw new Error(
+      "toBlock and fromBlock need to be defined in all calls to getLogs"
+    );
   }
   const filter = {
     address: params.target,
     topics: params.topics ?? [utils.id(params.topic)],
     fromBlock: params.fromBlock,
-    toBlock: params.toBlock, // We don't replicate Defipulse's bug because the results end up being the same anyway and hopefully they'll eventually fix it
+    toBlock: params.toBlock // We don't replicate Defipulse's bug because the results end up being the same anyway and hopefully they'll eventually fix it
   };
   let logs: Log[] = [];
   let blockSpread = params.toBlock - params.fromBlock;
@@ -159,7 +183,7 @@ export async function getLogs(params: {
       const partLogs = await getProvider(params.chain).getLogs({
         ...filter,
         fromBlock: currentBlock,
-        toBlock: nextBlock,
+        toBlock: nextBlock
       });
       logs = logs.concat(partLogs);
       currentBlock = nextBlock;
@@ -178,11 +202,11 @@ export async function getLogs(params: {
       throw new Error("Unsupported");
     }
     return {
-      output: logs.map((log) => log.topics),
+      output: logs.map((log) => log.topics)
     };
   }
   return {
-    output: logs,
+    output: logs
   };
 }
 export function normalizeAddress(address: string): string {
@@ -192,9 +216,9 @@ export function normalizeAddress(address: string): string {
   return address.toLowerCase();
 }
 export function normalizePrefixes(address: string): string {
-  const normalizedAddress = normalizeAddress(address)
-  if (address != normalizedAddress) return address
-  
+  const normalizedAddress = normalizeAddress(address);
+  if (address == normalizedAddress) return address;
+
   return address.startsWith("0x")
     ? `ethereum:${address.toLowerCase()}`
     : !address.includes(":")
@@ -202,27 +226,27 @@ export function normalizePrefixes(address: string): string {
     : address.toLowerCase();
 }
 
-const ethereumAddress = "0x0000000000000000000000000000000000000000";
-const weth = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
+const ethereumAddress = "ethereum:0x0000000000000000000000000000000000000000";
+const weth = "ethereum:0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
 export function normalizeBalances(balances: { [address: string]: string }) {
   Object.keys(balances).map((key) => {
     if (+balances[key] === 0) {
       delete balances[key];
       return;
     }
-    
-    const eth = balances[ethereumAddress];
-    if (eth !== undefined) {
-      balances[weth] = new BigNumber(balances[weth] ?? 0).plus(eth).toFixed(0);
-      delete balances[ethereumAddress];
-    }
 
-    const normalisedKey = normalizeAddress(key)
-    if (normalisedKey == key) return
+    const normalisedKey = normalizePrefixes(key);
+    if (normalisedKey == key) return;
 
     sumSingleBalance(balances, normalisedKey, balances[key]);
     delete balances[key];
   });
+
+  const eth = balances[ethereumAddress];
+  if (eth !== undefined) {
+    balances[weth] = new BigNumber(balances[weth] ?? 0).plus(eth).toFixed(0);
+    delete balances[ethereumAddress];
+  }
 
   return balances;
 }

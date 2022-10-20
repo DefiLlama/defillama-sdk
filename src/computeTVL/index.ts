@@ -9,6 +9,7 @@ import {
 import fetch from "node-fetch";
 import { sumSingleBalance } from '../generalUtil'
 import { Balances as NormalizedBalances } from '../types'
+import { normalizeAddress } from "./../util/index"
 
 type Balances = {
   [tokenAddressOrName: string]: StringNumber | Object;
@@ -263,11 +264,11 @@ export default async function (
           chains.forEach(chain => {
             if (address.startsWith(chain)) {
               chainSelector = chain;
-              normalizedAddress = address.slice(chain.length + 1);
+              normalizedAddress = normalizeAddress(address.slice(chain.length + 1));
             }
           })
           const chainTokenPrices = allChainTokenPrices[chainSelector] ?? {};
-          const chainAddress = `${chainSelector}:${normalizedAddress.toLowerCase()}`
+          const chainAddress = `${chainSelector}:${normalizedAddress}`
           const coinData = symbolsAndDecimals.find((coin: any) => coin.coin === chainAddress)
 
           tokenSymbol = coinData?.symbol?.toUpperCase()
@@ -280,8 +281,8 @@ export default async function (
           } else {
             amount = Number(balance) / 10 ** Number(tokenDecimals);
           }
-          price = chainTokenPrices[normalizedAddress.toLowerCase()]?.usd;
-          addTokenBalance(rawTokenBalances, normalizedAddress.toLowerCase(), amount)
+          price = chainTokenPrices[normalizedAddress]?.usd;
+          addTokenBalance(rawTokenBalances, normalizedAddress, amount)
         } else {
           tokenSymbol = address;
           price = allChainTokenPrices["coingecko"][address.toLowerCase()]?.usd;
