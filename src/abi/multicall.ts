@@ -278,6 +278,8 @@ function multicallAddress(chainId: number) {
       return "0xe6d0cEE385992029Cb64C94A2dF6d0331937B2C8"
     case 55: // zyx
       return "0xd0dd5446f58D6f4F4A669f289E4268c1b12AEc31"
+    case 420420: // kekchain
+      return "0x781bB181833986C78238228F9AF0891829AF922B"
     default:
       return null;
   }
