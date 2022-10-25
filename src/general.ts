@@ -91,7 +91,7 @@ export const providers = {
   godwoken: createProvider("godwoken", "https://mainnet.godwoken.io/rpc", 71394),
   evmos: createProvider("evmos", "https://json-rpc.evmos.blockhunters.org,https://evmos-json-rpc.stakely.io,https://eth.bd.evmos.org:8545/,https://evmos-mainnet.gateway.pokt.network/v1/lb/627586ddea1b320039c95205", 9001),
   conflux: createProvider("conflux", "https://evm.confluxrpc.com", 1030),
-  milkomeda: createProvider("milkomeda", "https://rpc-mainnet-cardano-evm.c1.milkomeda.com", 2001),
+  milkomeda_c1: createProvider("milkomeda_c1", "https://rpc-mainnet-cardano-evm.c1.milkomeda.com", 2001),
   milkomeda_a1: createProvider("milkomeda_a1", "https://rpc-mainnet-algorand-rollup.a1.milkomeda.com", 2002),
   dfk: createProvider("dfk", "https://subnets.avax.network/defi-kingdoms/dfk-chain/rpc", 53935),
   crab: createProvider("crab", "https://crab-rpc.darwinia.network", 44),
@@ -188,7 +188,7 @@ export type Chain =
   | "godwoken"
   | "evmos"
   | "conflux"
-  | "milkomeda"
+  | "milkomeda_c1"
   | "milkomeda_a1"
   | "dfk"
   | "bittorrent"
