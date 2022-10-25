@@ -189,7 +189,7 @@ export type Chain =
   | "evmos"
   | "conflux"
   | "milkomeda"
-  | "milkomeda_algorand"
+  | "milkomeda_a1"
   | "dfk"
   | "bittorrent"
   | "findora"
