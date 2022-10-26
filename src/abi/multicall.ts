@@ -280,6 +280,8 @@ function multicallAddress(chainId: number) {
       return "0xd0dd5446f58D6f4F4A669f289E4268c1b12AEc31"
     case 420420: // kekchain
       return "0x781bB181833986C78238228F9AF0891829AF922B"
+    case 2002: // milkomeda_a1
+      return "0x61EEE5a6c13c358101487f3b7c7Dd9863590C350"
     default:
       return null;
   }
