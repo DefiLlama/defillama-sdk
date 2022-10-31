@@ -12,7 +12,7 @@ interface TimestampBlock {
 }
 
 const kavaBlockProvider = {
-  getBlock: async (height: number | "latest") =>
+  getBlock: async (height: number | "latest"): Promise<TimestampBlock> =>
     fetch(`https://api.data.kava.io/blocks/${height}`)
       .then((res) => res.json())
       .then((block) => ({
@@ -22,17 +22,18 @@ const kavaBlockProvider = {
 };
 
 const terraBlockProvider = {
-  getBlock: async (height: number | "latest") =>
+  getBlock: async (height: number | "latest"): Promise<TimestampBlock> =>
     fetch(`https://lcd.terra.dev/blocks/${height}`)
       .then((res) => res.json())
       .then((block) => ({
         number: Number(block.block.header.height),
-        timestamp: Math.round(Date.now() / 1000)
+        timestamp: Math.round(Date.parse(block.block.header.time) / 1000),
+        
       }))
 };
 
 const algorandBlockProvider = {
-  getBlock: async (height: number | "latest") => {
+  getBlock: async (height: number | "latest"): Promise<TimestampBlock> => {
     if (height !== 'latest')
       return fetch(`https://algoindexer.algoexplorerapi.io/v2/blocks/${height}`)
         .then((res) => res.json())
@@ -42,10 +43,7 @@ const algorandBlockProvider = {
         }))
     return fetch('https://algoindexer.algoexplorerapi.io/health')
       .then((res) => res.json())
-      .then((block) => ({
-        number: block.round,
-        timestamp: block.timestamp
-      }))
+      .then((block) => algorandBlockProvider.getBlock(block.round))
   }
 };
 
