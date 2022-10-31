@@ -9,27 +9,13 @@ export async function getChainBlocks(timestamp: number, chains: Chain[] = chains
   const chainBlocks = {} as {
     [chain: string]: number;
   };
-  await Promise.all(
-    chains.map(async (chain) => {
-      for (let i = 0; i < blockRetries; i++) {
-        try {
-          chainBlocks[chain] = await lookupBlock(timestamp, {
-            chain,
-          }).then((block) => block.block);
-          break;
-        } catch (e) {
-          if (i === blockRetries - 1) {
-            throw e;
-          }
-        }
-      }
-    })
-  );
+  const setBlock = async (chain: Chain) => chainBlocks[chain] = (await getBlock(chain, timestamp)).block
+  await Promise.all(chains.map(setBlock));
   return chainBlocks;
 }
 
-export async function getBlocks(timestamp: number) {
-  const [ethBlock, chainBlocks] = await Promise.all([lookupBlock(timestamp), getChainBlocks(timestamp)]);
+export async function getBlocks(timestamp: number, chains: Chain[]|undefined = undefined) {
+  const [ethBlock, chainBlocks] = await Promise.all([getBlock('ethereum', timestamp), getChainBlocks(timestamp, chains)]);
   chainBlocks['ethereum'] = ethBlock.block;
   return {
     ethereumBlock: ethBlock.block,
@@ -37,15 +23,67 @@ export async function getBlocks(timestamp: number) {
   };
 }
 
-export async function getCurrentBlocks() {
-  const provider = getProvider("ethereum");
-  const lastBlockNumber = await provider.getBlockNumber();
-  const block = await provider.getBlock(lastBlockNumber - 5); // To allow indexers to catch up
-  const chainBlocks = await getChainBlocks(block.timestamp);
+export async function getCurrentBlocks(chains: Chain[]|undefined = undefined) {
+  if (chains) 
+    chains = chains.filter(i => i !== "ethereum")
+
+  const block: {
+    timestamp: number
+    number: number
+  } = await getBlock('ethereum')
+  const chainBlocks = await getChainBlocks(block.timestamp, chains);
   chainBlocks['ethereum'] = block.number;
   return {
     timestamp: block.timestamp,
     ethereumBlock: block.number,
     chainBlocks,
   };
+}
+
+type chainCache = {
+  [chain: string]: any;
+}
+const blockCache = {
+  current: {}
+} as {
+  current: chainCache;
+  [key: number ]: chainCache;
+}
+
+export async function getBlock(chain: Chain, timestamp: number | undefined = undefined): Promise<any> {
+  if (!timestamp) {
+    if (chain !== 'ethereum') throw new Error('Timestamp  is missing!!!')
+    if (!blockCache.current) blockCache.current = {}
+    if (!blockCache.current.ethereum) {
+      blockCache.current.ethereum = getCurrentEthBlock()
+    }
+    return blockCache.current.ethereum
+  }
+
+  if (!blockCache[timestamp])
+    blockCache[timestamp] = {}
+
+  if (!blockCache[timestamp][chain])
+    blockCache[timestamp][chain] = _getBlock()
+
+  return blockCache[timestamp][chain]
+
+  async function getCurrentEthBlock() {
+    const provider = getProvider("ethereum");
+    const lastBlockNumber = await provider.getBlockNumber();
+    return provider.getBlock(lastBlockNumber - 5); // To allow indexers to catch up
+  }
+
+  async function _getBlock() {
+    for (let i = 0; i < blockRetries; i++) {
+      try {
+        const { block } = await lookupBlock(timestamp as number, { chain, })
+        return block;
+      } catch (e) {
+        if (i === blockRetries - 1) {
+          throw e;
+        }
+      }
+    }
+  }
 }
