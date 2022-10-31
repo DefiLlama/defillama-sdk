@@ -27,8 +27,26 @@ const terraBlockProvider = {
       .then((res) => res.json())
       .then((block) => ({
         number: Number(block.block.header.height),
-        timestamp: Math.round(Date.parse(block.block.header.time) / 1000)
+        timestamp: Math.round(Date.now() / 1000)
       }))
+};
+
+const algorandBlockProvider = {
+  getBlock: async (height: number | "latest") => {
+    if (height !== 'latest')
+      return fetch(`https://algoindexer.algoexplorerapi.io/v2/blocks/${height}`)
+        .then((res) => res.json())
+        .then((block) => ({
+          number: block.round,
+          timestamp: block.timestamp
+        }))
+    return fetch('https://algoindexer.algoexplorerapi.io/health')
+      .then((res) => res.json())
+      .then((block) => ({
+        number: block.round,
+        timestamp: block.timestamp
+      }))
+  }
 };
 
 async function getBlock(
@@ -48,6 +66,8 @@ function getExtraProvider(chain: string | undefined) {
     return terraBlockProvider;
   } else if (chain === "kava") {
     return kavaBlockProvider;
+  } else if (chain === "algorand") {
+    return algorandBlockProvider;
   }
   return getProvider(chain as any);
 }
@@ -67,21 +87,18 @@ const intialBlocks = {
 export async function lookupBlock(
   timestamp: number,
   extraParams: {
-    chain?: Chain | "terra" | "kava";
+    chain?: Chain | "terra" | "kava" | "algorand";
   } = {}
 ) {
   try {
     const provider = getExtraProvider(extraParams.chain);
     const lastBlock = await getBlock(provider, "latest", extraParams.chain);
     if (
-      extraParams.chain !== "bsc" &&
       lastBlock.timestamp - timestamp < -30 * 60
     ) {
       throw new Error(
-        `Last block of chain "${
-          extraParams.chain
-        }" is further than 30 minutes into the past. Provider is "${
-          (provider as any)?.connection?.url
+        `Last block of chain "${extraParams.chain
+        }" is further than 30 minutes into the past. Provider is "${(provider as any)?.connection?.url
         }"`
       );
     }
@@ -95,6 +112,7 @@ export async function lookupBlock(
     let high = lastBlock.number;
     let low = intialBlocks[extraParams?.chain ?? "ethereum"] ?? 0;
     let block: TimestampBlock;
+    let blockPrecision = extraParams.chain === 'ethereum' ? 20 : 200
     do {
       const mid = Math.floor((high + low) / 2);
       block = await getBlock(provider, mid, extraParams.chain);
@@ -103,9 +121,8 @@ export async function lookupBlock(
       } else {
         high = mid - 1;
       }
-    } while (high - low > 4); // We lose some precision (~4 blocks) but reduce #calls needed
+    } while (high - low > blockPrecision); // We lose some precision (~4 blocks) but reduce #calls needed
     if (
-      extraParams.chain !== "bsc" &&
       Math.abs(block.timestamp - timestamp) > 3600
     ) {
       throw new Error(
@@ -119,8 +136,7 @@ export async function lookupBlock(
   } catch (e) {
     console.log(e);
     throw new Error(
-      `Couldn't find block height for chain ${
-        extraParams.chain ?? "ethereum"
+      `Couldn't find block height for chain ${extraParams.chain ?? "ethereum"
       }, RPC node rugged`
     );
   }
@@ -221,8 +237,8 @@ export function normalizePrefixes(address: string): string {
   return address.startsWith("0x")
     ? `ethereum:${address.toLowerCase()}`
     : !address.includes(":")
-    ? `coingecko:${address.toLowerCase()}`
-    : address.toLowerCase();
+      ? `coingecko:${address.toLowerCase()}`
+      : address.toLowerCase();
 }
 
 const ethereumAddress = "ethereum:0x0000000000000000000000000000000000000000";
