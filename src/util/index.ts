@@ -111,7 +111,10 @@ export async function lookupBlock(
     let low = intialBlocks[extraParams?.chain ?? "ethereum"] ?? 0;
     let block: TimestampBlock;
     let blockPrecision = extraParams.chain === 'ethereum' ? 20 : 200
+    let i = 0
+    let time = Date.now()
     do {
+      ++i
       const mid = Math.floor((high + low) / 2);
       block = await getBlock(provider, mid, extraParams.chain);
       if (block.timestamp < timestamp) {
@@ -120,6 +123,8 @@ export async function lookupBlock(
         high = mid - 1;
       }
     } while (high - low > blockPrecision); // We lose some precision (~4 blocks) but reduce #calls needed
+    if (process.env.LLAMA_DEBUG_MODE)
+      console.log(extraParams.chain, i, (block.timestamp - timestamp)/60, (Date.now()-time)/1000, 'block: ', block.number)
     if (
       Math.abs(block.timestamp - timestamp) > 3600
     ) {
