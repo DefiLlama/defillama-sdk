@@ -88,13 +88,14 @@ export async function lookupBlock(
     chain?: Chain | "terra" | "kava" | "algorand";
   } = {}
 ) {
-  let low = intialBlocks[extraParams?.chain ?? "ethereum"] ?? 100;
+  const chain = extraParams?.chain?? "ethereum"
+  let low = intialBlocks[chain] ?? 100;
   let lowBlock: TimestampBlock, highBlock: TimestampBlock
   try {
-    const provider = getExtraProvider(extraParams.chain);
+    const provider = getExtraProvider(chain);
     const [lastBlock, firstBlock] = await Promise.all([
-      getBlock(provider, "latest", extraParams.chain),
-      getBlock(provider, low, extraParams.chain),
+      getBlock(provider, "latest", chain),
+      getBlock(provider, low, chain),
     ]);
     lowBlock = firstBlock
     highBlock = lastBlock
@@ -102,7 +103,7 @@ export async function lookupBlock(
       lastBlock.timestamp - timestamp < -30 * 60
     ) {
       throw new Error(
-        `Last block of chain "${extraParams.chain
+        `Last block of chain "${chain
         }" is further than 30 minutes into the past. Provider is "${(provider as any)?.connection?.url
         }"`
       );
@@ -119,24 +120,30 @@ export async function lookupBlock(
     let time = Date.now()
     let allowedTimeRange = 15 * 60 // how much imprecision is allowed (15 minutes now)
     let imprecision
+    const getPrecision = (block: TimestampBlock) => block.timestamp -timestamp > 0 ? block.timestamp -timestamp : timestamp - block.timestamp
     do {
       ++i
       const blockDiff = highBlock.number - lowBlock.number
       const timeDiff = highBlock.timestamp - lowBlock.timestamp
       const avgBlockTime = timeDiff / blockDiff
       const closeBlock = Math.floor(lowBlock.number + (timestamp - lowBlock.timestamp)/avgBlockTime);
-      block = await getBlock(provider, closeBlock, extraParams.chain);
-      if (block.timestamp < timestamp)
-        lowBlock = block;
-      else
-        highBlock = block;
-      imprecision = block.timestamp - timestamp
-      if (imprecision < 0) imprecision *= -1
+      const midBlock = Math.floor((lowBlock.number + highBlock.number)/2)
+      const blocks = await Promise.all([
+        getBlock(provider, closeBlock, chain),
+        getBlock(provider, midBlock, chain),
+      ])
+      blocks.push(highBlock, lowBlock)
+      blocks.sort((a, b) => getPrecision(a) - getPrecision(b))
+      block = blocks[0]
+      // find the closest upper and lower bound between 4 points
+      lowBlock = blocks.filter(i => i.timestamp < timestamp).reduce((lowestBlock, block) => (timestamp - lowestBlock.timestamp) < (timestamp - block.timestamp) ? lowestBlock : block)
+      highBlock = blocks.filter(i => i.timestamp > timestamp).reduce((highestBlock, block) => (highestBlock.timestamp - timestamp) < (block.timestamp - timestamp) ? highestBlock : block)
+      imprecision = getPrecision(block)
     } while (imprecision > allowedTimeRange); // We lose some precision (max ~10 minutes) but reduce #calls needed
     if (process.env.LLAMA_DEBUG_MODE)
-      console.log(`chain: ${extraParams.chain} block: ${block.number} #calls: ${i} imprecision: ${Number((imprecision)/60).toFixed(2)} (min) Time Taken: ${Number((Date.now()-time)/1000).toFixed(2)} (in sec)`)
+      console.log(`chain: ${chain} block: ${block.number} #calls: ${i} imprecision: ${Number((imprecision)/60).toFixed(2)} (min) Time Taken: ${Number((Date.now()-time)/1000).toFixed(2)} (in sec)`)
     if (
-      extraParams.chain !== "bsc" && // this check is there because bsc halted the chain for few days
+      chain !== "bsc" && // this check is there because bsc halted the chain for few days
       Math.abs(block.timestamp - timestamp) > 3600
     ) {
       throw new Error(
@@ -150,8 +157,7 @@ export async function lookupBlock(
   } catch (e) {
     console.log(e);
     throw new Error(
-      `Couldn't find block height for chain ${extraParams.chain ?? "ethereum"
-      }, RPC node rugged`
+      `Couldn't find block height for chain ${chain}, RPC node rugged`
     );
   }
 }
