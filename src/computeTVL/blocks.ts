@@ -15,6 +15,7 @@ export async function getChainBlocks(timestamp: number, chains: Chain[] = chains
 }
 
 export async function getBlocks(timestamp: number, chains: Chain[]|undefined = undefined) {
+  chains = chains?.filter(i => i !== 'ethereum')
   const [ethBlock, chainBlocks] = await Promise.all([getBlock('ethereum', timestamp), getChainBlocks(timestamp, chains)]);
   chainBlocks['ethereum'] = ethBlock.block;
   return {
@@ -77,8 +78,8 @@ export async function getBlock(chain: Chain, timestamp: number | undefined = und
   async function _getBlock() {
     for (let i = 0; i < blockRetries; i++) {
       try {
-        const { block } = await lookupBlock(timestamp as number, { chain, })
-        return block;
+        let block = await lookupBlock(timestamp as number, { chain, })
+        return block
       } catch (e) {
         if (i === blockRetries - 1) {
           throw e;
