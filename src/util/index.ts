@@ -119,6 +119,8 @@ export async function lookupBlock(
     let i = 0
     let time = Date.now()
     let allowedTimeRange = 15 * 60 // how much imprecision is allowed (15 minutes now)
+    let acceptableBlockImprecision = chain === 'ethereum' ? 20 : 200 
+    let blockImprecision
     let imprecision
     const getPrecision = (block: TimestampBlock) => block.timestamp -timestamp > 0 ? block.timestamp -timestamp : timestamp - block.timestamp
     do {
@@ -139,7 +141,9 @@ export async function lookupBlock(
       lowBlock = blocks.filter(i => i.timestamp < timestamp).reduce((lowestBlock, block) => (timestamp - lowestBlock.timestamp) < (timestamp - block.timestamp) ? lowestBlock : block)
       highBlock = blocks.filter(i => i.timestamp > timestamp).reduce((highestBlock, block) => (highestBlock.timestamp - timestamp) < (block.timestamp - timestamp) ? highestBlock : block)
       imprecision = getPrecision(block)
-    } while (imprecision > allowedTimeRange); // We lose some precision (max ~10 minutes) but reduce #calls needed
+      blockImprecision = highBlock.number - lowBlock.number
+      // console.log(`chain: ${chain} block: ${block.number} #calls: ${i} imprecision: ${Number((imprecision)/60).toFixed(2)} (min) block diff: ${blockImprecision} Time Taken: ${Number((Date.now()-time)/1000).toFixed(2)} (in sec)`)
+    } while (imprecision > allowedTimeRange  && blockImprecision > acceptableBlockImprecision); // We lose some precision (max ~15 minutes) but reduce #calls needed
     if (process.env.LLAMA_DEBUG_MODE)
       console.log(`chain: ${chain} block: ${block.number} #calls: ${i} imprecision: ${Number((imprecision)/60).toFixed(2)} (min) Time Taken: ${Number((Date.now()-time)/1000).toFixed(2)} (in sec)`)
     if (
