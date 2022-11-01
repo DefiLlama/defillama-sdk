@@ -88,9 +88,16 @@ export async function lookupBlock(
     chain?: Chain | "terra" | "kava" | "algorand";
   } = {}
 ) {
+  let low = intialBlocks[extraParams?.chain ?? "ethereum"] ?? 100;
+  let lowBlock: TimestampBlock, highBlock: TimestampBlock
   try {
     const provider = getExtraProvider(extraParams.chain);
-    const lastBlock = await getBlock(provider, "latest", extraParams.chain);
+    const [lastBlock, firstBlock] = await Promise.all([
+      getBlock(provider, "latest", extraParams.chain),
+      getBlock(provider, low, extraParams.chain),
+    ]);
+    lowBlock = firstBlock
+    highBlock = lastBlock
     if (
       lastBlock.timestamp - timestamp < -30 * 60
     ) {
@@ -107,25 +114,29 @@ export async function lookupBlock(
         timestamp: lastBlock.timestamp
       };
     }
-    let high = lastBlock.number;
-    let low = intialBlocks[extraParams?.chain ?? "ethereum"] ?? 0;
     let block: TimestampBlock;
-    let blockPrecision = extraParams.chain === 'ethereum' ? 20 : 200
     let i = 0
     let time = Date.now()
+    let allowedTimeRange = 15 * 60 // how much imprecision is allowed (15 minutes now)
+    let imprecision
     do {
       ++i
-      const mid = Math.floor((high + low) / 2);
-      block = await getBlock(provider, mid, extraParams.chain);
-      if (block.timestamp < timestamp) {
-        low = mid + 1;
-      } else {
-        high = mid - 1;
-      }
-    } while (high - low > blockPrecision); // We lose some precision (~4 blocks) but reduce #calls needed
+      const blockDiff = highBlock.number - lowBlock.number
+      const timeDiff = highBlock.timestamp - lowBlock.timestamp
+      const avgBlockTime = timeDiff / blockDiff
+      const closeBlock = Math.floor(lowBlock.number + (timestamp - lowBlock.timestamp)/avgBlockTime);
+      block = await getBlock(provider, closeBlock, extraParams.chain);
+      if (block.timestamp < timestamp)
+        lowBlock = block;
+      else
+        highBlock = block;
+      imprecision = block.timestamp - timestamp
+      if (imprecision < 0) imprecision *= -1
+    } while (imprecision > allowedTimeRange); // We lose some precision (max ~10 minutes) but reduce #calls needed
     if (process.env.LLAMA_DEBUG_MODE)
-      console.log(extraParams.chain, i, (block.timestamp - timestamp)/60, (Date.now()-time)/1000, 'block: ', block.number)
+      console.log(`chain: ${extraParams.chain} block: ${block.number} #calls: ${i} imprecision: ${Number((imprecision)/60).toFixed(2)} (min) Time Taken: ${Number((Date.now()-time)/1000).toFixed(2)} (in sec)`)
     if (
+      extraParams.chain !== "bsc" && // this check is there because bsc halted the chain for few days
       Math.abs(block.timestamp - timestamp) > 3600
     ) {
       throw new Error(
