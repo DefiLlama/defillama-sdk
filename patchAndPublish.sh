@@ -4,3 +4,4 @@ npm version patch
 git push
 rm -rf build
 npm publish
+git push --tags
