@@ -124,7 +124,8 @@ export const providers = {
   xdc: createProvider("xdc", "https://rpc.xinfin.network,https://rpc1.xinfin.network,https://erpc.xinfin.network", 50),
   cube: createProvider("cube", "https://http-mainnet.cube.network/", 1818),
   kekchain: createProvider("kekchain", "https://mainnet.kekchain.com", 420420),
-  step: createProvider("step", "https://rpc.step.network/", 1234)
+  step: createProvider("step", "https://rpc.step.network/", 1234),
+  muuchain: createProvider("muu", "mainnet-rpc.muuchain.com", 20402),
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
@@ -220,6 +221,7 @@ export type Chain =
   | "xdc"
   | "step"
   | "kekchain"
+  | "muuchain"
 export function getProvider(chain: Chain = "ethereum") {
   return providers[chain];
 }
