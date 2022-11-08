@@ -125,7 +125,7 @@ export const providers = {
   cube: createProvider("cube", "https://http-mainnet.cube.network/", 1818),
   kekchain: createProvider("kekchain", "https://mainnet.kekchain.com", 420420),
   step: createProvider("step", "https://rpc.step.network/", 1234),
-  muuchain: createProvider("muu", "mainnet-rpc.muuchain.com", 20402),
+  muuchain: createProvider("muu", "https://mainnet-rpc.muuchain.com", 20402),
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };

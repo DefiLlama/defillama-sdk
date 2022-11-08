@@ -282,6 +282,8 @@ function multicallAddress(chainId: number) {
       return "0x781bB181833986C78238228F9AF0891829AF922B"
     case 2002: // milkomeda_a1
       return "0x61EEE5a6c13c358101487f3b7c7Dd9863590C350"
+    case 20402: // muuchain
+      return "0xF8D7509aD8570b16dAd163A3841684f660fD9242"
     default:
       return null;
   }
