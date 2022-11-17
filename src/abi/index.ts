@@ -55,7 +55,7 @@ export async function call(params: {
       to: params.target,
       data: callData,
     },
-    params.block ?? "latest"
+    params.block ? `"0x"${params.block.toString(16)}` : "latest"
   );
   const decodedResult = contractInterface.decodeFunctionResult(
     functionABI,
