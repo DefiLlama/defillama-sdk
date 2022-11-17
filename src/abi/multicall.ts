@@ -44,7 +44,7 @@ export default async function makeMultiCall(
     params: any[];
   }[],
   chain: Chain,
-  block?: number
+  block?: number | string
 ) {
   const contractInterface = new ethers.utils.Interface([functionABI]);
   let fd = Object.values(contractInterface.functions)[0];
@@ -85,7 +85,7 @@ async function executeCalls(
     data: string;
   }[],
   chain: Chain,
-  block?: number
+  block?: number | string
 ) {
   if (await networkSupportsMulticall(chain)) {
     try {

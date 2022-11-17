@@ -36,7 +36,7 @@ function normalizeParams(params: CallParams): (string | number)[] {
 export async function call(params: {
   target: Address;
   abi: string | any;
-  block?: number;
+  block?: number | string;
   params?: CallParams;
   chain?: Chain;
 }) {
@@ -55,7 +55,7 @@ export async function call(params: {
       to: params.target,
       data: callData,
     },
-    params.block ? `"0x"${params.block.toString(16)}` : "latest"
+    params.block ?? "latest"
   );
   const decodedResult = contractInterface.decodeFunctionResult(
     functionABI,
