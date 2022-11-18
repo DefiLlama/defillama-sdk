@@ -53,10 +53,19 @@ export function sumSingleBalance(
     if (typeof prevBalance !== 'number' || isNaN(prevBalance)) {
       throw new Error(`Trying to merge token balance and coingecko amount for ${token} current balance: ${balance} previous balance: ${balances[token]}`)
     }
-    (balances[token] as number) = prevBalance + balance;
+    const value = prevBalance + balance
+    isValidNumber(value)
+    balances[token] = Number(value).toString()
   } else {
     const prevBalance = BigNumber.from(balances.hasOwnProperty(token) ? balances[token] : '0');
-    balances[token] = prevBalance.add(BigNumber.from(balance)).toString();
+    const value = prevBalance.add(BigNumber.from(balance)).toString();
+    isValidNumber(+value)
+    balances[token] = value
+  }
+
+  function isValidNumber(value: number) {
+    if (isNaN(value))
+      throw new Error(`Invalid balance: ${balance}`)
   }
 }
 
