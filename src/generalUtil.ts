@@ -42,16 +42,20 @@ export function sumMultiBalanceOf(
 export function sumSingleBalance(
   balances: Balances,
   token: string,
-  balance: string | number
+  balance: string | number,
+  chain?: string,
 ) {
+  if (chain)
+    token = `${chain}:${token}`
+  
   if (typeof balance === 'number') {
-    const prevBalance = balances[token] ?? 0
-    if (typeof prevBalance !== 'number') {
-      throw new Error(`Trying to merge token balance and coingecko amount for ${token}`)
+    const prevBalance = +(balances.hasOwnProperty(token) ? balances[token] : 0)
+    if (typeof prevBalance !== 'number' || isNaN(prevBalance)) {
+      throw new Error(`Trying to merge token balance and coingecko amount for ${token} current balance: ${balance} previous balance: ${balances[token]}`)
     }
     (balances[token] as number) = prevBalance + balance;
   } else {
-    const prevBalance = BigNumber.from(balances[token] ?? "0");
+    const prevBalance = BigNumber.from(balances.hasOwnProperty(token) ? balances[token] : '0');
     balances[token] = prevBalance.add(BigNumber.from(balance)).toString();
   }
 }
