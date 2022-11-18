@@ -240,6 +240,7 @@ function multicallAddress(chainId: number) {
     case 1231: // ultron
     case 2152: // findora
     case 50: // xdc
+    case 52: // csc
       return "0x18fA376d92511Dd04090566AB6144847c03557d8";
     case 2222:
       return "0x30A62aA52Fa099C4B227869EB6aeaDEda054d121" // kava
