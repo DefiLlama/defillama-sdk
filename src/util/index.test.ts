@@ -1,6 +1,5 @@
 import {
   lookupBlock,
-  kyberTokens,
   getLogs,
 } from "./index";
 
@@ -10,53 +9,6 @@ test("lookupBlock", async () => {
   // Approximation, DP's sdk returns { timestamp: 1594112400, block: 10411348 }
   expect(block.block).toBeCloseTo(10411539, -1.5);
   expect(block.timestamp).toBeCloseTo(1594115202, -2.5);
-});
-
-test("lookupBlock on xdai and terra", async () => {
-  const calls = [];
-  for (let i = 0; i < 10; i++) {
-    calls.push(
-      lookupBlock(1594115200, {
-        chain: "xdai",
-      }),
-      lookupBlock(1594115200, {
-        chain: "terra",
-      })
-    );
-  }
-  await Promise.all(calls);
-});
-
-test("kyberTokens", async () => {
-  const tokens = await kyberTokens();
-  const keys = Object.keys(tokens.output);
-  for (let i = 0; i < keys.length; i++) {
-    const key = keys[i];
-    if (i < 3) {
-      tokens.output[key].ethPrice = 0.002; // To avoid constant changes that break the snapshot
-    } else {
-      delete tokens.output[key];
-    }
-  }
-  expect(tokens).toEqual({
-    output: {
-      "0x111111111117dc0aa78b770fa6a738034120c302": {
-        symbol: "1INCH",
-        decimals: 18,
-        ethPrice: 0.002,
-      },
-      "0xe48972fcd82a274411c01834e2f031d4377fa2c0": {
-        symbol: "2KEY",
-        decimals: 18,
-        ethPrice: 0.002,
-      },
-      "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9": {
-        symbol: "AAVE",
-        decimals: 18,
-        ethPrice: 0.002,
-      },
-    },
-  });
 });
 
 test("getLogs", async () => {

@@ -54,13 +54,13 @@ test("sumSingleBalance", () => {
   const balances = {};
   sumSingleBalance(balances, "ethereum", "2");
   expect(balances).toMatchInlineSnapshot(`
-    Object {
+    {
       "ethereum": "2",
     }
   `);
   sumSingleBalance(balances, "ethereum", "5");
   expect(balances).toMatchInlineSnapshot(`
-    Object {
+    {
       "ethereum": "7",
     }
   `);
