@@ -1,5 +1,6 @@
 import { BigNumber } from "ethers";
-import computeTVL from "./computeTVL";
+import * as blocks from "./computeTVL/blocks";
+import * as humanizeNumber from "./computeTVL/humanizeNumber";
 import type { Balances, StringNumber, Address } from "./types";
 
 // We ignore `sum` as it's never used (only in some SDK wrapper code)
@@ -108,4 +109,4 @@ export function sumChainTvls(
   };
 }
 
-export { computeTVL };
+export { blocks, humanizeNumber, };

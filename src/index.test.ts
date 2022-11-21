@@ -31,7 +31,23 @@ test("imports", async () => {
         },
       },
       "util": {
-        "computeTVL": [Function],
+        "blocks": {
+          "chainsForBlocks": [
+            "avax",
+            "bsc",
+            "polygon",
+            "xdai",
+            "fantom",
+            "arbitrum",
+          ],
+          "getBlock": [Function],
+          "getBlocks": [Function],
+          "getChainBlocks": [Function],
+          "getCurrentBlocks": [Function],
+        },
+        "humanizeNumber": {
+          "humanizeNumber": [Function],
+        },
         "mergeBalances": [Function],
         "sumChainTvls": [Function],
         "sumMultiBalanceOf": [Function],
