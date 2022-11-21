@@ -4,11 +4,33 @@ import {
 } from "./index";
 
 jest.setTimeout(20000);
+
+function getDiff(a: number, b: number): number {
+  return (a > b) ? a - b : b - a;
+}
+
 test("lookupBlock", async () => {
-  const block = await lookupBlock(1594115200);
-  // Approximation, DP's sdk returns { timestamp: 1594112400, block: 10411348 }
-  expect(block.block).toBeCloseTo(10411539, -1.5);
-  expect(block.timestamp).toBeCloseTo(1594115202, -2.5);
+  const block = await lookupBlock(1669037786);
+  // Approximation, DP's sdk returns { timestamp: 1669037786, block: 16018720 }
+  expect(getDiff(block.block, 16018720)).toBeLessThanOrEqual(50); // 50 blocks appromiates to 10 minute difference
+  expect(getDiff(block.timestamp, 1669037786)).toBeLessThanOrEqual(15 * 60); // difference should be under 15 minutes
+
+  const block2 = await lookupBlock(1594112416);
+  // Approximation, DP's sdk returns { timestamp: 1594112416, block: 10411348 }
+  expect(getDiff(block2.block, 10411348)).toBeLessThanOrEqual(50); // 50 blocks appromiates to 10 minute difference
+  expect(getDiff(block2.timestamp, 1594112416)).toBeLessThanOrEqual(15 * 60); // difference should be under 15 minutes
+});
+
+test("lookupBlock bsc", async () => {
+  const block = await lookupBlock(1669051521, {chain: 'bsc'});
+  // Approximation, DP's sdk returns { timestamp: 1669051521, block: 23252691 }
+  expect(getDiff(block.block, 23252691)).toBeLessThanOrEqual(200); // 200 blocks appromiates to 10 minute difference
+  expect(getDiff(block.timestamp, 1669051521)).toBeLessThanOrEqual(15 * 60); // difference should be under 15 minutes
+  
+  const block2 = await lookupBlock(1638821718, {chain: 'bsc'});
+  // Approximation, DP's sdk returns { timestamp: 1638821718, block: 13252691 }
+  expect(getDiff(block2.block, 13252691)).toBeLessThanOrEqual(200); // 200 blocks appromiates to 10 minute difference
+  expect(getDiff(block2.timestamp, 1638821718)).toBeLessThanOrEqual(15 * 60); // difference should be under 15 minutes
 });
 
 test("getLogs", async () => {

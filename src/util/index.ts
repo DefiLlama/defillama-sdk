@@ -4,6 +4,7 @@ import type { Address } from "../types";
 import { utils, BigNumber, } from "ethers";
 import type { Log } from "@ethersproject/abstract-provider";
 import { sumSingleBalance } from "../generalUtil";
+import { debugLog } from "./debugLog";
 
 interface TimestampBlock {
   number: number;
@@ -27,7 +28,6 @@ const terraBlockProvider = {
       .then((block: any) => ({
         number: Number(block.block.header.height),
         timestamp: Math.round(Date.parse(block.block.header.time) / 1000),
-        
       }))
 };
 
@@ -87,7 +87,7 @@ export async function lookupBlock(
     chain?: Chain | "terra" | "kava" | "algorand";
   } = {}
 ) {
-  const chain = extraParams?.chain?? "ethereum"
+  const chain = extraParams?.chain ?? "ethereum"
   let low = intialBlocks[chain] ?? 100;
   let lowBlock: TimestampBlock, highBlock: TimestampBlock
   try {
@@ -118,17 +118,17 @@ export async function lookupBlock(
     let i = 0
     let time = Date.now()
     let allowedTimeRange = 15 * 60 // how much imprecision is allowed (15 minutes now)
-    let acceptableBlockImprecision = chain === 'ethereum' ? 20 : 200 
+    let acceptableBlockImprecision = chain === 'ethereum' ? 20 : 200
     let blockImprecision
     let imprecision
-    const getPrecision = (block: TimestampBlock) => block.timestamp -timestamp > 0 ? block.timestamp -timestamp : timestamp - block.timestamp
+    const getPrecision = (block: TimestampBlock) => block.timestamp - timestamp > 0 ? block.timestamp - timestamp : timestamp - block.timestamp
     do {
       ++i
       const blockDiff = highBlock.number - lowBlock.number
       const timeDiff = highBlock.timestamp - lowBlock.timestamp
       const avgBlockTime = timeDiff / blockDiff
-      const closeBlock = Math.floor(lowBlock.number + (timestamp - lowBlock.timestamp)/avgBlockTime);
-      const midBlock = Math.floor((lowBlock.number + highBlock.number)/2)
+      const closeBlock = Math.floor(lowBlock.number + (timestamp - lowBlock.timestamp) / avgBlockTime);
+      const midBlock = Math.floor((lowBlock.number + highBlock.number) / 2)
       const blocks = await Promise.all([
         getBlock(provider, closeBlock, chain),
         getBlock(provider, midBlock, chain),
@@ -141,10 +141,9 @@ export async function lookupBlock(
       highBlock = blocks.filter(i => i.timestamp > timestamp).reduce((highestBlock, block) => (highestBlock.timestamp - timestamp) < (block.timestamp - timestamp) ? highestBlock : block)
       imprecision = getPrecision(block)
       blockImprecision = highBlock.number - lowBlock.number
-      // console.log(`chain: ${chain} block: ${block.number} #calls: ${i} imprecision: ${Number((imprecision)/60).toFixed(2)} (min) block diff: ${blockImprecision} Time Taken: ${Number((Date.now()-time)/1000).toFixed(2)} (in sec)`)
-    } while (imprecision > allowedTimeRange  && blockImprecision > acceptableBlockImprecision); // We lose some precision (max ~15 minutes) but reduce #calls needed
-    if (process.env.LLAMA_DEBUG_MODE)
-      console.log(`chain: ${chain} block: ${block.number} #calls: ${i} imprecision: ${Number((imprecision)/60).toFixed(2)} (min) Time Taken: ${Number((Date.now()-time)/1000).toFixed(2)} (in sec)`)
+      // debugLog(`chain: ${chain} block: ${block.number} #calls: ${i} imprecision: ${Number((imprecision)/60).toFixed(2)} (min) block diff: ${blockImprecision} Time Taken: ${Number((Date.now()-time)/1000).toFixed(2)} (in sec)`)
+    } while (imprecision > allowedTimeRange && blockImprecision > acceptableBlockImprecision); // We lose some precision (max ~15 minutes) but reduce #calls needed
+    debugLog(`chain: ${chain} block: ${block.number} #calls: ${i} imprecision: ${Number((imprecision) / 60).toFixed(2)} (min) Time Taken: ${Number((Date.now() - time) / 1000).toFixed(2)} (in sec)`)
     if (
       chain !== "bsc" && // this check is there because bsc halted the chain for few days
       Math.abs(block.timestamp - timestamp) > 3600

@@ -5,9 +5,8 @@ test("large muticall", async () => {
   const options = JSON.parse(calldata)
   for (let i = 0; i < 571; i++)
     options.calls.push({ params: i })
-  expect(0).toBe(1)
   const res = await multiCall(options)
-  expect(res.output.filter(r => !r.success).length).toBe(1)
+  expect(res.output.filter(r => !r.success).length).toBe(0)
 });
 
 test("call", async () => {
@@ -193,42 +192,42 @@ test("multiCall with bool", async () => {
 });
 
 test("multiCall with multiple return values and reverts", async () => {
-  expect(
-    await multiCall({
-      calls: [
+  const response = await multiCall({
+    calls: [
+      {
+        target: "0xbb2b8038a1640196fbe3e38816f3e67cba72d940",
+        params: [],
+      },
+      {
+        target: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", // Not a pair -> reverts the tx
+        params: [],
+      },
+      {
+        target: "0xd3d2e2692501a5c9ca623199d38826e513033a17",
+        params: [],
+      },
+    ],
+    abi: {
+      constant: true,
+      inputs: [],
+      name: "getReserves",
+      outputs: [
+        { internalType: "uint112", name: "_reserve0", type: "uint112" },
+        { internalType: "uint112", name: "_reserve1", type: "uint112" },
         {
-          target: "0xbb2b8038a1640196fbe3e38816f3e67cba72d940",
-          params: [],
-        },
-        {
-          target: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", // Not a pair -> reverts the tx
-          params: [],
-        },
-        {
-          target: "0xd3d2e2692501a5c9ca623199d38826e513033a17",
-          params: [],
+          internalType: "uint32",
+          name: "_blockTimestampLast",
+          type: "uint32",
         },
       ],
-      abi: {
-        constant: true,
-        inputs: [],
-        name: "getReserves",
-        outputs: [
-          { internalType: "uint112", name: "_reserve0", type: "uint112" },
-          { internalType: "uint112", name: "_reserve1", type: "uint112" },
-          {
-            internalType: "uint32",
-            name: "_blockTimestampLast",
-            type: "uint32",
-          },
-        ],
-        payable: false,
-        stateMutability: "view",
-        type: "function",
-      },
-      block: 15997547,
-    })
-  ).toEqual({
+      payable: false,
+      stateMutability: "view",
+      type: "function",
+    },
+    block: 15997547,
+  })
+
+  const expectedResponse = {
     output: [
       {
         input: {
@@ -236,15 +235,11 @@ test("multiCall with multiple return values and reverts", async () => {
           params: [],
         },
         success: true,
-        output: {
-          "0": "22704646203",
-          "1": "3120678695891182948664",
-          "2": "1668785663",
-          __length__: 3,
-          _blockTimestampLast: "1668785663",
-          _reserve0: "22704646203",
-          _reserve1: "3120678695891182948664",
-        },
+        output: [
+          "22703861331",
+          "3120786254041482210638",
+          "1668779963",
+        ]
       },
       {
         input: {
@@ -260,19 +255,19 @@ test("multiCall with multiple return values and reverts", async () => {
           params: [],
         },
         success: true,
-        output: {
-          "0": "1435345391099489310228594",
-          "1": "6945208860507955955848",
-          "2": "1668789983",
-          __length__: 3,
-          _blockTimestampLast: "1668789983",
-          _reserve0: "1435345391099489310228594",
-          _reserve1: "6945208860507955955848",
-
-        },
+        output: [
+          "1428900635496571696616098",
+          "6976400025268132321919",
+          "1668782291",
+        ]
       },
     ],
-  });
+  }
+
+  expect(response.output[0].output._reserve0).toEqual('22703861331')
+  expect(response.output[0].output._reserve1).toEqual('3120786254041482210638')
+  expect(response.output[2].output._blockTimestampLast).toEqual('1668782291')
+  expect(JSON.parse(JSON.stringify(response))).toEqual(JSON.parse(JSON.stringify(expectedResponse)));
 });
 
 test("multiCall with parameters and cached ABI", async () => {
@@ -389,55 +384,53 @@ test("maker call doesn't do weird things", async () => {
 });
 
 test("Set protocol multicall", async () => {
-  // We serialize and unserialize to avoid the test failing because some functions were copied with lodash.deepClone differently
-  expect(
-    JSON.parse(
-      JSON.stringify(
-        await multiCall({
-          abi: {
-            inputs: [],
-            name: "getPositions",
-            outputs: [
-              {
-                components: [
-                  {
-                    internalType: "address",
-                    name: "component",
-                    type: "address",
-                  },
-                  { internalType: "address", name: "module", type: "address" },
-                  { internalType: "int256", name: "unit", type: "int256" },
-                  {
-                    internalType: "uint8",
-                    name: "positionState",
-                    type: "uint8",
-                  },
-                  { internalType: "bytes", name: "data", type: "bytes" },
-                ],
-                internalType: "struct ISetToken.Position[]",
-                name: "",
-                type: "tuple[]",
-              },
-            ],
-            stateMutability: "view",
-            type: "function",
-          },
-          block: 12065584,
-          calls: [
-            { target: "0x1494CA1F11D487c2bBe4543E90080AeBa4BA3C2b" },
-            { target: "0x90d8C1eE7fE895a780405d1B62839fa1c7796A70" },
-            { target: "0x23687D9d40F9Ecc86E7666DDdB820e700F954526" },
-            { target: "0x532777F415735dAD24eC97FeEAC62EB1F15cf128" },
-            { target: "0x7F8E3f03D84e0aA7488375C85Ed470b4451f0899" },
+  const res = await multiCall({
+    abi: {
+      inputs: [],
+      name: "getPositions",
+      outputs: [
+        {
+          components: [
+            {
+              internalType: "address",
+              name: "component",
+              type: "address",
+            },
+            { internalType: "address", name: "module", type: "address" },
+            { internalType: "int256", name: "unit", type: "int256" },
+            {
+              internalType: "uint8",
+              name: "positionState",
+              type: "uint8",
+            },
+            { internalType: "bytes", name: "data", type: "bytes" },
           ],
-        })
-      )
-    )
-  ).toEqual(
-    JSON.parse(
-      '{"output":[{"input":{"target":"0x1494CA1F11D487c2bBe4543E90080AeBa4BA3C2b","params":[]},"success":true,"output":[["0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e","0x0000000000000000000000000000000000000000","566681395927559","0","0x"],["0xc00e94Cb662C3520282E6f5717214004A7f26888","0x0000000000000000000000000000000000000000","70318775153048506","0","0x"],["0xC011a73ee8576Fb46F5E1c5751cA3B9Fe0af2a6F","0x0000000000000000000000000000000000000000","2384736988477651228","0","0x"],["0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2","0x0000000000000000000000000000000000000000","14668017874179484","0","0x"],["0x408e41876cCCDC0F92210600ef50372656052a38","0x0000000000000000000000000000000000000000","14329297278561211120","0","0x"],["0xdd974D5C2e2928deA5F71b9825b8b646686BD200","0x0000000000000000000000000000000000000000","3322796981570831895","0","0x"],["0xBBbbCA6A901c926F240b89EacB641d8Aec7AEafD","0x0000000000000000000000000000000000000000","20270507030878218910","0","0x"],["0xba100000625a3754423978a60c9317c58a424e3D","0x0000000000000000000000000000000000000000","175627130233863107","0","0x"],["0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984","0x0000000000000000000000000000000000000000","4871122751163785374","0","0x"],["0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9","0x0000000000000000000000000000000000000000","201801624666571816","0","0x"],["0xa3BeD4E1c75D00fa6f4E5E6922DB7261B5E9AcD2","0x0000000000000000000000000000000000000000","295166852626052623","0","0x"],["0x6B3595068778DD592e39A122f4f5a5cF09C90fE2","0x0000000000000000000000000000000000000000","1969722723891450605","0","0x"]]},{"input":{"target":"0x90d8C1eE7fE895a780405d1B62839fa1c7796A70","params":[]},"success":true,"output":[["0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2","0x0000000000000000000000000000000000000000","147000000000000000","0","0x"],["0x6B175474E89094C44Da98b954EedeAC495271d0F","0x0000000000000000000000000000000000000000","50000000000000000000","0","0x"]]},{"input":{"target":"0x23687D9d40F9Ecc86E7666DDdB820e700F954526","params":[]},"success":true,"output":[["0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2","0x0000000000000000000000000000000000000000","130867502281176757","0","0x"],["0x6B175474E89094C44Da98b954EedeAC495271d0F","0x0000000000000000000000000000000000000000","63797945472382022874","0","0x"]]},{"input":{"target":"0x532777F415735dAD24eC97FeEAC62EB1F15cf128","params":[]},"success":true,"output":[["0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2","0x0000000000000000000000000000000000000000","147000000000000000","0","0x"],["0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599","0x0000000000000000000000000000000000000000","480000","0","0x"]]},{"input":{"target":"0x7F8E3f03D84e0aA7488375C85Ed470b4451f0899","params":[]},"success":true,"output":[["0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2","0x0000000000000000000000000000000000000000","147000000000000000","0","0x"],["0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599","0x0000000000000000000000000000000000000000","480000","0","0x"]]}]}'
-    )
-  );
+          internalType: "struct ISetToken.Position[]",
+          name: "",
+          type: "tuple[]",
+        },
+      ],
+      stateMutability: "view",
+      type: "function",
+    },
+    block: 12065584,
+    calls: [
+      { target: "0x1494CA1F11D487c2bBe4543E90080AeBa4BA3C2b" },
+      { target: "0x90d8C1eE7fE895a780405d1B62839fa1c7796A70" },
+      { target: "0x23687D9d40F9Ecc86E7666DDdB820e700F954526" },
+      { target: "0x532777F415735dAD24eC97FeEAC62EB1F15cf128" },
+      { target: "0x7F8E3f03D84e0aA7488375C85Ed470b4451f0899" },
+    ],
+  })
+  let expectedResponse: any = '{"output":[{"input":{"target":"0x1494CA1F11D487c2bBe4543E90080AeBa4BA3C2b","params":[]},"success":true,"output":[["0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e","0x0000000000000000000000000000000000000000","566681395927559","0","0x"],["0xc00e94Cb662C3520282E6f5717214004A7f26888","0x0000000000000000000000000000000000000000","70318775153048506","0","0x"],["0xC011a73ee8576Fb46F5E1c5751cA3B9Fe0af2a6F","0x0000000000000000000000000000000000000000","2384736988477651228","0","0x"],["0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2","0x0000000000000000000000000000000000000000","14668017874179484","0","0x"],["0x408e41876cCCDC0F92210600ef50372656052a38","0x0000000000000000000000000000000000000000","14329297278561211120","0","0x"],["0xdd974D5C2e2928deA5F71b9825b8b646686BD200","0x0000000000000000000000000000000000000000","3322796981570831895","0","0x"],["0xBBbbCA6A901c926F240b89EacB641d8Aec7AEafD","0x0000000000000000000000000000000000000000","20270507030878218910","0","0x"],["0xba100000625a3754423978a60c9317c58a424e3D","0x0000000000000000000000000000000000000000","175627130233863107","0","0x"],["0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984","0x0000000000000000000000000000000000000000","4871122751163785374","0","0x"],["0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9","0x0000000000000000000000000000000000000000","201801624666571816","0","0x"],["0xa3BeD4E1c75D00fa6f4E5E6922DB7261B5E9AcD2","0x0000000000000000000000000000000000000000","295166852626052623","0","0x"],["0x6B3595068778DD592e39A122f4f5a5cF09C90fE2","0x0000000000000000000000000000000000000000","1969722723891450605","0","0x"]]},{"input":{"target":"0x90d8C1eE7fE895a780405d1B62839fa1c7796A70","params":[]},"success":true,"output":[["0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2","0x0000000000000000000000000000000000000000","147000000000000000","0","0x"],["0x6B175474E89094C44Da98b954EedeAC495271d0F","0x0000000000000000000000000000000000000000","50000000000000000000","0","0x"]]},{"input":{"target":"0x23687D9d40F9Ecc86E7666DDdB820e700F954526","params":[]},"success":true,"output":[["0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2","0x0000000000000000000000000000000000000000","130867502281176757","0","0x"],["0x6B175474E89094C44Da98b954EedeAC495271d0F","0x0000000000000000000000000000000000000000","63797945472382022874","0","0x"]]},{"input":{"target":"0x532777F415735dAD24eC97FeEAC62EB1F15cf128","params":[]},"success":true,"output":[["0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2","0x0000000000000000000000000000000000000000","147000000000000000","0","0x"],["0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599","0x0000000000000000000000000000000000000000","480000","0","0x"]]},{"input":{"target":"0x7F8E3f03D84e0aA7488375C85Ed470b4451f0899","params":[]},"success":true,"output":[["0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2","0x0000000000000000000000000000000000000000","147000000000000000","0","0x"],["0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599","0x0000000000000000000000000000000000000000","480000","0","0x"]]}]}'
+  expectedResponse = JSON.parse(expectedResponse)
+  // We serialize and unserialize to avoid the test failing because some functions were copied with lodash.deepClone differently
+  expect(JSON.parse(JSON.stringify(res))).toEqual(expectedResponse)
+  expect(res.output[0].output[0].component).toEqual(expectedResponse.output[0].output[0][0])
+  expect(res.output[1].output[0].module).toEqual(expectedResponse.output[1].output[0][1])
+  expect(res.output[2].output[0].unit).toEqual(expectedResponse.output[2].output[0][2])
+  expect(res.output[3].output[0].positionState).toEqual(expectedResponse.output[3].output[0][3])
+  expect(res.output[4].output[0].data).toEqual(expectedResponse.output[4].output[0][4])
 });
 
 test("multicall with no call.target", async () => {
