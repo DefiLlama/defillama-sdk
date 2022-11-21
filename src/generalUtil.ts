@@ -69,7 +69,7 @@ export function sumSingleBalance(
   }
 }
 
-function mergeBalances(balances: Balances, balancesToMerge: Balances) {
+export function mergeBalances(balances: Balances, balancesToMerge: Balances) {
   Object.entries(balancesToMerge).forEach((balance) => {
     sumSingleBalance(balances, balance[0], balance[1]);
   });

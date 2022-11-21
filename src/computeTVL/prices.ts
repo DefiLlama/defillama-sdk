@@ -60,7 +60,7 @@ export async function getTokenPrices(
       getCoingeckoLock
     );
     Object.assign(tokenPrices, tempTokenPrices);
-    Object.entries(tempTokenPrices).forEach((tokenPrice) => {
+    Object.entries(tempTokenPrices as Object).forEach((tokenPrice) => {
       knownTokenPrices[prefix + tokenPrice[0]] = tokenPrice[1] as any;
     });
   }
@@ -77,7 +77,7 @@ export async function getHistoricalTokenPrices(
 ): Promise<TokenPrices> {
   const tokenPrices = {} as TokenPrices;
   for (const id of ids) {
-    const range = await makeCoingeckoCall(
+    const range: any = await makeCoingeckoCall(
       `${url}/${id.toLowerCase()}/market_chart/range?vs_currency=usd&from=${
         timestamp - secondsPerHalfDay
       }&to=${timestamp + secondsPerHalfDay}`,

@@ -1,19 +1,18 @@
 import { BigNumber } from "@ethersproject/bignumber";
 import { ethers } from "ethers";
-import lodash from "lodash";
 
 function stringifyBigNumbers(result: any, final: any) {
   Object.keys(result).forEach((key) => {
     try {
-      final[key] = lodash.cloneDeep(result[key]);
       if (
         BigNumber.isBigNumber(result[key]) ||
         typeof result[key] === "number"
       ) {
         final[key] = result[key].toString();
-      }
-      if (typeof final[key] === "object") {
+      } else if (typeof final[key] === "object") {
         stringifyBigNumbers(result[key], final[key]);
+      } else {
+        final[key] = result[key]
       }
     } catch (e) {
       console.log(e);
@@ -21,7 +20,7 @@ function stringifyBigNumbers(result: any, final: any) {
   });
 }
 
-function containsNamedResults(obj: Array<any>) {
+function containsNamedResults(obj: ethers.utils.Result) {
   return Object.keys(obj).some((key) => isNaN(Number(key))); // Are there any non-numeric keys?
 }
 

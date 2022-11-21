@@ -19,17 +19,6 @@ type ReturnedTokenBalances = {
   [tokenSymbolOrName: string]: number;
 };
 
-function tokenMulticall(addresses: Address[], abi: string, chain?: string) {
-  return multiCall({
-    abi,
-    calls: addresses.map((address) => ({
-      target: address,
-      params: [],
-    })),
-    chain: chain as any,
-  })
-}
-
 function addTokenBalance(
   balances: ReturnedTokenBalances,
   symbol: string,
@@ -139,7 +128,7 @@ async function getChainSymbolsAndDecimals(ids: { [chain: string]: string[] }, ma
     const response = await fetch('https://api.llama.fi/coins', {
       method: 'POST',
       body: JSON.stringify({
-        coins: Array.from(allCoins)
+        coins: Array.from(allCoins) // TODO: would this lead to failures if there are more than 500 coins? better to split into chunks? 
       })
     }).then(response => response.json())
     if (Array.isArray(response)) {

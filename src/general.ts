@@ -235,7 +235,7 @@ export type Chain =
   | "step"
   | "kekchain"
   | "muuchain"
-export function getProvider(chain: Chain = "ethereum") {
+export function getProvider(chain: Chain = "ethereum") : ethers.providers.BaseProvider {
   return providers[chain];
 }
 

@@ -1,8 +1,7 @@
-import BigNumber from "bignumber.js";
 import { getProvider, Chain } from "../general";
 import fetch from "node-fetch";
 import type { Address } from "../types";
-import { utils } from "ethers";
+import { utils, BigNumber, } from "ethers";
 import type { Log } from "@ethersproject/abstract-provider";
 import { sumSingleBalance } from "../generalUtil";
 
@@ -15,7 +14,7 @@ const kavaBlockProvider = {
   getBlock: async (height: number | "latest"): Promise<TimestampBlock> =>
     fetch(`https://api.data.kava.io/blocks/${height}`)
       .then((res) => res.json())
-      .then((block) => ({
+      .then((block: any) => ({
         number: Number(block.block.header.height),
         timestamp: Math.round(Date.parse(block.block.header.time) / 1000)
       }))
@@ -25,7 +24,7 @@ const terraBlockProvider = {
   getBlock: async (height: number | "latest"): Promise<TimestampBlock> =>
     fetch(`https://lcd.terra.dev/blocks/${height}`)
       .then((res) => res.json())
-      .then((block) => ({
+      .then((block: any) => ({
         number: Number(block.block.header.height),
         timestamp: Math.round(Date.parse(block.block.header.time) / 1000),
         
@@ -37,13 +36,13 @@ const algorandBlockProvider = {
     if (height !== 'latest')
       return fetch(`https://algoindexer.algoexplorerapi.io/v2/blocks/${height}`)
         .then((res) => res.json())
-        .then((block) => ({
+        .then((block: any) => ({
           number: block.round,
           timestamp: block.timestamp
         }))
     return fetch('https://algoindexer.algoexplorerapi.io/health')
       .then((res) => res.json())
-      .then((block) => algorandBlockProvider.getBlock(block.round))
+      .then((block: any) => algorandBlockProvider.getBlock(block.round))
   }
 };
 
@@ -166,33 +165,6 @@ export async function lookupBlock(
   }
 }
 
-export async function kyberTokens() {
-  const pairs = await fetch(
-    `https://api.kyber.network/api/tokens/pairs`
-  ).then((res) => res.json());
-  const tokens = Object.keys(pairs).reduce(
-    (acc, pairName) => {
-      const pair = pairs[pairName];
-      acc[pair.contractAddress] = {
-        symbol: pair.symbol,
-        decimals: pair.decimals,
-        ethPrice: pair.currentPrice
-      };
-      return acc;
-    },
-    {} as {
-      [address: string]: {
-        symbol: string;
-        decimals: number;
-        ethPrice: number;
-      };
-    }
-  );
-  return {
-    output: tokens
-  };
-}
-
 // SMALL INCOMPATIBILITY: On the old API we don't return ids but we should
 export async function getLogs(params: {
   target: Address;
@@ -283,7 +255,7 @@ export function normalizeBalances(balances: { [address: string]: string }) {
 
   const eth = balances[ethereumAddress];
   if (eth !== undefined) {
-    balances[weth] = new BigNumber(balances[weth] ?? 0).plus(eth).toFixed(0);
+    balances[weth] = BigNumber.from(balances[weth] ?? 0).add(eth).toString();
     delete balances[ethereumAddress];
   }
 
