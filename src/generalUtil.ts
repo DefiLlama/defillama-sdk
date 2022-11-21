@@ -42,20 +42,26 @@ export function sumMultiBalanceOf(
 export function sumSingleBalance(
   balances: Balances,
   token: string,
-  balance: string | number,
+  balance: string | number | BigNumber,
   chain?: string,
 ) {
   if (chain)
     token = `${chain}:${token}`
   
+  if (typeof balance === 'object') {
+    if (typeof balance.toString === 'function')
+      balance = balance.toString()
+    else
+      throw new Error('Invalid balance value:' + balance)
+  }
+  
   if (typeof balance === 'number') {
     const prevBalance = +(balances.hasOwnProperty(token) ? balances[token] : 0)
-    if (typeof prevBalance !== 'number' || isNaN(prevBalance)) {
+    if (typeof prevBalance !== 'number' || isNaN(prevBalance))
       throw new Error(`Trying to merge token balance and coingecko amount for ${token} current balance: ${balance} previous balance: ${balances[token]}`)
-    }
     const value = prevBalance + balance
     isValidNumber(value)
-    balances[token] = Number(value).toString()
+    balances[token] = value
   } else {
     const prevBalance = BigNumber.from(balances.hasOwnProperty(token) ? balances[token] : '0');
     const value = prevBalance.add(BigNumber.from(balance)).toString();
