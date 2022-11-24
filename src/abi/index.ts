@@ -5,6 +5,7 @@ import { getProvider, Chain } from "../general";
 import makeMultiCall from "./multicall";
 import convertResults from "./convertResults";
 import { PromisePool } from '@supercharge/promise-pool';
+import { debugLog } from "../util/debugLog";
 
 function resolveABI(providedAbi: string | any) {
   let abi = providedAbi;
@@ -111,9 +112,8 @@ export async function multiCall(params: {
     ) as any[]
 
   const failedQueries = flatResults.filter(r => !r.success)
-  if(failedQueries.length && (process.env.SDK_DEBUG === "true"  || process.env.LLAMA_DEBUG_MODE)){
-    console.log("Failed multicalls:", failedQueries.map(r=>r.input))
-  }
+  if(failedQueries.length)
+    debugLog("Failed multicalls:", failedQueries.map(r=>r.input))
 
   if (params.requery === true && flatResults.some(r => !r.success)) {
     const failed = flatResults.map((r, i) => [r, i]).filter(r => !r[0].success)

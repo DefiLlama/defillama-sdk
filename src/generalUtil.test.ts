@@ -1,4 +1,5 @@
-import { sumMultiBalanceOf, sumSingleBalance } from "./generalUtil";
+import { sumMultiBalanceOf, sumSingleBalance, mergeBalances } from "./generalUtil";
+import { BigNumber } from "ethers"
 
 test("sumMultiBalanceOf", () => {
   const balances = {
@@ -51,17 +52,75 @@ test("sumMultiBalanceOf", () => {
 });
 
 test("sumSingleBalance", () => {
-  const balances = {};
-  sumSingleBalance(balances, "ethereum", "2");
-  expect(balances).toMatchInlineSnapshot(`
-    Object {
-      "ethereum": "2",
-    }
-  `);
-  sumSingleBalance(balances, "ethereum", "5");
-  expect(balances).toMatchInlineSnapshot(`
-    Object {
-      "ethereum": "7",
-    }
-  `);
+  let balances = {};
+  sumSingleBalance(balances, "ethereum", "2")
+  expect(balances).toMatchObject({ ethereum: '2' })
+  sumSingleBalance(balances, "ethereum", "5")
+  expect(balances).toMatchObject({ ethereum: '7' })
+
+  balances = { ethereum: '5000' }
+  sumSingleBalance(balances, "ethereum", 2000)
+  expect(balances).toMatchObject({ ethereum: 7000 })
+
+  balances = { 'bsc:0x000': 5000 }
+  sumSingleBalance(balances, "0x000", '2000', 'bsc')
+  sumSingleBalance(balances, "0x000", '3000', 'bsc')
+  expect(balances).toMatchObject({ 'bsc:0x000': '10000' })
+
+  balances = { 'polygon:0x000': 5000 }
+  sumSingleBalance(balances, "0x000", BigNumber.from(2000), 'polygon')
+  expect(balances).toMatchObject({ 'polygon:0x000': '7000' })
+
+  balances = { 'avax:0x000': 6999 }
+  sumSingleBalance(balances, "0x000", 1, 'avax')
+  expect(balances).toMatchObject({ 'avax:0x000': 7000 })
+
+  balances = { 'ethereum:0x000': '5000' }
+  sumSingleBalance(balances, "0x000", '2000', 'ethereum')
+  sumSingleBalance(balances, "0x000", 0, 'ethereum')
+  sumSingleBalance(balances, "0x000", '0', 'ethereum')
+  expect(balances).toMatchObject({ 'ethereum:0x000': '7000' })
+});
+
+test("sumSingleBalance throw error on invalid input", () => {
+  expect(() => sumSingleBalance({ ethereum: 1 }, 'dummy', { bad: 1 } as any)).toThrowError()
+  expect(() => sumSingleBalance({ ethereum: 1 }, 'dummy', null as any, 'bsc')).toThrowError()
+  expect(() => sumSingleBalance({ ethereum: '1' }, 'ethereum', undefined as any)).toThrowError()
+  expect(() => sumSingleBalance({ ethereum: 1 }, 'dummy', 'a111' as any, 'ethereum')).toThrowError()
+  expect(() => sumSingleBalance({ ethereum: '1' }, 'dummy', '111a' as any, 'ethereum')).toThrowError()
+});
+
+
+test("mergeBalances", () => {
+  let balances = {};
+  mergeBalances(balances, { "ethereum": "2" })
+  expect(balances).toMatchObject({ ethereum: '2' })
+  mergeBalances(balances, { "ethereum": "5" })
+  expect(balances).toMatchObject({ ethereum: '7' })
+
+  balances = { ethereum: '5000' }
+  mergeBalances(balances, { "ethereum": 2000 })
+  expect(balances).toMatchObject({ ethereum: 7000 })
+
+  balances = { 'bsc:0x000': 5000 }
+  mergeBalances(balances, { "bsc:0x000": '2000', "0x000": '3000' })
+  expect(balances).toMatchObject({ 'bsc:0x000': '7000', "0x000": '3000' })
+
+  balances = { 'polygon:0x000': 5000 }
+  mergeBalances(balances, { "0x000": BigNumber.from(2000) } as any)
+  expect(balances).toMatchObject({ 'polygon:0x000': 5000, "0x000": '2000' })
+
+  balances = { 'avax:0x000': 6999 }
+  mergeBalances(balances, { "avax:0x000": 1, })
+  expect(balances).toMatchObject({ 'avax:0x000': 7000 })
+
+  balances = { 'ethereum:0x000': '5000', fantom: 5, avax: 10, }
+  mergeBalances(balances, { "ethereum:0x000": 0, })
+  mergeBalances(balances, { "ethereum:0x000": '0' })
+  expect(balances).toMatchObject({ 'ethereum:0x000': '5000', fantom: 5, avax: 10, })
+
+  balances = { }
+  mergeBalances(balances, { 'ethereum:0x000': '5000', fantom: 5, avax: 10,  })
+  mergeBalances(balances, { "ethereum:0x000": '0' })
+  expect(balances).toMatchObject({ 'ethereum:0x000': '5000', fantom: 5, avax: 10, })
 });

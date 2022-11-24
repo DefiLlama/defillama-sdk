@@ -1,10 +1,10 @@
-import BigNumber from "bignumber.js";
 import { getProvider, Chain } from "../general";
 import fetch from "node-fetch";
 import type { Address } from "../types";
-import { utils } from "ethers";
+import { utils, BigNumber, } from "ethers";
 import type { Log } from "@ethersproject/abstract-provider";
 import { sumSingleBalance } from "../generalUtil";
+import { debugLog } from "./debugLog";
 
 interface TimestampBlock {
   number: number;
@@ -15,7 +15,7 @@ const kavaBlockProvider = {
   getBlock: async (height: number | "latest"): Promise<TimestampBlock> =>
     fetch(`https://api.data.kava.io/blocks/${height}`)
       .then((res) => res.json())
-      .then((block) => ({
+      .then((block: any) => ({
         number: Number(block.block.header.height),
         timestamp: Math.round(Date.parse(block.block.header.time) / 1000)
       }))
@@ -25,10 +25,9 @@ const terraBlockProvider = {
   getBlock: async (height: number | "latest"): Promise<TimestampBlock> =>
     fetch(`https://lcd.terra.dev/blocks/${height}`)
       .then((res) => res.json())
-      .then((block) => ({
+      .then((block: any) => ({
         number: Number(block.block.header.height),
         timestamp: Math.round(Date.parse(block.block.header.time) / 1000),
-        
       }))
 };
 
@@ -37,13 +36,13 @@ const algorandBlockProvider = {
     if (height !== 'latest')
       return fetch(`https://algoindexer.algoexplorerapi.io/v2/blocks/${height}`)
         .then((res) => res.json())
-        .then((block) => ({
+        .then((block: any) => ({
           number: block.round,
           timestamp: block.timestamp
         }))
     return fetch('https://algoindexer.algoexplorerapi.io/health')
       .then((res) => res.json())
-      .then((block) => algorandBlockProvider.getBlock(block.round))
+      .then((block: any) => algorandBlockProvider.getBlock(block.round))
   }
 };
 
@@ -88,7 +87,7 @@ export async function lookupBlock(
     chain?: Chain | "terra" | "kava" | "algorand";
   } = {}
 ) {
-  const chain = extraParams?.chain?? "ethereum"
+  const chain = extraParams?.chain ?? "ethereum"
   let low = intialBlocks[chain] ?? 100;
   let lowBlock: TimestampBlock, highBlock: TimestampBlock
   try {
@@ -119,17 +118,17 @@ export async function lookupBlock(
     let i = 0
     let time = Date.now()
     let allowedTimeRange = 15 * 60 // how much imprecision is allowed (15 minutes now)
-    let acceptableBlockImprecision = chain === 'ethereum' ? 20 : 200 
+    let acceptableBlockImprecision = chain === 'ethereum' ? 20 : 200
     let blockImprecision
     let imprecision
-    const getPrecision = (block: TimestampBlock) => block.timestamp -timestamp > 0 ? block.timestamp -timestamp : timestamp - block.timestamp
+    const getPrecision = (block: TimestampBlock) => block.timestamp - timestamp > 0 ? block.timestamp - timestamp : timestamp - block.timestamp
     do {
       ++i
       const blockDiff = highBlock.number - lowBlock.number
       const timeDiff = highBlock.timestamp - lowBlock.timestamp
       const avgBlockTime = timeDiff / blockDiff
-      const closeBlock = Math.floor(lowBlock.number + (timestamp - lowBlock.timestamp)/avgBlockTime);
-      const midBlock = Math.floor((lowBlock.number + highBlock.number)/2)
+      const closeBlock = Math.floor(lowBlock.number + (timestamp - lowBlock.timestamp) / avgBlockTime);
+      const midBlock = Math.floor((lowBlock.number + highBlock.number) / 2)
       const blocks = await Promise.all([
         getBlock(provider, closeBlock, chain),
         getBlock(provider, midBlock, chain),
@@ -142,10 +141,9 @@ export async function lookupBlock(
       highBlock = blocks.filter(i => i.timestamp > timestamp).reduce((highestBlock, block) => (highestBlock.timestamp - timestamp) < (block.timestamp - timestamp) ? highestBlock : block)
       imprecision = getPrecision(block)
       blockImprecision = highBlock.number - lowBlock.number
-      // console.log(`chain: ${chain} block: ${block.number} #calls: ${i} imprecision: ${Number((imprecision)/60).toFixed(2)} (min) block diff: ${blockImprecision} Time Taken: ${Number((Date.now()-time)/1000).toFixed(2)} (in sec)`)
-    } while (imprecision > allowedTimeRange  && blockImprecision > acceptableBlockImprecision); // We lose some precision (max ~15 minutes) but reduce #calls needed
-    if (process.env.LLAMA_DEBUG_MODE)
-      console.log(`chain: ${chain} block: ${block.number} #calls: ${i} imprecision: ${Number((imprecision)/60).toFixed(2)} (min) Time Taken: ${Number((Date.now()-time)/1000).toFixed(2)} (in sec)`)
+      // debugLog(`chain: ${chain} block: ${block.number} #calls: ${i} imprecision: ${Number((imprecision)/60).toFixed(2)} (min) block diff: ${blockImprecision} Time Taken: ${Number((Date.now()-time)/1000).toFixed(2)} (in sec)`)
+    } while (imprecision > allowedTimeRange && blockImprecision > acceptableBlockImprecision); // We lose some precision (max ~15 minutes) but reduce #calls needed
+    debugLog(`chain: ${chain} block: ${block.number} #calls: ${i} imprecision: ${Number((imprecision) / 60).toFixed(2)} (min) Time Taken: ${Number((Date.now() - time) / 1000).toFixed(2)} (in sec)`)
     if (
       chain !== "bsc" && // this check is there because bsc halted the chain for few days
       Math.abs(block.timestamp - timestamp) > 3600
@@ -164,33 +162,6 @@ export async function lookupBlock(
       `Couldn't find block height for chain ${chain}, RPC node rugged`
     );
   }
-}
-
-export async function kyberTokens() {
-  const pairs = await fetch(
-    `https://api.kyber.network/api/tokens/pairs`
-  ).then((res) => res.json());
-  const tokens = Object.keys(pairs).reduce(
-    (acc, pairName) => {
-      const pair = pairs[pairName];
-      acc[pair.contractAddress] = {
-        symbol: pair.symbol,
-        decimals: pair.decimals,
-        ethPrice: pair.currentPrice
-      };
-      return acc;
-    },
-    {} as {
-      [address: string]: {
-        symbol: string;
-        decimals: number;
-        ethPrice: number;
-      };
-    }
-  );
-  return {
-    output: tokens
-  };
 }
 
 // SMALL INCOMPATIBILITY: On the old API we don't return ids but we should
@@ -283,7 +254,7 @@ export function normalizeBalances(balances: { [address: string]: string }) {
 
   const eth = balances[ethereumAddress];
   if (eth !== undefined) {
-    balances[weth] = new BigNumber(balances[weth] ?? 0).plus(eth).toFixed(0);
+    balances[weth] = BigNumber.from(balances[weth] ?? 0).add(eth).toString();
     delete balances[ethereumAddress];
   }
 

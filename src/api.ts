@@ -1,10 +1,9 @@
 export * as util from "./util";
 export * as eth from "./eth";
 export * as erc20 from "./erc20";
-export * as cdp from "./cdp";
 export * as abi from "./abi";
-import { setProvider } from "./general";
+import { setProvider, getProvider, } from "./general";
 const config = {
-  setProvider,
+  setProvider, getProvider,
 };
 export { config };

@@ -1,45 +1,55 @@
 test("imports", async () => {
   expect(await import("./index")).toMatchInlineSnapshot(`
-    Object {
-      "api": Object {
-        "abi": Object {
+    {
+      "api": {
+        "abi": {
           "call": [Function],
           "multiCall": [Function],
         },
-        "cdp": Object {
-          "aave": Object {
-            "getAssetsLocked": [Function],
-          },
-          "compound": Object {
-            "getAssetsLocked": [Function],
-          },
-          "getAssetsLocked": [Function],
-          "maker": Object {
-            "getAssetsLocked": [Function],
-          },
-        },
-        "config": Object {
+        "config": {
+          "getProvider": [Function],
           "setProvider": [Function],
         },
-        "erc20": Object {
+        "erc20": {
           "balanceOf": [Function],
           "decimals": [Function],
           "info": [Function],
           "symbol": [Function],
           "totalSupply": [Function],
         },
-        "eth": Object {
+        "eth": {
           "getBalance": [Function],
           "getBalances": [Function],
         },
-        "util": Object {
+        "util": {
+          "getLatestBlock": [Function],
           "getLogs": [Function],
-          "kyberTokens": [Function],
           "lookupBlock": [Function],
+          "normalizeAddress": [Function],
+          "normalizeBalances": [Function],
+          "normalizePrefixes": [Function],
         },
       },
-      "util": Object {
-        "computeTVL": [Function],
+      "util": {
+        "blocks": {
+          "chainsForBlocks": [
+            "avax",
+            "bsc",
+            "polygon",
+            "xdai",
+            "fantom",
+            "arbitrum",
+          ],
+          "getBlock": [Function],
+          "getBlocks": [Function],
+          "getChainBlocks": [Function],
+          "getCurrentBlocks": [Function],
+        },
+        "humanizeNumber": {
+          "humanizeNumber": [Function],
+        },
+        "mergeBalances": [Function],
+        "sumChainTvls": [Function],
         "sumMultiBalanceOf": [Function],
         "sumSingleBalance": [Function],
       },

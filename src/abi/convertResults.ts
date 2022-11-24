@@ -1,53 +1,38 @@
 import { BigNumber } from "@ethersproject/bignumber";
 import { ethers } from "ethers";
-import lodash from "lodash";
 
-function stringifyBigNumbers(result: any, final: any) {
-  Object.keys(result).forEach((key) => {
-    try {
-      final[key] = lodash.cloneDeep(result[key]);
-      if (
-        BigNumber.isBigNumber(result[key]) ||
-        typeof result[key] === "number"
-      ) {
-        final[key] = result[key].toString();
-      }
-      if (typeof final[key] === "object") {
-        stringifyBigNumbers(result[key], final[key]);
-      }
-    } catch (e) {
-      console.log(e);
-    }
-  });
+function isNumberOrBigNumber(value: any) {
+  return BigNumber.isBigNumber(value) || typeof value === "number"
 }
 
-function containsNamedResults(obj: Array<any>) {
-  return Object.keys(obj).some((key) => isNaN(Number(key))); // Are there any non-numeric keys?
+function stringifyBigNumbers(result: any) {
+  let final: any = {...result}
+  if (Array.isArray(result))
+    final = [...result]
+  Object.keys(result).forEach((key) => {
+    if (isNumberOrBigNumber(result[key]))
+      final[key] = result[key].toString()
+    else if (typeof result[key] === "object")
+      final[key] = stringifyBigNumbers(result[key])
+    else
+      final[key] = result[key]
+  });
+  return final
 }
 
 export default function (results: ethers.utils.Result) {
-  if (typeof results === "string" || typeof results === "boolean") {
-    return results;
-  }
-  let convertedResults = {} as any;
-  if (results instanceof Array && !containsNamedResults(results)) {
-    // Match every idiosynchrasy of the SDK
-    convertedResults = [];
-  }
-  if (BigNumber.isBigNumber(results) || typeof results === "number") {
-    convertedResults = results.toString();
-  } else {
-    stringifyBigNumbers(results, convertedResults);
-  }
-  if (results instanceof Array) {
-    if (results.length === 1) {
-      return convertedResults[0];
-    } else {
-      // Some calls return the extra __length__ parameter (I think when some results are named)
-      if (containsNamedResults(convertedResults)) {
-        convertedResults["__length__"] = results.length;
-      }
-    }
-  }
-  return convertedResults;
+  let response: any
+  if (typeof results === "string" || typeof results === "boolean")
+    return results
+
+  if (isNumberOrBigNumber(results))
+    return results.toString();
+
+  response = stringifyBigNumbers(results)
+
+  if (response instanceof Array)
+    if (response.length === 1)
+      return response[0]
+
+  return response;
 }

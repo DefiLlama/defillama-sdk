@@ -1,5 +1,6 @@
 import { BigNumber } from "ethers";
-import computeTVL from "./computeTVL";
+import * as blocks from "./computeTVL/blocks";
+import * as humanizeNumber from "./computeTVL/humanizeNumber";
 import type { Balances, StringNumber, Address } from "./types";
 
 // We ignore `sum` as it's never used (only in some SDK wrapper code)
@@ -42,21 +43,40 @@ export function sumMultiBalanceOf(
 export function sumSingleBalance(
   balances: Balances,
   token: string,
-  balance: string | number
+  balance: string | number | BigNumber,
+  chain?: string,
 ) {
+  if (chain)
+    token = `${chain}:${token}`
+  
+  if (typeof balance === 'object') {
+    if (typeof balance.toString === 'function')
+      balance = balance.toString()
+    else
+      throw new Error('Invalid balance value:' + balance)
+  }
+  
   if (typeof balance === 'number') {
-    const prevBalance = balances[token] ?? 0
-    if (typeof prevBalance !== 'number') {
-      throw new Error(`Trying to merge token balance and coingecko amount for ${token}`)
-    }
-    (balances[token] as number) = prevBalance + balance;
+    const prevBalance = +(balances.hasOwnProperty(token) ? balances[token] : 0)
+    if (typeof prevBalance !== 'number' || isNaN(prevBalance))
+      throw new Error(`Trying to merge token balance and coingecko amount for ${token} current balance: ${balance} previous balance: ${balances[token]}`)
+    const value = prevBalance + balance
+    isValidNumber(value)
+    balances[token] = value
   } else {
-    const prevBalance = BigNumber.from(balances[token] ?? "0");
-    balances[token] = prevBalance.add(BigNumber.from(balance)).toString();
+    const prevBalance = BigNumber.from(balances.hasOwnProperty(token) ? balances[token] : '0');
+    const value = prevBalance.add(BigNumber.from(balance)).toString();
+    isValidNumber(+value)
+    balances[token] = value
+  }
+
+  function isValidNumber(value: number) {
+    if (isNaN(value))
+      throw new Error(`Invalid balance: ${balance}`)
   }
 }
 
-function mergeBalances(balances: Balances, balancesToMerge: Balances) {
+export function mergeBalances(balances: Balances, balancesToMerge: Balances) {
   Object.entries(balancesToMerge).forEach((balance) => {
     sumSingleBalance(balances, balance[0], balance[1]);
   });
@@ -89,4 +109,4 @@ export function sumChainTvls(
   };
 }
 
-export { computeTVL };
+export { blocks, humanizeNumber, };
