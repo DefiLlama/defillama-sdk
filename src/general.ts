@@ -61,7 +61,7 @@ export const providers = {
   xdaiarb: createProvider("xdaiarb", "https://arbitrum.xdaichain.com", 200),
   kardia: createProvider("kardia", "https://rpc.kardiachain.io/", 24),
   fuse: createProvider("fuse", "https://rpc.fuse.io", 122),
-  smartbch: createProvider("smartbch", "https://smartbch.fountainhead.cash/mainnet", 10000),
+  smartbch: createProvider("smartbch", "https://global.uat.cash,https://smartbch.greyh.at,https://smartbch.fountainhead.cash/mainnet", 10000),
   elastos: createProvider("elastos", "https://api.elastos.io/eth,https://api.trinity-tech.cn/eth", 20),
   hoo: createProvider("hoo", "https://http-mainnet.hoosmartchain.com", 70),
   fusion: createProvider("fusion", "https://mainnet.anyswap.exchange,https://mainway.freemoon.xyz/gate", 32659),

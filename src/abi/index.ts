@@ -71,7 +71,7 @@ export async function call(params: {
 export async function multiCall(params: {
   abi: string | any;
   calls: {
-    target: Address;
+    target?: Address;
     params?: CallParams;
   }[];
   block?: number;
@@ -79,8 +79,15 @@ export async function multiCall(params: {
   chain?: Chain;
   requery?: boolean;
 }) {
+  if (!params.calls) throw new Error('Missing calls parameter')
+  if (params.target && !params.target.startsWith('0x')) throw new Error('Invalid target: '+params.target)
+
+  if (!params.calls.length) {
+    return { output: []}
+  }
+  
   const abi = resolveABI(params.abi);
-  const contractCalls = params.calls.map((call, index) => {
+  const contractCalls = (params.calls).map((call: any) => {
     const callParams = normalizeParams(call.params);
     return {
       params: callParams,
@@ -113,7 +120,7 @@ export async function multiCall(params: {
 
   const failedQueries = flatResults.filter(r => !r.success)
   if(failedQueries.length)
-    debugLog("Failed multicalls:", failedQueries.map(r=>r.input))
+    debugLog(`[chain: ${params.chain ?? "ethereum"}] Failed multicalls:`, failedQueries.map(r=>r.input))
 
   if (params.requery === true && flatResults.some(r => !r.success)) {
     const failed = flatResults.map((r, i) => [r, i]).filter(r => !r[0].success)
