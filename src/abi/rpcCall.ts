@@ -3,7 +3,7 @@ import { BaseProvider, BlockTag, TransactionRequest } from "@ethersproject/provi
 import { once, EventEmitter } from 'events'
 import { DEBUG_ENABLED } from "../util/debugLog"
 
-const maxParallelCalls = !!process.env.LLAMA_SDK_MAX_PARALLEL ? +process.env.LLAMA_SDK_MAX_PARALLEL : 100
+const maxParallelCalls = !!process.env.LLAMA_SDK_MAX_PARALLEL ? +process.env.LLAMA_SDK_MAX_PARALLEL : 30
 
 const COUNTERS: Record<string, Counter> = {}
 const emitter = new EventEmitter()
