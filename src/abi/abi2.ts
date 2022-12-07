@@ -1,6 +1,7 @@
-import { Address } from "./types";
-import { Chain } from "./general";
-import * as abi1 from './abi'
+import { Address } from "../types";
+import { Chain } from "../general";
+import * as abi1 from './index'
+import { debugLog } from "../util/debugLog";
 
 type CallParams = string | number | (string | number)[] | undefined;
 type CallsParams = {
@@ -17,7 +18,7 @@ export async function call(params: {
   withMetadata?: boolean;
 }) {
   const response = await abi1.call(params)
-  if (!params.withMetadata)  return response
+  if (params.withMetadata) return response
   return response.output
 }
 
@@ -40,11 +41,29 @@ export async function multiCall(params: {
   })
 
   if (!params.target) {
-    if (params.calls.some(i => !i.target))  throw new Error('Missing target parameter')
+    if (params.calls.some(i => !i.target)) throw new Error('Missing target parameter')
   }
-  
+
   const { output } = await abi1.multiCall(params as any)
 
-  if (!params.withMetadata)  return output
+  if (params.withMetadata) return output
   return output.map(i => i.output)
+}
+
+
+export async function fetchList(params: {
+  lengthAbi: string | any;
+  itemAbi: string | any;
+  block?: number;
+  startFrom?: number;
+  target: Address;
+  chain?: Chain;
+  withMetadata?: boolean;
+}) {
+  const { startFrom = 0, lengthAbi, itemAbi, withMetadata, ...commonParams } = params
+  const itemLength = await call({ ...commonParams, abi: lengthAbi, })
+  debugLog('length: ', itemLength)
+  const calls = []
+  for (let i = startFrom; i < itemLength; i++)  calls.push(i)
+  return multiCall({ ...commonParams,  abi: itemAbi, calls, withMetadata })
 }

@@ -24,12 +24,12 @@ test("lookupBlock", async () => {
 test("lookupBlock bsc", async () => {
   const block = await lookupBlock(1669051521, {chain: 'bsc'});
   // Approximation, DP's sdk returns { timestamp: 1669051521, block: 23252691 }
-  expect(getDiff(block.block, 23252691)).toBeLessThanOrEqual(200); // 200 blocks appromiates to 10 minute difference
+  expect(getDiff(block.block, 23252691)).toBeLessThanOrEqual(500); // 200 blocks appromiates to 10 minute difference
   expect(getDiff(block.timestamp, 1669051521)).toBeLessThanOrEqual(15 * 60); // difference should be under 15 minutes
   
   const block2 = await lookupBlock(1638821718, {chain: 'bsc'});
   // Approximation, DP's sdk returns { timestamp: 1638821718, block: 13252691 }
-  expect(getDiff(block2.block, 13252691)).toBeLessThanOrEqual(200); // 200 blocks appromiates to 10 minute difference
+  expect(getDiff(block2.block, 13252691)).toBeLessThanOrEqual(500); // 200 blocks appromiates to 10 minute difference
   expect(getDiff(block2.timestamp, 1638821718)).toBeLessThanOrEqual(15 * 60); // difference should be under 15 minutes
 });
 

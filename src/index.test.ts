@@ -1,5 +1,8 @@
 test("imports", async () => {
-  expect(await import("./index")).toMatchInlineSnapshot(`
+  const data = await import('./index')
+  const {providers, ...configCopy } = data.api2.config 
+  const dataCopy = { ...data, api2: { ...data.api2, config: configCopy } }
+  expect(dataCopy).toMatchInlineSnapshot(`
     {
       "api": {
         "abi": {
@@ -30,6 +33,58 @@ test("imports", async () => {
           "normalizePrefixes": [Function],
         },
       },
+      "api2": {
+        "abi": {
+          "call": [Function],
+          "fetchList": [Function],
+          "multiCall": [Function],
+        },
+        "config": {
+          "ETHER_ADDRESS": "0x0000000000000000000000000000000000000000",
+          "TEN": {
+            "hex": "0x0a",
+            "type": "BigNumber",
+          },
+          "getProvider": [Function],
+          "handleDecimals": [Function],
+          "setProvider": [Function],
+        },
+        "erc20": {
+          "balanceOf": [Function],
+          "decimals": [Function],
+          "info": [Function],
+          "symbol": [Function],
+          "totalSupply": [Function],
+        },
+        "eth": {
+          "getBalance": [Function],
+          "getBalances": [Function],
+        },
+        "util": {
+          "getLatestBlock": [Function],
+          "getLogs": [Function],
+          "lookupBlock": [Function],
+          "normalizeAddress": [Function],
+          "normalizeBalances": [Function],
+          "normalizePrefixes": [Function],
+        },
+      },
+      "blocks": {
+        "chainsForBlocks": [
+          "avax",
+          "bsc",
+          "polygon",
+          "xdai",
+          "fantom",
+          "arbitrum",
+        ],
+        "getBlock": [Function],
+        "getBlocks": [Function],
+        "getChainBlocks": [Function],
+        "getCurrentBlocks": [Function],
+      },
+      "humanizeNumber": [Function],
+      "log": [Function],
       "util": {
         "blocks": {
           "chainsForBlocks": [
