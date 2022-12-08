@@ -7,6 +7,9 @@ import convertResults from "./convertResults";
 import { PromisePool } from '@supercharge/promise-pool';
 import { debugLog } from "../util/debugLog";
 
+
+const defaultChunkSize = !!process.env.SDK_MULTICALL_CHUNK_SIZE? +process.env.SDK_MULTICALL_CHUNK_SIZE : 250
+
 function resolveABI(providedAbi: string | any) {
   let abi = providedAbi;
   if (typeof abi === "string") {
@@ -95,7 +98,10 @@ export async function multiCall(params: {
     };
   });
   // Only a max of around 500 calls are supported by multicall, we have to split bigger batches
-  const chunkSize = 500
+  let chunkSize = defaultChunkSize
+  if (['dogechain'].includes(params.chain as string)) {
+    chunkSize = 100
+  }
   const contractChunks = []
   for (let i = 0; i < contractCalls.length; i += chunkSize)
     contractChunks.push(contractCalls.slice(i, i + chunkSize))
