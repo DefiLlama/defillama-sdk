@@ -65,11 +65,11 @@ test("sumSingleBalance", () => {
   balances = { 'bsc:0x000': 5000 }
   sumSingleBalance(balances, "0x000", '2000', 'bsc')
   sumSingleBalance(balances, "0x000", '3000', 'bsc')
-  expect(balances).toMatchObject({ 'bsc:0x000': '10000' })
+  expect(balances).toMatchObject({ 'bsc:0x000': 10000 })
 
   balances = { 'polygon:0x000': 5000 }
   sumSingleBalance(balances, "0x000", BigNumber.from(2000), 'polygon')
-  expect(balances).toMatchObject({ 'polygon:0x000': '7000' })
+  expect(balances).toMatchObject({ 'polygon:0x000': 7000 })
 
   balances = { 'avax:0x000': 6999 }
   sumSingleBalance(balances, "0x000", 1, 'avax')
@@ -80,6 +80,16 @@ test("sumSingleBalance", () => {
   sumSingleBalance(balances, "0x000", 0, 'ethereum')
   sumSingleBalance(balances, "0x000", '0', 'ethereum')
   expect(balances).toMatchObject({ 'ethereum:0x000': '7000' })
+
+  balances = { 'covalent:0x000': '5000' }
+  sumSingleBalance(balances, "0x001", 0, 'ethereum')
+  sumSingleBalance(balances, "0x002", '0', 'ethereum')
+  expect(balances).toMatchObject({ 'covalent:0x000': '5000' })
+
+  balances = { 'polygon:0x000': '5000' }
+  sumSingleBalance(balances, "0x001", 100, 'bsc')
+  sumSingleBalance(balances, "0x002", '0', 'ethereum')
+  expect(balances).toMatchObject({ 'polygon:0x000': '5000', 'bsc:0x001': 100 })
 });
 
 test("sumSingleBalance throw error on invalid input", () => {
@@ -104,7 +114,7 @@ test("mergeBalances", () => {
 
   balances = { 'bsc:0x000': 5000 }
   mergeBalances(balances, { "bsc:0x000": '2000', "0x000": '3000' })
-  expect(balances).toMatchObject({ 'bsc:0x000': '7000', "0x000": '3000' })
+  expect(balances).toMatchObject({ 'bsc:0x000': 7000, "0x000": '3000' })
 
   balances = { 'polygon:0x000': 5000 }
   mergeBalances(balances, { "0x000": BigNumber.from(2000) } as any)
@@ -115,9 +125,9 @@ test("mergeBalances", () => {
   expect(balances).toMatchObject({ 'avax:0x000': 7000 })
 
   balances = { 'ethereum:0x000': '5000', fantom: 5, avax: 10, }
-  mergeBalances(balances, { "ethereum:0x000": 0, })
+  mergeBalances(balances, { "ethereum:0x000": 1, })
   mergeBalances(balances, { "ethereum:0x000": '0' })
-  expect(balances).toMatchObject({ 'ethereum:0x000': '5000', fantom: 5, avax: 10, })
+  expect(balances).toMatchObject({ 'ethereum:0x000': 5001, fantom: 5, avax: 10, })
 
   balances = { }
   mergeBalances(balances, { 'ethereum:0x000': '5000', fantom: 5, avax: 10,  })

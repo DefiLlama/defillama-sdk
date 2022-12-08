@@ -46,6 +46,10 @@ export function sumSingleBalance(
   balance: string | number | BigNumber,
   chain?: string,
 ) {
+  isValidNumber(balance)
+
+  if (+balance === 0) return;
+  
   if (chain)
     token = `${chain}:${token}`
   
@@ -56,11 +60,11 @@ export function sumSingleBalance(
       throw new Error('Invalid balance value:' + balance)
   }
   
-  if (typeof balance === 'number') {
+  if (typeof balance === 'number' || (balances[token] && typeof balances[token] === 'number')) {
     const prevBalance = +(balances.hasOwnProperty(token) ? balances[token] : 0)
     if (typeof prevBalance !== 'number' || isNaN(prevBalance))
       throw new Error(`Trying to merge token balance and coingecko amount for ${token} current balance: ${balance} previous balance: ${balances[token]}`)
-    const value = prevBalance + balance
+    const value = prevBalance + +balance
     isValidNumber(value)
     balances[token] = value
   } else {
@@ -70,8 +74,8 @@ export function sumSingleBalance(
     balances[token] = value
   }
 
-  function isValidNumber(value: number) {
-    if (isNaN(value))
+  function isValidNumber(value: any) {
+    if ([null, undefined].includes(value) || isNaN(+value))
       throw new Error(`Invalid balance: ${balance}`)
   }
 }
