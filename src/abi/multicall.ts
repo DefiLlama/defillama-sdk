@@ -3,6 +3,8 @@ import { ParamType } from "ethers/lib/utils";
 import { getProvider, Chain } from "../general";
 import convertResults from "./convertResults";
 import { call } from "./rpcCall";
+import { debugLog } from "../util/debugLog"
+import {runInPromisePool, sliceIntoChunks,} from "../util"
 
 export const MULTICALL_ADDRESS_MAINNET =
   "0xeefba1e63905ef1d7acba5a8513c70307c1ce441";
@@ -44,7 +46,7 @@ export default async function makeMultiCall(
     params: any[];
   }[],
   chain: Chain,
-  block?: number
+  block?: number,
 ) {
   const contractInterface = new ethers.utils.Interface([functionABI]);
   let fd = Object.values(contractInterface.functions)[0];
@@ -87,7 +89,7 @@ async function executeCalls(
   chain: Chain,
   block?: number
 ) {
-  if (await networkSupportsMulticall(chain)) {
+  if (networkSupportsMulticall(chain)) {
     try {
       const multicallData = ethers.utils.defaultAbiCoder.encode(
         [
@@ -119,25 +121,34 @@ async function executeCalls(
       );
       return returnValues;
     } catch (e) {
-      if (!process.env.DEFILLAMA_SDK_MUTED) {
-        console.log("Multicall failed, defaulting to single transactions...");
+      if (contractCalls.length > 10) {
+        const chunkSize = Math.ceil(contractCalls.length/5)
+        const chunks = sliceIntoChunks(contractCalls, chunkSize)
+        debugLog(`Multicall failed, call size: ${contractCalls.length}, splitting into smaller chunks and trying again, new call size: ${chunks[0].length}`)
+        const response = await runInPromisePool({
+          items: chunks,
+          concurrency: 2,
+          processor: (calls: any) => executeCalls(calls, chain, block)
+        })
+        return response.flat()
       }
+      debugLog("Multicall failed, defaulting to single transactions...")
     }
   }
-  const values = await Promise.all(
-    contractCalls.map(async ({ to, data }) => {
+
+  return runInPromisePool({
+    items: contractCalls,
+    concurrency: networkSupportsMulticall(chain) ? 2 : 10,
+    processor: async ({ to, data }: any) => {
+      let result = null
       try {
-        return await call(getProvider(chain),
-          { to, data },
-          block ?? "latest",
-          chain,
-        );
+        result = await call(getProvider(chain), { to, data }, block ?? "latest", chain,);
       } catch (e) {
-        return null;
+        debugLog(e)
       }
-    })
-  );
-  return values;
+      return result
+    }
+  })
 }
 
 async function multicallAddressOrThrow(chain: Chain) {
@@ -151,8 +162,8 @@ async function multicallAddressOrThrow(chain: Chain) {
   return address;
 }
 
-async function networkSupportsMulticall(chain: Chain) {
-  const network = await getProvider(chain).network;
+export function networkSupportsMulticall(chain: Chain) {
+  const network = getProvider(chain).network;
   const address = multicallAddress(network.chainId);
   return address !== null;
 }

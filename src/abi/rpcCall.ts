@@ -1,15 +1,16 @@
 import { Deferrable } from "@ethersproject/properties"
 import { BaseProvider, BlockTag, TransactionRequest } from "@ethersproject/providers"
 import { once, EventEmitter } from 'events'
-import { DEBUG_ENABLED } from "../util/debugLog"
+import { DEBUG_ENABLED , debugLog} from "../util/debugLog"
 
-const maxParallelCalls = !!process.env.LLAMA_SDK_MAX_PARALLEL ? +process.env.LLAMA_SDK_MAX_PARALLEL : 30
+const maxParallelCalls = !!process.env.LLAMA_SDK_MAX_PARALLEL ? +process.env.LLAMA_SDK_MAX_PARALLEL : 100
 
 const COUNTERS: Record<string, Counter> = {}
 const emitter = new EventEmitter()
 emitter.setMaxListeners(500000)
 
-export async function call(provider: BaseProvider, data: Deferrable<TransactionRequest>, block: BlockTag, chain?: string) {
+export async function call(provider: BaseProvider, data: Deferrable<TransactionRequest>, block: BlockTag, chain?: string, options = { retry: true}): Promise<any> {
+  const retry = options.retry ?? true
   if (!chain) chain = 'noChain'
   const counter: Counter = getChainCounter(chain)
   const currentId = counter.requestCount++
@@ -24,7 +25,7 @@ export async function call(provider: BaseProvider, data: Deferrable<TransactionR
 
   if (DEBUG_ENABLED) {
     const showEveryX = counter.queue.length > 100 ? 50 : 10 // show log fewer times if lot more are queued up
-    if (currentId % showEveryX === 0) console.log(`chain: ${chain} request #: ${currentId} queue: ${counter.queue.length} active requests: ${counter.activeWorkers}`)
+    if (currentId % showEveryX === 0) debugLog(`chain: ${chain} request #: ${currentId} queue: ${counter.queue.length} active requests: ${counter.activeWorkers}`)
   }
 
   let response
@@ -33,6 +34,8 @@ export async function call(provider: BaseProvider, data: Deferrable<TransactionR
     onComplete()
   } catch (e) {
     onComplete()
+    if (retry)
+      return call(provider, data, block, chain, {...options, retry: false})
     throw e
   }
 

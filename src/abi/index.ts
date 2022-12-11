@@ -4,11 +4,12 @@ import { ethers } from "ethers";
 import { getProvider, Chain } from "../general";
 import makeMultiCall from "./multicall";
 import convertResults from "./convertResults";
-import { PromisePool } from '@supercharge/promise-pool';
 import { debugLog } from "../util/debugLog";
+import { runInPromisePool, sliceIntoChunks, } from "../util";
 
 
-const defaultChunkSize = !!process.env.SDK_MULTICALL_CHUNK_SIZE? +process.env.SDK_MULTICALL_CHUNK_SIZE : 250
+
+const defaultChunkSize = !!process.env.SDK_MULTICALL_CHUNK_SIZE ? +process.env.SDK_MULTICALL_CHUNK_SIZE : 250
 
 function resolveABI(providedAbi: string | any) {
   let abi = providedAbi;
@@ -80,15 +81,25 @@ export async function multiCall(params: {
   block?: number;
   target?: Address; // Used when calls.target is not provided
   chain?: Chain;
-  requery?: boolean;
+  chunkSize?: number;
 }) {
+  const chain = params.chain ?? 'ethereum'
   if (!params.calls) throw new Error('Missing calls parameter')
-  if (params.target && !params.target.startsWith('0x')) throw new Error('Invalid target: '+params.target)
+  if (params.target && !params.target.startsWith('0x')) throw new Error('Invalid target: ' + params.target)
 
   if (!params.calls.length) {
-    return { output: []}
+    return { output: [] }
   }
-  
+
+  let chunkSize: number = params.chunkSize as number
+  if (!params.chunkSize) {
+    // Only a max of around 500 calls are supported by multicall, we have to split bigger batches
+    chunkSize = defaultChunkSize
+    if (['dogechain'].includes(params.chain as string)) {
+      chunkSize = 100
+    }
+  }
+
   const abi = resolveABI(params.abi);
   const contractCalls = (params.calls).map((call: any) => {
     const callParams = normalizeParams(call.params);
@@ -97,50 +108,18 @@ export async function multiCall(params: {
       contract: call.target ?? params.target,
     };
   });
-  // Only a max of around 500 calls are supported by multicall, we have to split bigger batches
-  let chunkSize = defaultChunkSize
-  if (['dogechain'].includes(params.chain as string)) {
-    chunkSize = 100
-  }
-  const contractChunks = []
-  for (let i = 0; i < contractCalls.length; i += chunkSize)
-    contractChunks.push(contractCalls.slice(i, i + chunkSize))
+  const results = await runInPromisePool({
+    items: sliceIntoChunks(contractCalls, chunkSize),
+    concurrency: 20,
+    processor: (calls: any) => makeMultiCall(abi, calls, chain, params.block)
+  })
 
-
-  const { results, errors } = await PromisePool
-    .withConcurrency(20)
-    .for(contractChunks)
-    .process(async (calls, i) => makeMultiCall(
-      abi,
-      calls,
-      params.chain ?? "ethereum",
-      params.block
-    ).then(calls=>[calls, i]))
-
-  if (errors.length)
-    throw errors[0]
-
-  const flatResults = [].concat.apply([], results
-    .sort(([c1, i1], [c2, i2])=>i1-i2).map(([c, i])=>c)
-    ) as any[]
+  const flatResults = [].concat.apply([], results) as any[]
 
   const failedQueries = flatResults.filter(r => !r.success)
-  if(failedQueries.length)
-    debugLog(`[chain: ${params.chain ?? "ethereum"}] Failed multicalls:`, failedQueries.map(r=>r.input))
+  if (failedQueries.length)
+    debugLog(`[chain: ${params.chain ?? "ethereum"}] Failed multicalls:`, failedQueries.map(r => r.input))
 
-  if (params.requery === true && flatResults.some(r => !r.success)) {
-    const failed = flatResults.map((r, i) => [r, i]).filter(r => !r[0].success)
-    const newResults = await multiCall({
-      abi: params.abi,
-      chain: params.chain,
-      calls: failed.map((f) => f[0].input),
-      block: params.block,
-      requery: params.requery,
-    }).then(({ output }) => output);
-    failed.forEach((f, i) => {
-      flatResults[f[1]] = newResults[i]
-    })
-  }
   return {
     output: flatResults, // flatten array
   };
