@@ -5,6 +5,18 @@ import { utils, BigNumber, } from "ethers";
 import type { Log } from "@ethersproject/abstract-provider";
 import { sumSingleBalance } from "../generalUtil";
 import { debugLog } from "./debugLog";
+import runInPromisePoolOrig from "./promisePool";
+
+export const runInPromisePool = runInPromisePoolOrig
+
+export function sliceIntoChunks(arr: any[], chunkSize = 100) {
+  const res = [];
+  for (let i = 0; i < arr.length; i += chunkSize) {
+    const chunk = arr.slice(i, i + chunkSize);
+    res.push(chunk);
+  }
+  return res;
+}
 
 interface TimestampBlock {
   number: number;

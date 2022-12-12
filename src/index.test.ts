@@ -31,6 +31,8 @@ test("imports", async () => {
           "normalizeAddress": [Function],
           "normalizeBalances": [Function],
           "normalizePrefixes": [Function],
+          "runInPromisePool": [Function],
+          "sliceIntoChunks": [Function],
         },
       },
       "api2": {
@@ -67,6 +69,8 @@ test("imports", async () => {
           "normalizeAddress": [Function],
           "normalizeBalances": [Function],
           "normalizePrefixes": [Function],
+          "runInPromisePool": [Function],
+          "sliceIntoChunks": [Function],
         },
       },
       "blocks": {
