@@ -205,6 +205,10 @@ function multicallAddress(chainId: number) {
       return "0x5e954f5972EC6BFc7dECd75779F10d848230345F"; // cronos
     case 288:
       return "0x80Ae459D058436ecB4e043ac48cfd209B578CBF0"; // boba
+    case 43288:
+      return "0x92C5b5B66988E6B8931a8CD3faa418b42003DF2F"; // boba
+    case 56288:
+      return "0x31cCe73DA4365342bd081F6a748AAdb7c7a49b7E"; // boba
     case 4689:
       return "0x5a6787fc349665c5b0c4b93126a0b62f14935731"; // iotex
     case 82:
