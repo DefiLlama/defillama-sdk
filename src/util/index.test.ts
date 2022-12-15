@@ -33,6 +33,16 @@ test("lookupBlock bsc", async () => {
   expect(getDiff(block2.timestamp, 1638821718)).toBeLessThanOrEqual(15 * 60); // difference should be under 15 minutes
 });
 
+test("lookupBlock celo", async () => {
+  const block = await lookupBlock(1654822801, {chain: 'celo'});
+  expect(getDiff(block.block, 13448723)).toBeLessThanOrEqual(500); // 200 blocks appromiates to 10 minute difference
+  expect(getDiff(block.timestamp, 1654822801)).toBeLessThanOrEqual(15 * 60); // difference should be under 15 minutes
+  
+  const block2 = await lookupBlock(1638821718, {chain: 'celo'});
+  expect(getDiff(block2.block, 10248755)).toBeLessThanOrEqual(500); // 200 blocks appromiates to 10 minute difference
+  expect(getDiff(block2.timestamp, 1638821718)).toBeLessThanOrEqual(15 * 60); // difference should be under 15 minutes
+});
+
 test("getLogs", async () => {
   let poolLogs = await getLogs({
     target: "0x9424B1412450D0f8Fc2255FAf6046b98213B76Bd",

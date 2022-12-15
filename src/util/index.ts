@@ -100,6 +100,18 @@ export async function lookupBlock(
   } = {}
 ) {
   const chain = extraParams?.chain ?? "ethereum"
+
+  if (chain === 'celo') {
+    const api = `https://explorer.celo.org/mainnet/api?module=block&action=getblocknobytime&timestamp=${timestamp}&closest=before`
+    const res = await fetch(api)
+    const data = await res.json()
+    console.log(data)
+    return {
+      timestamp,
+      block: data.result.blockNumber
+    }
+  }
+
   let low = intialBlocks[chain] ?? 100;
   let lowBlock: TimestampBlock, highBlock: TimestampBlock
   try {
