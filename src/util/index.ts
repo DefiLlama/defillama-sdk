@@ -105,10 +105,9 @@ export async function lookupBlock(
     const api = `https://explorer.celo.org/mainnet/api?module=block&action=getblocknobytime&timestamp=${timestamp}&closest=before`
     const res = await fetch(api)
     const data = await res.json()
-    console.log(data)
     return {
       timestamp,
-      block: data.result.blockNumber
+      block: +data.result.blockNumber
     }
   }
 
