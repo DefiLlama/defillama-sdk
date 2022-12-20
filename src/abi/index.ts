@@ -7,7 +7,7 @@ import convertResults from "./convertResults";
 import { debugLog } from "../util/debugLog";
 import { runInPromisePool, sliceIntoChunks, } from "../util";
 
-
+const knownTypes = ['string', 'uint8', 'uint256', 'address',]
 
 const defaultChunkSize = !!process.env.SDK_MULTICALL_CHUNK_SIZE ? +process.env.SDK_MULTICALL_CHUNK_SIZE : 500
 
@@ -16,7 +16,25 @@ function resolveABI(providedAbi: string | any) {
   if (typeof abi === "string") {
     abi = catchedABIs[abi];
     if (abi === undefined) {
-      throw new Error("ABI method undefined");
+      const [outputType, name] = providedAbi.split(':')
+      if (!knownTypes.includes(outputType) || !name)
+        throw new Error("ABI method undefined");
+
+      abi = {
+        constant: true,
+        inputs: [],
+        name,
+        outputs: [
+          {
+            internalType: outputType,
+            name: "",
+            type: outputType,
+          },
+        ],
+        payable: false,
+        stateMutability: "view",
+        type: "function",
+      }
     }
   }
   // If type is omitted DP's sdk processes it fine but we don't, so we need to add it

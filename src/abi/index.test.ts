@@ -34,6 +34,49 @@ test("call with a result of low numerical value", async () => {
   });
 });
 
+test("call with typed abi", async () => {
+  expect(
+    await call({
+      target: "0x89d24a6b4ccb1b6faa2625fe562bdd9a23260359",
+      abi: "uint8:decimals",
+    })
+  ).toEqual({
+    output: "18",
+  });
+  expect(
+    await call({
+      target: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+      abi: "string:symbol",
+    })
+  ).toEqual({
+    output: "DAI",
+  });
+  expect(
+    await call({
+      target: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+      abi: "string:name",
+    })
+  ).toEqual({
+    output: "Dai Stablecoin",
+  });
+  expect(
+    await call({
+      target: "0x6b3595068778dd592e39a122f4f5a5cf09c90fe2",
+      abi: "uint256:totalSupply",
+    })
+  ).toEqual({
+    output: "246411662460970640599007156",
+  });
+  expect(
+    await call({
+      target: "0xb6916bc20cae34de64af39b8534d1459d8bb4128",
+      abi: "address:factory",
+    })
+  ).toEqual({
+    output: "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f",
+  });
+});
+
 
 test("call doesn't include __length__", async () => {
   expect(
