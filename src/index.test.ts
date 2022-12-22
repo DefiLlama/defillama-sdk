@@ -37,6 +37,7 @@ test("imports", async () => {
       },
       "api2": {
         "abi": {
+          "ChainApi": [Function],
           "call": [Function],
           "fetchList": [Function],
           "multiCall": [Function],
