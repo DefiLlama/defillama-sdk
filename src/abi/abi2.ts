@@ -1,36 +1,52 @@
-import { Address } from "../types";
+import { Block, CallsParams, CallOptions, MulticallOptions, FetchListOptions, } from "../types";
 import { Chain } from "../general";
 import * as abi1 from './index'
 import { debugLog } from "../util/debugLog";
 
-type CallParams = string | number | (string | number)[] | undefined;
-type CallsParams = {
-  target?: Address;
-  params?: CallParams;
-};
-
-export async function call(params: {
-  target: Address;
-  abi: string | any;
-  block?: number | string;
-  params?: CallParams;
+export class ChainApi {
+  block?: Block;
   chain?: Chain | string;
-  withMetadata?: boolean;
-}) {
+ 
+  constructor(params: {
+    block?: Block;
+    chain?: Chain | string;
+  }) {
+    this.block = params.block
+    this.chain = params.chain
+  }
+
+  call(params: CallOptions) {
+    return call({
+      ...params,
+      block: this.block,
+      chain: this.chain,
+    })
+  }
+
+  multiCall(params: MulticallOptions) {
+    return multiCall({
+      ...params,
+      block: this.block,
+      chain: this.chain,
+    })
+  }
+
+  fetchList(params: FetchListOptions) {
+    return fetchList({
+      ...params,
+      block: this.block,
+      chain: this.chain,
+    })
+  }
+}
+
+export async function call(params: CallOptions) {
   const response = await abi1.call(params)
   if (params.withMetadata) return response
   return response.output
 }
 
-export async function multiCall(params: {
-  abi: string | any;
-  calls: CallsParams[] | (string | number)[];
-  block?: number | string;
-  target?: Address; // Used when calls.target is not provided
-  chain?: Chain | string;
-  requery?: boolean;
-  withMetadata?: boolean;
-}) {
+export async function multiCall(params: MulticallOptions) {
   params.calls = params.calls.map(i => {
     if (typeof i === 'object') return i
     if (typeof i === 'string') {
@@ -50,16 +66,7 @@ export async function multiCall(params: {
   return output.map(i => i.output)
 }
 
-
-export async function fetchList(params: {
-  lengthAbi: string | any;
-  itemAbi: string | any;
-  block?: number | string;
-  startFrom?: number;
-  target: Address;
-  chain?: Chain | string;
-  withMetadata?: boolean;
-}) {
+export async function fetchList(params: FetchListOptions) {
   const { startFrom = 0, lengthAbi, itemAbi, withMetadata, ...commonParams } = params
   const itemLength = await call({ ...commonParams, abi: lengthAbi, })
   debugLog('length: ', itemLength)

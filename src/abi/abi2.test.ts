@@ -1,4 +1,4 @@
-import { call, multiCall, fetchList } from "./abi2";
+import { call, multiCall, fetchList, ChainApi } from "./abi2";
 
 const uniswapAbis = {
   appPairs: { "constant": true, "inputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "name": "allPairs", "outputs": [{ "internalType": "address", "name": "", "type": "address" }], "payable": false, "stateMutability": "view", "type": "function" },
@@ -318,7 +318,6 @@ test("fetchList", async () => {
   );
 });
 
-
 test("fetchList - other chains", async () => {
   const moonbeamRes = await fetchList({
     chain: 'moonbeam',
@@ -333,6 +332,32 @@ test("fetchList - other chains", async () => {
     lengthAbi: uniswapAbis.allPairsLength,
     itemAbi: uniswapAbis.appPairs,
   })
+  expect(moonbeamRes).toEqual([
+    '0x58E4538fd53F14466b2Fe0A732d6eF7981065d55',
+    '0xECDbF021475C391564977a0A2d7BF9235bf13578'
+  ]);
+  expect(bscRes).toEqual([
+    '0x1Da189c1BA3d718Cc431a2ed240a3753f89CD47A',
+    '0xe606cEE895ddF32b0582A9DC7495176657b4909D'
+  ]);
+});
+
+test("ChainApi - bsc", async () => {
+  const apiBsc = new ChainApi({ chain: 'bsc' })
+  const apiMoonbeam = new ChainApi({ chain: 'moonbeam' })
+
+  const moonbeamRes = await apiMoonbeam.fetchList({
+    target: "0xf6c49609e8d637c3d07133e28d369283b5e80c70",
+    lengthAbi: uniswapAbis.allPairsLength,
+    itemAbi: uniswapAbis.appPairs,
+    startFrom: 3
+  })
+  const bscRes = await apiBsc.fetchList({
+    target: "0xa098751d407796d773032f5cc219c3e6889fb893",
+    lengthAbi: uniswapAbis.allPairsLength,
+    itemAbi: uniswapAbis.appPairs,
+  })
+  
   expect(moonbeamRes).toEqual([
     '0x58E4538fd53F14466b2Fe0A732d6eF7981065d55',
     '0xECDbF021475C391564977a0A2d7BF9235bf13578'
