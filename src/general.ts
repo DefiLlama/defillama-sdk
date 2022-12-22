@@ -140,6 +140,7 @@ export const providers = {
   step: createProvider("step", "https://rpc.step.network/", 1234),
   muuchain: createProvider("muu", "https://mainnet-rpc.muuchain.com", 20402),
   dexit: createProvider("dexit", "https://dxt.dexit.network", 877),
+  empire: createProvider("empire", "https://rpc.empirenetwork.io", 3693),
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
@@ -237,6 +238,7 @@ export type Chain =
   | "kekchain"
   | "muuchain"
   | "dexit"
+  | "empire"
 export function getProvider(chain: Chain = "ethereum") : ethers.providers.BaseProvider {
   return providers[chain];
 }
