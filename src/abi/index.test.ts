@@ -9,6 +9,45 @@ test("large muticall", async () => {
   expect(res.output.filter(r => !r.success).length).toBe(0)
 });
 
+test("block tag", async () => {
+  expect(
+    await call({
+      target: "0x89d24a6b4ccb1b6faa2625fe562bdd9a23260359",
+      params: "0x3FfBa143f5e69Aa671C9f8e3843C88742b1FA2D9",
+      abi: "erc20:balanceOf",
+      block: 15997547,
+    })
+  ).toEqual({
+    output: "3914724000000000000",
+  });
+  expect(
+    await call({
+      target: "0x89d24a6b4ccb1b6faa2625fe562bdd9a23260359",
+      params: "0x3FfBa143f5e69Aa671C9f8e3843C88742b1FA2D9",
+      abi: "erc20:balanceOf",
+      block: "15997547",
+    })
+  ).toEqual({
+    output: "3914724000000000000",
+  });
+
+  expect(
+    await call({
+      target: "0x89d24a6b4ccb1b6faa2625fe562bdd9a23260359",
+      abi: "erc20:decimals",
+      block: "latest",
+    })
+  ).toEqual({
+    output: "18",
+  });
+
+  await expect(call({
+    target: "0x89d24a6b4ccb1b6faa2625fe562bdd9a23260359",
+    abi: "erc20:decimals",
+    block: "42n",
+  })).rejects.toThrowError()
+});
+
 test("call", async () => {
   expect(
     await call({
@@ -61,11 +100,12 @@ test("call with typed abi", async () => {
   });
   expect(
     await call({
+      block: "16239804",
       target: "0x6b3595068778dd592e39a122f4f5a5cf09c90fe2",
       abi: "uint256:totalSupply",
     })
   ).toEqual({
-    output: "246411662460970640599007156",
+    output: "246440827147798933525775397",
   });
   expect(
     await call({
@@ -363,7 +403,7 @@ test("multiCall with parameters and cached ABI", async () => {
   });
 });
 
-jest.setTimeout(10000);
+jest.setTimeout(20000);
 test("multiCall with 2000 calls to verify that splitting works", async () => {
   // 500 is the limit for a single multicall
   const calls = [] as any;

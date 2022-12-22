@@ -3,6 +3,7 @@ import { ParamType } from "ethers/lib/utils";
 import { getProvider, Chain } from "../general";
 import convertResults from "./convertResults";
 import { call } from "./rpcCall";
+import { BlockTag } from "@ethersproject/providers"
 import { debugLog } from "../util/debugLog"
 import {runInPromisePool, sliceIntoChunks,} from "../util"
 
@@ -46,7 +47,7 @@ export default async function makeMultiCall(
     params: any[];
   }[],
   chain: Chain,
-  block?: number,
+  block?: BlockTag,
 ) {
   const contractInterface = new ethers.utils.Interface([functionABI]);
   let fd = Object.values(contractInterface.functions)[0];
@@ -87,7 +88,7 @@ async function executeCalls(
     data: string;
   }[],
   chain: Chain,
-  block?: number
+  block?: BlockTag
 ) {
   if (networkSupportsMulticall(chain)) {
     try {

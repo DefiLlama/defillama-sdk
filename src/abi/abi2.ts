@@ -12,9 +12,9 @@ type CallsParams = {
 export async function call(params: {
   target: Address;
   abi: string | any;
-  block?: number;
+  block?: number | string;
   params?: CallParams;
-  chain?: Chain;
+  chain?: Chain | string;
   withMetadata?: boolean;
 }) {
   const response = await abi1.call(params)
@@ -25,9 +25,9 @@ export async function call(params: {
 export async function multiCall(params: {
   abi: string | any;
   calls: CallsParams[] | (string | number)[];
-  block?: number;
+  block?: number | string;
   target?: Address; // Used when calls.target is not provided
-  chain?: Chain;
+  chain?: Chain | string;
   requery?: boolean;
   withMetadata?: boolean;
 }) {
@@ -54,10 +54,10 @@ export async function multiCall(params: {
 export async function fetchList(params: {
   lengthAbi: string | any;
   itemAbi: string | any;
-  block?: number;
+  block?: number | string;
   startFrom?: number;
   target: Address;
-  chain?: Chain;
+  chain?: Chain | string;
   withMetadata?: boolean;
 }) {
   const { startFrom = 0, lengthAbi, itemAbi, withMetadata, ...commonParams } = params

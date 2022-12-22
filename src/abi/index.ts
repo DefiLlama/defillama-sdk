@@ -56,13 +56,22 @@ function normalizeParams(params: CallParams): (string | number)[] {
   }
 }
 
+function fixBlockTag(params: any) {
+  let { block } = params
+  if (typeof block !== 'string' || block === 'latest') return;
+  block = +block
+  if (isNaN(block)) throw new Error('Invalid block: ' + params.block)
+  params.block = block
+}
+
 export async function call(params: {
   target: Address;
   abi: string | any;
-  block?: number;
+  block?: number | string;
   params?: CallParams;
-  chain?: Chain;
+  chain?: Chain | string;
 }) {
+  fixBlockTag(params)
   const abi = resolveABI(params.abi);
   const callParams = normalizeParams(params.params);
 
@@ -73,7 +82,7 @@ export async function call(params: {
     callParams
   );
 
-  const result = await getProvider(params.chain).call(
+  const result = await getProvider(params.chain as Chain).call(
     {
       to: params.target,
       data: callData,
@@ -96,11 +105,12 @@ export async function multiCall(params: {
     target?: Address;
     params?: CallParams;
   }[];
-  block?: number;
+  block?: number | string;
   target?: Address; // Used when calls.target is not provided
-  chain?: Chain;
+  chain?: Chain | string;
   chunkSize?: number;
 }) {
+  fixBlockTag(params)
   const chain = params.chain ?? 'ethereum'
   if (!params.calls) throw new Error('Missing calls parameter')
   if (params.target && !params.target.startsWith('0x')) throw new Error('Invalid target: ' + params.target)
@@ -126,7 +136,7 @@ export async function multiCall(params: {
   const results = await runInPromisePool({
     items: sliceIntoChunks(contractCalls, chunkSize),
     concurrency: 20,
-    processor: (calls: any) => makeMultiCall(abi, calls, chain, params.block)
+    processor: (calls: any) => makeMultiCall(abi, calls, chain as Chain, params.block)
   })
 
   const flatResults = [].concat.apply([], results) as any[]
