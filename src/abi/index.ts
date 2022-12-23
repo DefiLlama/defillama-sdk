@@ -7,7 +7,12 @@ import convertResults from "./convertResults";
 import { debugLog } from "../util/debugLog";
 import { runInPromisePool, sliceIntoChunks, } from "../util";
 
-const knownTypes = ['string', 'uint8', 'uint256', 'address',]
+// https://docs.soliditylang.org/en/latest/abi-spec.html
+const knownTypes = [
+  'string', 'address', 'bool',
+  'int', 'int8', 'int16', 'int32', 'int64', 'int128', 'int256',
+  'uint', 'uint8', 'uint16', 'uint32', 'uint64', 'uint128', 'uint256',
+]
 
 const defaultChunkSize = !!process.env.SDK_MULTICALL_CHUNK_SIZE ? +process.env.SDK_MULTICALL_CHUNK_SIZE : 500
 
