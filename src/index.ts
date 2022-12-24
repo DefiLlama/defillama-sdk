@@ -1,4 +1,6 @@
 import { debugLog } from "./util/debugLog"
+
+export { ChainApi } from './ChainApi'
 export * as util from "./generalUtil";
 export * as api from "./api";
 export * as api2 from "./api2";

@@ -1,44 +1,6 @@
-import { Block, CallsParams, CallOptions, MulticallOptions, FetchListOptions, } from "../types";
-import { Chain } from "../general";
+import { CallsParams, CallOptions, MulticallOptions, FetchListOptions, } from "../types";
 import * as abi1 from './index'
 import { debugLog } from "../util/debugLog";
-
-export class ChainApi {
-  block?: Block;
-  chain?: Chain | string;
- 
-  constructor(params: {
-    block?: Block;
-    chain?: Chain | string;
-  }) {
-    this.block = params.block
-    this.chain = params.chain
-  }
-
-  call(params: CallOptions) {
-    return call({
-      ...params,
-      block: this.block,
-      chain: this.chain,
-    })
-  }
-
-  multiCall(params: MulticallOptions) {
-    return multiCall({
-      ...params,
-      block: this.block,
-      chain: this.chain,
-    })
-  }
-
-  fetchList(params: FetchListOptions) {
-    return fetchList({
-      ...params,
-      block: this.block,
-      chain: this.chain,
-    })
-  }
-}
 
 export async function call(params: CallOptions) {
   const response = await abi1.call(params)

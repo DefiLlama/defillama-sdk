@@ -1,4 +1,5 @@
-import { call, multiCall, fetchList, ChainApi } from "./abi2";
+import { call, multiCall, fetchList, } from "./abi2";
+import {  ChainApi } from "../ChainApi";
 
 const uniswapAbis = {
   appPairs: { "constant": true, "inputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "name": "allPairs", "outputs": [{ "internalType": "address", "name": "", "type": "address" }], "payable": false, "stateMutability": "view", "type": "function" },

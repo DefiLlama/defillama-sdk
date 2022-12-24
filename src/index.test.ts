@@ -4,6 +4,7 @@ test("imports", async () => {
   const dataCopy = { ...data, api2: { ...data.api2, config: configCopy } }
   expect(dataCopy).toMatchInlineSnapshot(`
     {
+      "ChainApi": [Function],
       "api": {
         "abi": {
           "call": [Function],
@@ -37,7 +38,6 @@ test("imports", async () => {
       },
       "api2": {
         "abi": {
-          "ChainApi": [Function],
           "call": [Function],
           "fetchList": [Function],
           "multiCall": [Function],

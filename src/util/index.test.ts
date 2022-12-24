@@ -3,11 +3,31 @@ import {
   getLogs,
 } from "./index";
 
+import ChainApi from "../ChainApi";
+
 jest.setTimeout(20000);
 
 function getDiff(a: number, b: number): number {
   return (a > b) ? a - b : b - a;
 }
+
+test("ChainApi - ethereum", async () => {
+  const ethApi = new ChainApi({chain: 'ethereum', timestamp: 1669037786 })
+  const ethApi2 = new ChainApi({chain: 'ethereum', timestamp: 1594112416 })
+  const ethApi3 = new ChainApi({chain: 'ethereum', block: 42})
+
+  expect(getDiff(await ethApi.getBlock(), 16018720)).toBeLessThanOrEqual(50); // 50 blocks appromiates to 10 minute difference
+  expect(getDiff(await ethApi2.getBlock(), 10411348)).toBeLessThanOrEqual(50); // 50 blocks appromiates to 10 minute difference
+  expect(getDiff(await ethApi3.getBlock(), 42)).toBeLessThanOrEqual(0);
+});
+
+test("ChainApi - other chains", async () => {
+  const bscApi = new ChainApi({chain: 'bsc', timestamp: 1638821718 })
+  const celoApi = new ChainApi({chain: 'celo', timestamp: 1638821718 })
+
+  expect(getDiff(await bscApi.getBlock(), 13252691)).toBeLessThanOrEqual(500);
+  expect(getDiff(await celoApi.getBlock(), 10248755)).toBeLessThanOrEqual(500);
+});
 
 test("lookupBlock", async () => {
   const block = await lookupBlock(1669037786);

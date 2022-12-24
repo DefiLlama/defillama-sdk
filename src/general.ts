@@ -130,7 +130,7 @@ export const providers = {
   canto: createProvider("canto", "https://jsonrpc.canto.nodestake.top,https://canto.evm.chandrastation.com/", 7700),
   dogechain: createProvider("dogechain", "https://dogechain-sj.ankr.com,https://dogechain.ankr.com,https://rpc.dogechain.dog,https://rpc01-sg.dogechain.dog,https://rpc02-sg.dogechain.dog,https://rpc03-sg.dogechain.dog", 2000),
   posi: createProvider("posi", "https://api.posichain.org,https://api.s0.posichain.org", 900000),
-  arbitrum_nova: createProvider("posi", "https://nova.arbitrum.io/rpc", 42170),
+  arbitrum_nova: createProvider("arbitrum_nova", "https://nova.arbitrum.io/rpc", 42170),
   ultron: createProvider("ultron", "https://ultron-rpc.net", 1231),
   tombchain: createProvider("tombchain", "https://rpc.tombchain.com/", 6969),
   vision: createProvider("vision", "https://infragrid.v.network/ethereum/compatible", 888888),
