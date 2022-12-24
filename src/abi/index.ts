@@ -22,8 +22,11 @@ function resolveABI(providedAbi: string | any) {
     abi = catchedABIs[abi];
     if (abi === undefined) {
       const [outputType, name] = providedAbi.split(':')
-      if (!knownTypes.includes(outputType) || !name)
-        throw new Error("ABI method undefined");
+      if (!knownTypes.includes(outputType) || !name){
+        const contractInterface = new ethers.utils.Interface([providedAbi])
+        const jsonAbi = contractInterface.format(ethers.utils.FormatTypes.json)
+        return JSON.parse(jsonAbi as string)[0]
+      }
 
       abi = {
         constant: true,
