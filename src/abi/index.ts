@@ -12,7 +12,9 @@ const knownTypes = [
   'string', 'address', 'bool',
   'int', 'int8', 'int16', 'int32', 'int64', 'int128', 'int256',
   'uint', 'uint8', 'uint16', 'uint32', 'uint64', 'uint128', 'uint256',
-]
+];
+
+([...knownTypes]).forEach(i => knownTypes.push(i+'[]')) // support array type for all known types
 
 const defaultChunkSize = !!process.env.SDK_MULTICALL_CHUNK_SIZE ? +process.env.SDK_MULTICALL_CHUNK_SIZE : 500
 

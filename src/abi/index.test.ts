@@ -115,6 +115,14 @@ test("call with typed abi", async () => {
   ).toEqual({
     output: "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f",
   });
+
+  expect(
+    (await call({
+      target: "0xdc8c63dfc31325aea8cb37ecec1a760bbb5b43e7",
+      abi: "address[]:getAllLeveragePool",
+      chain: 'avax'
+    })).output.length
+  ).toBeGreaterThan(3);
 });
 
 test("call with abi string", async () => {
@@ -159,6 +167,7 @@ test("call with abi string", async () => {
   ).toEqual({
     output: "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f",
   });
+
 });
 
 test("call doesn't include __length__", async () => {

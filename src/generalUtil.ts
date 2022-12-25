@@ -93,19 +93,21 @@ export function sumChainTvls(
     (
       timestamp: number,
       ethBlock: number,
-      chainBlocks: ChainBlocks
+      chainBlocks: ChainBlocks,
+      params: any,
     ) => Promise<Balances>
   >
 ) {
   return async (
     timestamp: number,
     ethBlock: number,
-    chainBlocks: ChainBlocks
+    chainBlocks: ChainBlocks,
+    params: any,
   ) => {
     const balances = {};
     await Promise.all(
       chainTvls.map(async (chainTvl) => {
-        const chainBalances = await chainTvl(timestamp, ethBlock, chainBlocks);
+        const chainBalances = await chainTvl(timestamp, ethBlock, chainBlocks, params);
         mergeBalances(balances, chainBalances);
       })
     );
