@@ -256,6 +256,8 @@ function multicallAddress(chainId: number) {
     case 1231: // ultron
     case 2152: // findora
     case 50: // xdc
+    case 40: // telos
+      return "0x74D01B798F0aEdc39548D3EA5fC922B291293b95";
     case 52: // csc
       return "0x18fA376d92511Dd04090566AB6144847c03557d8";
     case 2222:
