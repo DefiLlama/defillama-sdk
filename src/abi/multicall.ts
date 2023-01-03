@@ -5,7 +5,7 @@ import convertResults from "./convertResults";
 import { call } from "./rpcCall";
 import { BlockTag } from "@ethersproject/providers"
 import { debugLog } from "../util/debugLog"
-import {runInPromisePool, sliceIntoChunks,} from "../util"
+import { runInPromisePool, sliceIntoChunks, } from "../util"
 
 export const MULTICALL_ADDRESS_MAINNET =
   "0xeefba1e63905ef1d7acba5a8513c70307c1ce441";
@@ -123,7 +123,7 @@ async function executeCalls(
       return returnValues;
     } catch (e) {
       if (contractCalls.length > 10) {
-        const chunkSize = Math.ceil(contractCalls.length/5)
+        const chunkSize = Math.ceil(contractCalls.length / 5)
         const chunks = sliceIntoChunks(contractCalls, chunkSize)
         debugLog(`Multicall failed, call size: ${contractCalls.length}, splitting into smaller chunks and trying again, new call size: ${chunks[0].length}`)
         const response = await runInPromisePool({
@@ -256,10 +256,10 @@ function multicallAddress(chainId: number) {
     case 1231: // ultron
     case 2152: // findora
     case 50: // xdc
-    case 40: // telos
-      return "0x74D01B798F0aEdc39548D3EA5fC922B291293b95";
     case 52: // csc
       return "0x18fA376d92511Dd04090566AB6144847c03557d8";
+    case 40: // telos
+      return "0x74D01B798F0aEdc39548D3EA5fC922B291293b95";
     case 2222:
       return "0x30A62aA52Fa099C4B227869EB6aeaDEda054d121" // kava
     case 47805:
