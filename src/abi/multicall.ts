@@ -303,6 +303,8 @@ function multicallAddress(chainId: number) {
       return "0x61EEE5a6c13c358101487f3b7c7Dd9863590C350"
     case 20402: // muuchain
       return "0xF8D7509aD8570b16dAd163A3841684f660fD9242"
+    case 14: // flare network
+      return "0x336897CAe2791048DA77EEa2A43BFB96342b9CE1"
     default:
       return null;
   }

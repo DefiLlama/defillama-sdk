@@ -143,6 +143,7 @@ export const providers = {
   muuchain: createProvider("muu", "https://mainnet-rpc.muuchain.com", 20402),
   dexit: createProvider("dexit", "https://dxt.dexit.network", 877),
   empire: createProvider("empire", "https://rpc.empirenetwork.io", 3693),
+  flare: createProvider("flare", "https://flare-api.flare.network/ext/C/rpc", 14),
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
@@ -243,6 +244,7 @@ export type Chain =
   | "muuchain"
   | "dexit"
   | "empire"
+  | "flare"
 export function getProvider(chain: Chain = "ethereum") : ethers.providers.BaseProvider {
   return providers[chain];
 }
