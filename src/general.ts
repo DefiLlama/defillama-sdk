@@ -144,6 +144,7 @@ export const providers = {
   dexit: createProvider("dexit", "https://dxt.dexit.network", 877),
   empire: createProvider("empire", "https://rpc.empirenetwork.io", 3693),
   flare: createProvider("flare", "https://flare-api.flare.network/ext/C/rpc", 14),
+  tlchain: createProvider("tlchain", "https://mainnet-rpc.tlchain.live", 5177),
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
@@ -245,6 +246,7 @@ export type Chain =
   | "dexit"
   | "empire"
   | "flare"
+  | "tlchain"
 export function getProvider(chain: Chain = "ethereum") : ethers.providers.BaseProvider {
   return providers[chain];
 }
