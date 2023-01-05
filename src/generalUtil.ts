@@ -85,9 +85,20 @@ export function mergeBalances(balances: Balances, balancesToMerge: Balances) {
     sumSingleBalance(balances, balance[0], balance[1]);
   });
 }
+
+export function removeTokenBalance(balances: Balances, token: string, isCaseSensitive = false) {
+  const re = new RegExp(token, isCaseSensitive ? undefined : 'i')
+  Object.keys(balances).forEach(key => {
+    if (re.test(key)) delete balances[key]
+  });
+
+  return balances  
+}
+
 type ChainBlocks = {
   [chain: string]: number;
 };
+
 export function sumChainTvls(
   chainTvls: Array<
     (

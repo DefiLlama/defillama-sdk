@@ -109,6 +109,7 @@ test("imports", async () => {
           "humanizeNumber": [Function],
         },
         "mergeBalances": [Function],
+        "removeTokenBalance": [Function],
         "sumChainTvls": [Function],
         "sumMultiBalanceOf": [Function],
         "sumSingleBalance": [Function],

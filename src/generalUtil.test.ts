@@ -1,4 +1,4 @@
-import { sumMultiBalanceOf, sumSingleBalance, mergeBalances } from "./generalUtil";
+import { sumMultiBalanceOf, sumSingleBalance, mergeBalances, removeTokenBalance, } from "./generalUtil";
 import { BigNumber } from "ethers"
 
 test("sumMultiBalanceOf", () => {
@@ -98,6 +98,26 @@ test("sumSingleBalance throw error on invalid input", () => {
   expect(() => sumSingleBalance({ ethereum: '1' }, 'ethereum', undefined as any)).toThrowError()
   expect(() => sumSingleBalance({ ethereum: 1 }, 'dummy', 'a111' as any, 'ethereum')).toThrowError()
   expect(() => sumSingleBalance({ ethereum: '1' }, 'dummy', '111a' as any, 'ethereum')).toThrowError()
+});
+
+test("removeTokenBalance", () => {
+  let balances: any = { ethereum: '7',  'polygon:0x000': '5000' };
+  let balances2 = removeTokenBalance(balances, "ethereum")
+  expect(balances).toMatchObject({  'polygon:0x000': '5000' })
+  expect(balances2).toMatchObject({  'polygon:0x000': '5000' })
+
+  balances = { ethereum: '7',  'polygon:0x000': '5000', 'bsc:0x001': 100 }
+  removeTokenBalance(balances, "0x000")
+  removeTokenBalance(balances, "ETHEREUM")
+  removeTokenBalance(balances, "BSC", true)
+  expect(balances).toMatchObject({ 'bsc:0x001': 100 })
+
+  balances = { 'coingecko:ethereum': '7',  'polygon:0x000': '5000', 'bsc:0x001': 100, 'coingecko:test': 500, }
+  removeTokenBalance(balances, "polygon")
+  removeTokenBalance(balances, "missing")
+  removeTokenBalance(balances, "ETHEREUM")
+  removeTokenBalance(balances, "0x001", true)
+  expect(balances).toMatchObject({ 'coingecko:test': 500, })
 });
 
 
