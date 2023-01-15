@@ -305,6 +305,8 @@ function multicallAddress(chainId: number) {
       return "0xF8D7509aD8570b16dAd163A3841684f660fD9242"
     case 14: // flare network
       return "0x336897CAe2791048DA77EEa2A43BFB96342b9CE1"
+    case 383414847825: // zeniq
+      return "0x23c65A0E1aF27EFd46B60c43998682e1e322C6f6"
     default:
       return null;
   }

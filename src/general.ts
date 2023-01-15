@@ -145,6 +145,7 @@ export const providers = {
   empire: createProvider("empire", "https://rpc.empirenetwork.io", 3693),
   flare: createProvider("flare", "https://flare-api.flare.network/ext/C/rpc", 14),
   tlchain: createProvider("tlchain", "https://mainnet-rpc.tlchain.live", 5177),
+  zeniq: createProvider("zeniq", "https://smart1.zeniq.network:9545,https://smart2.zeniq.network:9545,https://smar31.zeniq.network:9545", 383414847825),
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
@@ -247,6 +248,7 @@ export type Chain =
   | "empire"
   | "flare"
   | "tlchain"
+  | "zeniq"
 export function getProvider(chain: Chain = "ethereum") : ethers.providers.BaseProvider {
   return providers[chain];
 }
