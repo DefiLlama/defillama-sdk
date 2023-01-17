@@ -117,7 +117,7 @@ export const providers = {
   reichain: createProvider("reichain", "https://rei-rpc.moonrhythm.io", 55555),
   rei: createProvider("rei", "https://rpc.rei.network", 47805),
   clv: createProvider("clv", "https://api-para.clover.finance", 1024),
-  echelon: createProvider("echelon", "https://rpc.ech.network,https://evm.ech.network,https://draco.ech.network", 3000),
+  echelon: createProvider("echelon", "https://rpc.ech.network", 3000),
   multivac: createProvider("multivac", "https://rpc.mtv.ac,https://rpc-eu.mtv.ac", 62621),
   kava: createProvider("kava", "https://evm.kava.io", 2222),
   sx: createProvider("sx", "https://rpc.sx.technology", 416),
