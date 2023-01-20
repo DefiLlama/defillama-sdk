@@ -361,7 +361,7 @@ test("bsc multicall", async () => {
         ],
         chain: "bsc",
       })
-    ).every((call) => !!call)
+    ).every((call: any) => !!call)
   ).toBe(true);
 });
 
