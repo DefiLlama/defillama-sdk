@@ -6,7 +6,7 @@ test("large muticall", async () => {
   for (let i = 0; i < 571; i++)
     options.calls.push({ params: i })
   const res = await multiCall(options)
-  expect(res.output.filter(r => !r.success).length).toBe(0)
+  expect(res.output.filter((r: any) => !r.success).length).toBe(0)
 });
 
 test("block tag", async () => {
@@ -470,7 +470,7 @@ test("multiCall with 2000 calls to verify that splitting works", async () => {
     abi: "erc20:balanceOf",
     block: 15997547,
   })
-  expect(res.output.filter(r => !r.success).length).toBe(0)
+  expect(res.output.filter((r: any) => !r.success).length).toBe(0)
   expect(res.output.length).toBe(2000)
 });
 
@@ -648,7 +648,7 @@ test("bsc multicall", async () => {
         ],
         chain: "bsc",
       })
-    ).output.every((call) => call.success)
+    ).output.every((call: any) => call.success)
   ).toBe(true);
 });
 

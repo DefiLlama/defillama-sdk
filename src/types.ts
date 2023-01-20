@@ -23,6 +23,7 @@ export type CallOptions = {
   params?: CallParams;
   chain?: Chain | string;
   withMetadata?: boolean;
+  skipCache?: boolean;
 }
 
 export type MulticallOptions = {
@@ -33,6 +34,7 @@ export type MulticallOptions = {
   chain?: Chain | string;
   requery?: boolean;
   withMetadata?: boolean;
+  skipCache?: boolean;
 }
 
 export type FetchListOptions = {

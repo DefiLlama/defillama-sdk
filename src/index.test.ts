@@ -88,6 +88,13 @@ test("imports", async () => {
         "getChainBlocks": [Function],
         "getCurrentBlocks": [Function],
       },
+      "cache": {
+        "getCache": [Function],
+        "retriveCache": [Function],
+        "saveCache": [Function],
+        "setCache": [Function],
+        "startCache": [Function],
+      },
       "humanizeNumber": [Function],
       "log": [Function],
       "util": {
