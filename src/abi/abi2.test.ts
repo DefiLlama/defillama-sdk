@@ -101,6 +101,41 @@ test("multiCall", async () => {
   ]);
 });
 
+test("multiCall omax", async () => {
+  expect(
+    await multiCall({
+      calls: [
+        {
+          target: "0xfeBaBc6a9B2Ec46d6357879B8bf39B593F11A5B9",
+          params: "0xecd5e75afb02efa118af914515d6521aabd189f1",
+        },
+        {
+          target: "0xfeBaBc6a9B2Ec46d6357879B8bf39B593F11A5B9",
+          params: "0xd9ebebfdab08c643c5f2837632de920c70a56247",
+        },
+      ],
+      abi: "erc20:balanceOf",
+      chain: "omax",
+    })
+  ).toEqual([
+    "0",
+    "0",
+  ]);
+  expect(
+    await multiCall({
+      calls: [
+        {
+          target: "0xAA72D7f25EeA161855CDf46aeF9475EC71169A23",
+        },
+      ],
+      abi: "address:factory",
+      chain: "omax",
+    })
+  ).toEqual([
+    "0x0e149Ff38Cd5B5c0F1004D08A14C9653485ad5fA",
+  ]);
+});
+
 test("multiCall with abi", async () => {
   expect(
     await multiCall({

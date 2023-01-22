@@ -56,6 +56,7 @@ export const providers = {
   energi: createProvider("energi", "https://nodeapi.energi.network", 39797),
   songbird: createProvider("songbird", "https://songbird.towolabs.com/rpc", 19),
   hpb: createProvider("hpb", "https://hpbnode.com", 269),
+  omax: createProvider("omax", "https://mainapi.omaxray.com", 311),
   gochain: createProvider("gochain", "https://rpc.gochain.io", 60),
   ethereumclassic: createProvider("ethereumclassic", "https://www.ethercluster.com/etc,https://blockscout.com/etc/mainnet/api/eth-rpc", 61),
   xdaiarb: createProvider("xdaiarb", "https://arbitrum.xdaichain.com", 200),
