@@ -22,7 +22,6 @@ const defaultChunkSize = !!process.env.SDK_MULTICALL_CHUNK_SIZE ? +process.env.S
 function resolveABI(providedAbi: string | any) {
   let abi = providedAbi;
   if (typeof abi === "string") {
-    if (catchedABIs[providedAbi]) providedAbi = catchedABIs[abi]
     const [outputType, name] = providedAbi.split(':')
     if (!knownTypes.includes(outputType) || !name) {
       const contractInterface = new ethers.utils.Interface([providedAbi])
@@ -98,6 +97,7 @@ function fixBlockTag(params: any) {
 
 export async function call(params: CallOptions): Promise<any> {
   fixBlockTag(params)
+  if (catchedABIs[params.abi]) params.abi = catchedABIs[params.abi]
   if (!params.skipCache) return cachedCall(params)
   const abi = resolveABI(params.abi);
   const callParams = normalizeParams(params.params);
@@ -128,6 +128,7 @@ export async function call(params: CallOptions): Promise<any> {
 
 export async function multiCall(params: MulticallOptions): Promise<any> {
   fixBlockTag(params)
+  if (catchedABIs[params.abi]) params.abi = catchedABIs[params.abi]
   const chain = params.chain ?? 'ethereum'
   if (!params.calls) throw new Error('Missing calls parameter')
   if (params.target && !params.target.startsWith('0x')) throw new Error('Invalid target: ' + params.target)

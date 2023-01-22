@@ -9,6 +9,7 @@ if (cacheFile) cache = require(cacheFile)
 
 export function getCache(options: CacheOptions) {
   let { address, abi, chain = "ethereum" } = options
+  if (!address) return;
 
   address = address.slice(2).toLowerCase()
 
@@ -24,6 +25,7 @@ export function getCache(options: CacheOptions) {
 
 export function setCache(options: CacheOptions) {
   let { address, abi, chain = "ethereum", value } = options
+  if (!address) return;
 
   address = address.slice(2).toLowerCase()
 
