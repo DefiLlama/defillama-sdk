@@ -308,6 +308,8 @@ function multicallAddress(chainId: number) {
       return "0x336897CAe2791048DA77EEa2A43BFB96342b9CE1"
     case 383414847825: // zeniq
       return "0x23c65A0E1aF27EFd46B60c43998682e1e322C6f6"
+    case 4099: // bitindi
+      return "0xDF15De1fB392Ab10551afF1dDDDfAFFd228D7FE0"
     default:
       return null;
   }

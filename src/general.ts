@@ -147,6 +147,7 @@ export const providers = {
   flare: createProvider("flare", "https://flare-api.flare.network/ext/C/rpc", 14),
   tlchain: createProvider("tlchain", "https://mainnet-rpc.tlchain.live", 5177),
   zeniq: createProvider("zeniq", "https://smart1.zeniq.network:9545,https://smart2.zeniq.network:9545,https://smar31.zeniq.network:9545", 383414847825),
+  bitindi: createProvider("bitindi", "https://rpc-mainnet.bitindi.org", 4099),
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
