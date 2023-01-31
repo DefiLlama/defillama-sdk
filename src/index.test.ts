@@ -1,3 +1,5 @@
+import { getTimestamp } from "./util";
+
 test("imports", async () => {
   const data = await import('./index')
   const {providers, ...configCopy } = data.api2.config 
@@ -28,6 +30,7 @@ test("imports", async () => {
         "util": {
           "getLatestBlock": [Function],
           "getLogs": [Function],
+          "getTimestamp": [Function],
           "lookupBlock": [Function],
           "normalizeAddress": [Function],
           "normalizeBalances": [Function],
@@ -66,6 +69,7 @@ test("imports", async () => {
         "util": {
           "getLatestBlock": [Function],
           "getLogs": [Function],
+          "getTimestamp": [Function],
           "lookupBlock": [Function],
           "normalizeAddress": [Function],
           "normalizeBalances": [Function],
@@ -116,4 +120,20 @@ test("imports", async () => {
       },
     }
   `);
+});
+test("getTimestamp", async () => {
+  type Block = {
+    block: number;
+    chain: any;
+  };
+  const blocks: Block[] = [
+    { block: 16527520, chain: "ethereum" },
+    { block: 20265031, chain: "bsc" },
+    { block: 38247545, chain: "polygon" },
+    { block: 22, chain: "arbitrum" },
+  ];
+  const timestamps: number[] = await Promise.all(
+    blocks.map((b: Block) => getTimestamp(b.block, b.chain)),
+  );
+  expect(timestamps).toEqual([1675176719, 1659972621, 1674081829, 1622251195]);
 });

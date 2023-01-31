@@ -243,6 +243,11 @@ export async function getLogs(params: {
     output: logs
   };
 }
+export async function getTimestamp(height: number, chain: Chain) {
+  const provider = getExtraProvider(chain);
+  const block = await provider.getBlock(height)
+  return block.timestamp
+}
 export function normalizeAddress(address: string): string {
   // sol amd tezos case sensitive so no normalising
   const prefix = address.substring(0, address.indexOf(":"));
