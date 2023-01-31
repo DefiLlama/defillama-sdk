@@ -30,6 +30,7 @@ test("imports", async () => {
         "util": {
           "getLatestBlock": [Function],
           "getLogs": [Function],
+          "getTimestamp": [Function],
           "lookupBlock": [Function],
           "normalizeAddress": [Function],
           "normalizeBalances": [Function],
@@ -68,6 +69,7 @@ test("imports", async () => {
         "util": {
           "getLatestBlock": [Function],
           "getLogs": [Function],
+          "getTimestamp": [Function],
           "lookupBlock": [Function],
           "normalizeAddress": [Function],
           "normalizeBalances": [Function],
