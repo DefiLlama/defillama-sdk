@@ -309,7 +309,9 @@ function multicallAddress(chainId: number) {
     case 383414847825: // zeniq
       return "0x23c65A0E1aF27EFd46B60c43998682e1e322C6f6"
     case 4099: // bitindi
-      return "0xDF15De1fB392Ab10551afF1dDDDfAFFd228D7FE0"
+    return "0xDF15De1fB392Ab10551afF1dDDDfAFFd228D7FE0"
+    case 22776: // map
+      return "0x6f13ad2bae66B5560c6157883a42B70085F9ca20"
     default:
       return null;
   }

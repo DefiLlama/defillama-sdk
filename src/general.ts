@@ -148,6 +148,7 @@ export const providers = {
   tlchain: createProvider("tlchain", "https://mainnet-rpc.tlchain.live", 5177),
   zeniq: createProvider("zeniq", "https://smart1.zeniq.network:9545,https://smart2.zeniq.network:9545,https://smar31.zeniq.network:9545", 383414847825),
   bitindi: createProvider("bitindi", "https://rpc-mainnet.bitindi.org", 4099),
+  map: createProvider("map", "https://rpc.maplabs.io", 22776),
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };

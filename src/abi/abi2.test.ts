@@ -134,6 +134,27 @@ test("multiCall omax", async () => {
   ).toEqual([
     "0x0e149Ff38Cd5B5c0F1004D08A14C9653485ad5fA",
   ]);
+  expect(
+    await multiCall({
+      calls: [
+        {
+          target: "0x0bce9e0ebd4fd4d6562495af45c4aaa0c1f7f3d7",
+        },
+        {
+          target: "0x0bce9e0ebd4fd4d6562495af45c4aaa0c1f7f3d7",
+        },
+        {
+          target: "0x0bce9e0ebd4fd4d6562495af45c4aaa0c1f7f3d7",
+        },
+      ],
+      abi: "address:factory",
+      chain: "map",
+    })
+  ).toEqual([
+    "0x29c3d087302e3fCb75F16175A09E4C39119459B2",
+    "0x29c3d087302e3fCb75F16175A09E4C39119459B2",
+    "0x29c3d087302e3fCb75F16175A09E4C39119459B2",
+  ]);
 });
 
 test("multiCall with abi", async () => {
