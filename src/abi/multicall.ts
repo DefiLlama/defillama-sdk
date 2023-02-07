@@ -258,6 +258,7 @@ function multicallAddress(chainId: number) {
     case 50: // xdc
     case 52: // csc
     case 311: // omax
+    case 1111: // omax
       return "0x18fA376d92511Dd04090566AB6144847c03557d8";
     case 40: // telos
       return "0x74D01B798F0aEdc39548D3EA5fC922B291293b95";

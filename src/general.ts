@@ -149,6 +149,8 @@ export const providers = {
   zeniq: createProvider("zeniq", "https://smart1.zeniq.network:9545,https://smart2.zeniq.network:9545,https://smar31.zeniq.network:9545", 383414847825),
   bitindi: createProvider("bitindi", "https://rpc-mainnet.bitindi.org", 4099),
   map: createProvider("map", "https://rpc.maplabs.io", 22776),
+  caduceus: createProvider("caduceus", "https://mainnet.block.caduceus.foundation", 256256),
+  wemix: createProvider("wemix", "https://api.wemix.com", 1111),
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };

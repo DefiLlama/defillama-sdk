@@ -102,6 +102,20 @@ test("multiCall", async () => {
 });
 
 test("multiCall omax", async () => {
+
+  expect(
+    await multiCall({
+      calls: [
+        {
+          target: "0x8A09B18BDff44AcdE3516847D679D4b044cDfb89",
+        },
+      ],
+      abi: "address:factory",
+      chain: "wemix",
+    })
+  ).toEqual([
+    "0xe1F36C7B919c9f893E2Cd30b471434Aa2494664A",
+  ]);
   expect(
     await multiCall({
       calls: [
@@ -120,40 +134,6 @@ test("multiCall omax", async () => {
   ).toEqual([
     "0",
     "0",
-  ]);
-  expect(
-    await multiCall({
-      calls: [
-        {
-          target: "0xAA72D7f25EeA161855CDf46aeF9475EC71169A23",
-        },
-      ],
-      abi: "address:factory",
-      chain: "omax",
-    })
-  ).toEqual([
-    "0x0e149Ff38Cd5B5c0F1004D08A14C9653485ad5fA",
-  ]);
-  expect(
-    await multiCall({
-      calls: [
-        {
-          target: "0x0bce9e0ebd4fd4d6562495af45c4aaa0c1f7f3d7",
-        },
-        {
-          target: "0x0bce9e0ebd4fd4d6562495af45c4aaa0c1f7f3d7",
-        },
-        {
-          target: "0x0bce9e0ebd4fd4d6562495af45c4aaa0c1f7f3d7",
-        },
-      ],
-      abi: "address:factory",
-      chain: "map",
-    })
-  ).toEqual([
-    "0x29c3d087302e3fCb75F16175A09E4C39119459B2",
-    "0x29c3d087302e3fCb75F16175A09E4C39119459B2",
-    "0x29c3d087302e3fCb75F16175A09E4C39119459B2",
   ]);
 });
 
