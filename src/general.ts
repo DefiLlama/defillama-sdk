@@ -36,7 +36,7 @@ export const providers = {
   polygon: createProvider("polygon", "https://polygon-rpc.com/,https://rpc-mainnet.maticvigil.com/", 137),
   heco: createProvider("heco", "https://http-mainnet.hecochain.com", 128),
   fantom: createProvider("fantom", "https://rpc.ankr.com/fantom,https://rpc.ftm.tools/,https://rpcapi.fantom.network", 250),
-  rsk: createProvider("rsk", "https://public-node.rsk.co", 30),
+  rootstock: createProvider("rootstock", "https://public-node.rsk.co", 30),
   tomochain: createProvider("tomochain", "https://rpc.tomochain.com", 88),
   xdai: createProvider("xdai", "https://rpc.ankr.com/gnosis,https://xdai-archive.blockscout.com", 100),
   avax: createProvider("avax", "https://api.avax.network/ext/bc/C/rpc,https://rpc.ankr.com/avalanche", 43114),
@@ -161,7 +161,7 @@ export type Chain =
   | "polygon"
   | "heco"
   | "fantom"
-  | "rsk"
+  | "rootstock"
   | "tomochain"
   | "xdai"
   | "avax"

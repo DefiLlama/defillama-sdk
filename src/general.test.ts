@@ -2,7 +2,7 @@ import { getBalance } from "./eth/index";
 
 jest.setTimeout(10000);
 test("RPC nodes from multiple chains support archive queries", async () => {
-  for (const chain of ["ethereum", "fantom", "rsk", "avax"]) {
+  for (const chain of ["ethereum", "fantom", "rootstock", "avax"]) {
     try {
       const ethOwned = await getBalance({
         target: "0x0000000000000000000000000000000000000000",

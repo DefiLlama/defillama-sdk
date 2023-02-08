@@ -231,7 +231,7 @@ function multicallAddress(chainId: number) {
     case 42262: // ROSE
     case 39797: // energi
     case 1284: // moonbeam
-    case 30: // rsk
+    case 30: // rootstock
     case 1088: // metis
     case 10000: // smartbch
     case 2001: // Milkomeda C1
