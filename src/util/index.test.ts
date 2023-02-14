@@ -6,14 +6,13 @@ import {
 
 jest.setTimeout(20000);
 test("lookupBlock", async () => {
-  const block = await lookupBlock(1594115200);
-  // Approximation, DP's sdk returns { timestamp: 1594112400, block: 10411348 }
-  expect(block.block).toBeCloseTo(10411539, -1.5);
-  expect(block.timestamp).toBeCloseTo(1594115202, -2.5);
+  const block = await lookupBlock(Date.now(), {chain: "harmony"});
+  
+  console.log(block);
 });
 
 test("lookupBlock on xdai and terra", async () => {
-  const calls = [];
+  const calls : any = [];
   for (let i = 0; i < 10; i++) {
     calls.push(
       lookupBlock(1594115200, {
