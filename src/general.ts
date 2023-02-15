@@ -115,6 +115,7 @@ export const providers = {
   dogechain: createProvider("dogechain", "https://dogechain.ankr.com,https://rpc.dogechain.dog,https://rpc01-sg.dogechain.dog,https://rpc02-sg.dogechain.dog,https://rpc03-sg.dogechain.dog", 2000),
   posi: createProvider("posi", "https://api.posichain.org,https://api.s0.posichain.org", 900000),
   arbitrum_nova: createProvider("posi", "https://nova.arbitrum.io/rpc", 42170),
+  goerli: createProvider("goerli", "https://rpc.ankr.com/eth_goerli,https://goerli.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161", 5),
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
@@ -200,6 +201,7 @@ export type Chain =
   | "dogechain"
   | "posi"
   | "arbitrum_nova"
+  | "goerli"
 export function getProvider(chain: Chain = "ethereum") {
   return providers[chain];
 }
