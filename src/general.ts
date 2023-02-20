@@ -151,6 +151,7 @@ export const providers = {
   map: createProvider("map", "https://rpc.maplabs.io", 22776),
   caduceus: createProvider("caduceus", "https://mainnet.block.caduceus.foundation", 256256),
   wemix: createProvider("wemix", "https://api.wemix.com", 1111),
+  enuls: createProvider("enuls", "https://evmapi.nuls.io/", 119),
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
