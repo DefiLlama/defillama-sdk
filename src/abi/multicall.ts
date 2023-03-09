@@ -319,6 +319,8 @@ function multicallAddress(chainId: number) {
       return "0xE5552e0318531F9Ec585c83bDc8956C08Bf74b71";
     case 2046399126: // europa
       return "0x918D8F3670c67f14Ff3fEB025D46B9C165d12a23";
+    case 2025: // rpg
+      return "0x692D7f4B08E4490d546Cb9242F082064acd8c6cd";
     default:
       return null;
   }
