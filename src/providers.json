@@ -718,5 +718,11 @@
       "https://rpc.ankr.com/eth_goerli"
     ],
     "chainId": 5
+  },
+  "core": {
+    "rpc": [
+      "https://rpc.coredao.org/ "
+    ],
+    "chainId": 1116
   }
 }
