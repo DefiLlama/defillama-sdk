@@ -721,7 +721,7 @@
   },
   "core": {
     "rpc": [
-      "https://rpc.coredao.org/ "
+      "https://rpc.coredao.org/"
     ],
     "chainId": 1116
   }
