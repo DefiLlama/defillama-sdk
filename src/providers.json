@@ -321,7 +321,9 @@
   },
   "klaytn": {
     "rpc": [
-      "https://public-node-api.klaytnapi.com/v1/cypress"
+      "https://public-node-api.klaytnapi.com/v1/cypress",
+      "https://klaytn.blockpi.network/v1/rpc/public",
+      "https://cypress.fautor.app/archive"
     ],
     "chainId": 8217
   },
@@ -718,11 +720,5 @@
       "https://rpc.ankr.com/eth_goerli"
     ],
     "chainId": 5
-  },
-  "core": {
-    "rpc": [
-      "https://rpc.coredao.org/"
-    ],
-    "chainId": 1116
   }
 }

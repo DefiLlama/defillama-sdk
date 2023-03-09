@@ -17,6 +17,9 @@ async function main() {
     .filter((i: any) => i.shortName)
     .filter((i: any) => !existingChainIds.has(i.chainId))
     .filter((i: any) => !existingChainNames.has(i.shortName))
+  chainData.forEach((i: any) => {
+    i.rpc = i.rpc.filter((j: any) => !/wss:/.test(j))
+  })
   const newList = {...providerList} as any
   chainData.forEach((i: any) => {
     newList[i.shortName.toLowerCase()] = {

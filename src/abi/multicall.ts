@@ -224,7 +224,7 @@ function multicallAddress(chainId: number) {
     case 269: // High performance blockchain
     case 321: // KCC
     case 20: // elastos
-    // case 8217: // Klaytn - multicall doesnt work for some reason
+    case 8217: // Klaytn - multicall doesnt work for some reason
     // case 88: // tomochain - multicall doesnt work for some reason
     case 122: // Fuse
     case 42220: // Celo
@@ -278,9 +278,9 @@ function multicallAddress(chainId: number) {
     // case 71394: // Godwoken v0 chain
     // return "0x285aF41aC18BA105407555f49c59c58574b8e284"
     case 71402: // Godwoken v1 chain
-    case 8217: // Klaytn - multicall doesnt work for some reason
-      // https://github.com/mds1/multicall
-      return "0xcA11bde05977b3631167028862bE2a173976CA11"
+    // case 8217: // Klaytn - multicall doesnt work for some reason
+    //   // https://github.com/mds1/multicall
+    //   return "0xcA11bde05977b3631167028862bE2a173976CA11"
     case 96: // bitkub chain
       return "0xcc515Aa7eE9Be4491c98DE68ee2147F0A063759D"
     case 42170: // arbitrum nova chain
@@ -315,6 +315,10 @@ function multicallAddress(chainId: number) {
       return "0x6f13ad2bae66B5560c6157883a42B70085F9ca20"
     case 888888: // vision
       return "0x7a677A43eb6eEe4AB6c13872Abc04e1bA5CF88eD";
+    case 1116: // core
+      return "0xE5552e0318531F9Ec585c83bDc8956C08Bf74b71";
+    case 2046399126: // europa
+      return "0x918D8F3670c67f14Ff3fEB025D46B9C165d12a23";
     default:
       return null;
   }

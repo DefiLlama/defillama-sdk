@@ -137,6 +137,45 @@ test("multiCall omax", async () => {
   ]);
 });
 
+test("multiCall europa", async () => {
+  expect(
+    await multiCall({
+      calls: [
+        {
+          params: ['0x2b4e4899b53e8b7958c4591a6d02f9c0b5c50f81'],
+          target: "0x2b4e4899b53e8b7958c4591a6d02f9c0b5c50f8f",
+        },
+        {
+          params: ['0x2b4e4899b53e8b7958c4591a6d02f9c0b5c50f81'],
+          target: "0x2b4e4899b53e8b7958c4591a6d02f9c0b5c50f8f",
+        },
+      ],
+      abi: "erc20:balanceOf",
+      chain: "europa",
+    })
+  ).toEqual([
+    "0",
+    "0",
+  ]);
+  expect(
+    await multiCall({
+      calls: [
+        {
+          target: "0x7e2ceeb29aa40106d46985c776b45d9584dc2412",
+        },
+        {
+          target: "0x03d9ae04f5da332026676402442618b8b8604277",
+        },
+      ],
+      abi: "address:factory",
+      chain: "core",
+    })
+  ).toEqual([
+    "0xA1ADD165AED06D26fC1110b153ae17a5A5ae389e",
+    "0x326Ee96748E7DcC04BE1Ef8f4E4F6bdd54048932",
+  ]);
+});
+
 test("multiCall with abi", async () => {
   expect(
     await multiCall({
