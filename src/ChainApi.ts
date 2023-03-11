@@ -1,16 +1,18 @@
-import { Block, CallOptions, MulticallOptions, FetchListOptions, } from "./types";
+import { Block, CallOptions, MulticallOptions, FetchListOptions, Balances, } from "./types";
 import { Chain, getProvider,  } from "./general";
 import{ call, multiCall, fetchList } from './abi/abi2'
 import{ getBlock } from './computeTVL/blocks'
 import { ethers, } from "ethers";
 
 import { debugLog } from "./util/debugLog";
+import { sumSingleBalance } from "./generalUtil";
 
 export class ChainApi {
   block?: Block;
   chain?: Chain | string;
   timestamp?: number;
   provider: ethers.providers.BaseProvider;
+  balances: Balances;
  
   constructor(params: {
     block?: Block;
@@ -21,6 +23,7 @@ export class ChainApi {
     this.chain = params.chain ?? 'ethereum'
     this.timestamp = params.timestamp
     this.provider = getProvider(this.chain as Chain)
+    this.balances = {}
   }
 
   call(params: CallOptions) {
@@ -50,6 +53,23 @@ export class ChainApi {
   async getBlock(): Promise<number> {
     if (!this.block) this.block = (await getBlock(this.chain as Chain, this.timestamp)).block
     return this.block as number
+  }
+
+  log(...args: any) {
+    debugLog(...args)
+  }
+
+  add(token: string, balance: any, { skipChain = false} = {}) {
+    const chain = !skipChain ? this.chain : undefined
+    sumSingleBalance(this.balances, token, balance, chain)
+  }
+
+  addTokens(tokens: string[], balances: any[], { skipChain = false} = {}) {
+    tokens.forEach((v, i) => this.add(v, balances[i], { skipChain }))
+  }
+
+  addBalances(balances: Balances) {
+    Object.entries(balances).forEach(([token, balance]) => sumSingleBalance(this.balances, token, balance))
   }
 }
 
