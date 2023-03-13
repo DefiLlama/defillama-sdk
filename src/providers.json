@@ -321,9 +321,9 @@
   },
   "klaytn": {
     "rpc": [
+      "https://cypress.fautor.app/archive",    
       "https://public-node-api.klaytnapi.com/v1/cypress",
-      "https://klaytn.blockpi.network/v1/rpc/public",
-      "https://cypress.fautor.app/archive"
+      "https://klaytn.blockpi.network/v1/rpc/public"
     ],
     "chainId": 8217
   },
