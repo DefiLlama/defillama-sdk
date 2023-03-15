@@ -240,6 +240,7 @@ function multicallAddress(chainId: number) {
     case 888: // wanchain
     case 24: // kardia
     case 108: // thundercore
+      return "0xd1dC5CF410b227dFEeFEe8D3c1C9DB4FBE66d362";
     case 361: // Theta
     case 57: // Syscoin
     case 61: // etc
