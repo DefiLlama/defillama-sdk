@@ -44,7 +44,7 @@ test("ChainApi - add", async () => {
   api.add('eth', 5)
   api.add('eth', 5)
   api.add('bitcoin', 10, { skipChain: true })
-  expect(api.balances).toEqual({ 'ethereum:eth': 10, 'bitcoin': 10 });
+  expect(api.getBalances()).toEqual({ 'ethereum:eth': 10, 'bitcoin': 10 });
 })
 
 test("ChainApi - addTokens", async () => {
@@ -54,7 +54,7 @@ test("ChainApi - addTokens", async () => {
   api.add('bitcoin', 10, { skipChain: true })
   api.addTokens(['bsc', 'eth'], [15, 5])
   api.addTokens(['bitcoin', 'rsk'], [15, 5], { skipChain: true })
-  expect(api.balances).toEqual({ 'ethereum:eth': 15, 'ethereum:bsc': 15, 'bitcoin': 25, 'rsk': 5 });
+  expect(api.getBalances()).toEqual({ 'ethereum:eth': 15, 'ethereum:bsc': 15, 'bitcoin': 25, 'rsk': 5 });
 })
 
 
@@ -64,7 +64,7 @@ test("ChainApi - addBalances", async () => {
   api.add('eth', 5)
   api.add('bitcoin', 10, { skipChain: true })
   api.addBalances({'ethereum:eth': 10, 'bitcoin': 10, bsc: '50' })
-  expect(api.balances).toEqual({ 'ethereum:eth': 20, 'bitcoin': 20, bsc: '50' });
+  expect(api.getBalances()).toEqual({ 'ethereum:eth': 20, 'bitcoin': 20, bsc: '50' });
 })
 
 test("ChainApi - call", async () => {

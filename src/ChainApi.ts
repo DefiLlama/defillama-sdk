@@ -12,7 +12,7 @@ export class ChainApi {
   chain?: Chain | string;
   timestamp?: number;
   provider: ethers.providers.BaseProvider;
-  balances: Balances;
+  _balances: Balances;
  
   constructor(params: {
     block?: Block;
@@ -23,7 +23,7 @@ export class ChainApi {
     this.chain = params.chain ?? 'ethereum'
     this.timestamp = params.timestamp
     this.provider = getProvider(this.chain as Chain)
-    this.balances = {}
+    this._balances = {}
   }
 
   call(params: CallOptions) {
@@ -61,7 +61,7 @@ export class ChainApi {
 
   add(token: string, balance: any, { skipChain = false} = {}) {
     const chain = !skipChain ? this.chain : undefined
-    sumSingleBalance(this.balances, token, balance, chain)
+    sumSingleBalance(this._balances, token, balance, chain)
   }
 
   addTokens(tokens: string[], balances: any[], { skipChain = false} = {}) {
@@ -69,7 +69,11 @@ export class ChainApi {
   }
 
   addBalances(balances: Balances) {
-    Object.entries(balances).forEach(([token, balance]) => sumSingleBalance(this.balances, token, balance))
+    Object.entries(balances).forEach(([token, balance]) => sumSingleBalance(this._balances, token, balance))
+  }
+
+  getBalances(): Balances {
+    return this._balances
   }
 }
 
