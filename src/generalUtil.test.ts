@@ -1,5 +1,6 @@
-import { sumMultiBalanceOf, sumSingleBalance, mergeBalances, removeTokenBalance, } from "./generalUtil";
+import { sumMultiBalanceOf, sumSingleBalance, mergeBalances, removeTokenBalance, sumChainTvls, } from "./generalUtil";
 import { BigNumber } from "ethers"
+import ChainApi from "./ChainApi";
 
 test("sumMultiBalanceOf", () => {
   const balances = {
@@ -100,19 +101,31 @@ test("sumSingleBalance throw error on invalid input", () => {
   expect(() => sumSingleBalance({ ethereum: '1' }, 'dummy', '111a' as any, 'ethereum')).toThrowError()
 });
 
-test("removeTokenBalance", () => {
-  let balances: any = { ethereum: '7',  'polygon:0x000': '5000' };
-  let balances2 = removeTokenBalance(balances, "ethereum")
-  expect(balances).toMatchObject({  'polygon:0x000': '5000' })
-  expect(balances2).toMatchObject({  'polygon:0x000': '5000' })
+test("sumChainTvls", async () => {
+  const api = new ChainApi({})
+  api.addTokens(['a', 'b', 'c'], [1, 2, 3], { skipChain: true })
+  const balances = await (sumChainTvls([
+    () => ({ d: 5 }),
+    () => ({ d: 5 }),
+    (_, _1, _2, { api }) => api.getBalances(),
+    (_, _1, _2, { api }) => api.getBalances(),
+  ]))(0, 0, {}, { api })
+  expect(balances).toMatchObject({ 'a': 1, 'b': 2, 'c': 3, 'd': 10, })
+});
 
-  balances = { ethereum: '7',  'polygon:0x000': '5000', 'bsc:0x001': 100 }
+test("removeTokenBalance", () => {
+  let balances: any = { ethereum: '7', 'polygon:0x000': '5000' };
+  let balances2 = removeTokenBalance(balances, "ethereum")
+  expect(balances).toMatchObject({ 'polygon:0x000': '5000' })
+  expect(balances2).toMatchObject({ 'polygon:0x000': '5000' })
+
+  balances = { ethereum: '7', 'polygon:0x000': '5000', 'bsc:0x001': 100 }
   removeTokenBalance(balances, "0x000")
   removeTokenBalance(balances, "ETHEREUM")
   removeTokenBalance(balances, "BSC", true)
   expect(balances).toMatchObject({ 'bsc:0x001': 100 })
 
-  balances = { 'coingecko:ethereum': '7',  'polygon:0x000': '5000', 'bsc:0x001': 100, 'coingecko:test': 500, }
+  balances = { 'coingecko:ethereum': '7', 'polygon:0x000': '5000', 'bsc:0x001': 100, 'coingecko:test': 500, }
   removeTokenBalance(balances, "polygon")
   removeTokenBalance(balances, "missing")
   removeTokenBalance(balances, "ETHEREUM")
@@ -149,8 +162,11 @@ test("mergeBalances", () => {
   mergeBalances(balances, { "ethereum:0x000": '0' })
   expect(balances).toMatchObject({ 'ethereum:0x000': 5001, fantom: 5, avax: 10, })
 
-  balances = { }
-  mergeBalances(balances, { 'ethereum:0x000': '5000', fantom: 5, avax: 10,  })
+  balances = {}
+  const moreBalances = { 'ethereum:0x000': '5000', fantom: 5, avax: 10, }
+  mergeBalances(balances, moreBalances)
+  mergeBalances(balances, balances)
+  mergeBalances(balances, balances)
   mergeBalances(balances, { "ethereum:0x000": '0' })
   expect(balances).toMatchObject({ 'ethereum:0x000': '5000', fantom: 5, avax: 10, })
 });

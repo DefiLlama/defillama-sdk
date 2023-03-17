@@ -69,6 +69,7 @@ export class ChainApi {
   }
 
   addBalances(balances: Balances) {
+    if (balances === this._balances) return;
     Object.entries(balances).forEach(([token, balance]) => sumSingleBalance(this._balances, token, balance))
   }
 

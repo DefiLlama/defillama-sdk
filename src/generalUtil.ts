@@ -81,6 +81,7 @@ export function sumSingleBalance(
 }
 
 export function mergeBalances(balances: Balances, balancesToMerge: Balances) {
+  if (balances === balancesToMerge) return;
   Object.entries(balancesToMerge).forEach((balance) => {
     sumSingleBalance(balances, balance[0], balance[1]);
   });
@@ -115,14 +116,14 @@ export function sumChainTvls(
     chainBlocks: ChainBlocks,
     params: any,
   ) => {
-    const balances = {};
+    const api = params.api
     await Promise.all(
       chainTvls.map(async (chainTvl) => {
         const chainBalances = await chainTvl(timestamp, ethBlock, chainBlocks, params);
-        mergeBalances(balances, chainBalances);
+        api.addBalances(chainBalances);
       })
     );
-    return balances;
+    return api.getBalances()
   };
 }
 
