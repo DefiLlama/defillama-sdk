@@ -4,7 +4,7 @@ import{ call, multiCall, fetchList } from './abi/abi2'
 import{ getBlock } from './computeTVL/blocks'
 import { ethers, } from "ethers";
 
-import { debugLog } from "./util/debugLog";
+import { debugLog, debugTable, } from "./util/debugLog";
 import { sumSingleBalance } from "./generalUtil";
 
 export class ChainApi {
@@ -57,6 +57,10 @@ export class ChainApi {
 
   log(...args: any) {
     debugLog(...args)
+  }
+
+  logTable(...args: any) {
+    debugTable(...args)
   }
 
   add(token: string, balance: any, { skipChain = false} = {}) {

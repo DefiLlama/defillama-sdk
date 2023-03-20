@@ -57,6 +57,27 @@ test("ChainApi - addTokens", async () => {
   expect(api.getBalances()).toEqual({ 'ethereum:eth': 15, 'ethereum:bsc': 15, 'bitcoin': 25, 'rsk': 5 });
 })
 
+test("ChainApi - log", async () => {
+  const api = new ChainApi({})
+  api.add('eth', 5)
+  api.add('eth', 5)
+  api.add('bitcoin', 10, { skipChain: true })
+  api.addTokens(['bsc', 'eth'], [15, 5])
+  api.addTokens(['bitcoin', 'rsk'], [15, 5], { skipChain: true })
+  api.log(api.getBalances())
+})
+
+test("ChainApi - logTable", async () => {
+  const api = new ChainApi({})
+  api.add('eth', 5)
+  api.add('eth', 5)
+  api.add('bitcoin', 10, { skipChain: true })
+  api.addTokens(['bsc', 'eth'], [15, 5])
+  api.addTokens(['bitcoin', 'rsk'], [15, 5], { skipChain: true })
+  api.logTable(api.getBalances())
+})
+
+
 
 test("ChainApi - addBalances", async () => {
   const api = new ChainApi({})

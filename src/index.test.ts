@@ -94,6 +94,7 @@ test("imports", async () => {
       },
       "humanizeNumber": [Function],
       "log": [Function],
+      "logTable": [Function],
       "util": {
         "blocks": {
           "chainsForBlocks": [
