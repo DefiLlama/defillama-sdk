@@ -47,6 +47,14 @@ test("ChainApi - add", async () => {
   expect(api.getBalances()).toEqual({ 'ethereum:eth': 10, 'bitcoin': 10 });
 })
 
+test("ChainApi - addToken", async () => {
+  const api = new ChainApi({})
+  api.addToken('eth', 5)
+  api.add('eth', 5)
+  api.addToken('bitcoin', 10, { skipChain: true })
+  expect(api.getBalances()).toEqual({ 'ethereum:eth': 10, 'bitcoin': 10 });
+})
+
 test("ChainApi - addTokens", async () => {
   const api = new ChainApi({})
   api.add('eth', 5)
@@ -84,7 +92,7 @@ test("ChainApi - addBalances", async () => {
   api.add('eth', 5)
   api.add('eth', 5)
   api.add('bitcoin', 10, { skipChain: true })
-  api.addBalances({'ethereum:eth': 10, 'bitcoin': 10, bsc: '50' })
+  api.addBalances({ 'ethereum:eth': 10, 'bitcoin': 10, bsc: '50' })
   expect(api.getBalances()).toEqual({ 'ethereum:eth': 20, 'bitcoin': 20, bsc: '50' });
   api.addBalances(api.getBalances())
   api.addBalances(api.getBalances())

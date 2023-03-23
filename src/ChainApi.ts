@@ -68,6 +68,10 @@ export class ChainApi {
     sumSingleBalance(this._balances, token, balance, chain)
   }
 
+  addToken(token: string, balance: any, { skipChain = false} = {}) {
+    this.add(token, balance, { skipChain })
+  }
+
   addTokens(tokens: string[], balances: any[], { skipChain = false} = {}) {
     tokens.forEach((v, i) => this.add(v, balances[i], { skipChain }))
   }

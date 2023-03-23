@@ -726,5 +726,11 @@
       "https://rpc.ankr.com/eth_goerli"
     ],
     "chainId": 5
+  },
+  "bone": {
+    "rpc": [
+      "https://rpc.boneriumtech.com"
+    ],
+    "chainId": 9117
   }
 }
