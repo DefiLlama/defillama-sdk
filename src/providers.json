@@ -732,5 +732,11 @@
       "https://rpc.boneriumtech.com"
     ],
     "chainId": 9117
+  },
+  "era": {
+    "rpc": [
+      "https://mainnet.era.zksync.io"
+    ],
+    "chainId": 324
   }
 }
