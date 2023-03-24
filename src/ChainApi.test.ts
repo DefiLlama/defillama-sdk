@@ -85,8 +85,6 @@ test("ChainApi - logTable", async () => {
   api.logTable(api.getBalances())
 })
 
-
-
 test("ChainApi - addBalances", async () => {
   const api = new ChainApi({})
   api.add('eth', 5)
@@ -98,6 +96,13 @@ test("ChainApi - addBalances", async () => {
   api.addBalances(api.getBalances())
   api.addBalances(api.getBalances())
   expect(api.getBalances()).toEqual({ 'ethereum:eth': 20, 'bitcoin': 20, bsc: '50' });
+})
+
+test("ChainApi - getChainId", async () => {
+  expect((new ChainApi({})).getChainId()).toEqual(1);
+  expect((new ChainApi({ chain: 'arbitrum'})).getChainId()).toEqual(42161);
+  expect((new ChainApi({ chain: 'optimism'})).getChainId()).toEqual(10);
+  expect((new ChainApi({ chain: 'solana'})).getChainId()).toEqual(undefined);
 })
 
 test("ChainApi - call", async () => {

@@ -3,13 +3,14 @@ import { Chain, getProvider,  } from "./general";
 import{ call, multiCall, fetchList } from './abi/abi2'
 import{ getBlock } from './computeTVL/blocks'
 import { ethers, } from "ethers";
+import providerList from './providers.json'
 
 import { debugLog, debugTable, } from "./util/debugLog";
 import { sumSingleBalance } from "./generalUtil";
 
 export class ChainApi {
   block?: Block;
-  chain?: Chain | string;
+  chain: Chain | string;
   timestamp?: number;
   provider: ethers.providers.BaseProvider;
   _balances: Balances;
@@ -83,6 +84,11 @@ export class ChainApi {
 
   getBalances(): Balances {
     return this._balances
+  }
+
+  getChainId(): number | undefined {
+    // @ts-ignore
+    return providerList[this.chain]?.chainId
   }
 }
 
