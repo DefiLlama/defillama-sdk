@@ -321,6 +321,12 @@ function multicallAddress(chainId: number) {
       return "0x918D8F3670c67f14Ff3fEB025D46B9C165d12a23";
     case 2025: // rpg
       return "0x692D7f4B08E4490d546Cb9242F082064acd8c6cd";
+    case 324: // zksync era
+      return "0xb1F9b5FCD56122CdfD7086e017ec63E50dC075e7";
+    case 9117: // bone
+      return "0x538b8b1e982604f4949b13B495ED1684278D7845";
+    case 15551: // loop
+      return "0x474a0768AeE3D378356524F331235b3e5fD21416";
     default:
       return null;
   }
