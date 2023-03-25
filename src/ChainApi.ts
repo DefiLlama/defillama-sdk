@@ -11,6 +11,7 @@ import { sumSingleBalance } from "./generalUtil";
 export class ChainApi {
   block?: Block;
   chain: Chain | string;
+  chainId?: number;
   timestamp?: number;
   provider: ethers.providers.BaseProvider;
   _balances: Balances;
@@ -25,6 +26,8 @@ export class ChainApi {
     this.timestamp = params.timestamp
     this.provider = getProvider(this.chain as Chain)
     this._balances = {}
+    // @ts-ignore
+    this.chainId = providerList[this.chain]?.chainId
   }
 
   call(params: CallOptions) {
@@ -87,8 +90,7 @@ export class ChainApi {
   }
 
   getChainId(): number | undefined {
-    // @ts-ignore
-    return providerList[this.chain]?.chainId
+    return this.chainId
   }
 }
 
