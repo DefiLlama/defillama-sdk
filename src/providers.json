@@ -738,5 +738,11 @@
       "https://mainnet.era.zksync.io"
     ],
     "chainId": 324
+  },
+  "polygon_zkevm": {
+    "rpc": [
+      "https://zkevm-rpc.com"
+    ],
+    "chainId": 1101
   }
 }
