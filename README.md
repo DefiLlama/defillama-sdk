@@ -7,6 +7,11 @@ npm t
 npm run format
 ```
 
+### Publish
+```
+bash patchAndPublish.sh
+```
+
 ### Keys
 
 ```
