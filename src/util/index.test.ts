@@ -63,6 +63,17 @@ test("lookupBlock celo", async () => {
   expect(getDiff(block2.timestamp, 1638821718)).toBeLessThanOrEqual(15 * 60); // difference should be under 15 minutes
 });
 
+test("lookupBlock edgeCase", async () => {
+  const pZKEVMApi = new ChainApi({ chain:  'polygon_zkevm', timestamp: Math.floor((+new Date())/1e3)})
+  const evmosApi = new ChainApi({ chain:  'evmos', timestamp: Math.floor((+new Date())/1e3)})
+  await pZKEVMApi.getBlock()
+  await evmosApi.getBlock()
+  const block = await lookupBlock(1680199261, { chain: 'polygon_zkevm'});
+  const eblock = await lookupBlock(1680510084, { chain: 'evmos'});
+  expect(getDiff(block.timestamp, 1680199261)).toBeLessThanOrEqual(30 * 60); // difference should be under 15 minutes
+  expect(getDiff(eblock.timestamp, 1680510084)).toBeLessThanOrEqual(60 * 60); // difference should be under 15 minutes
+});
+
 test("getLogs", async () => {
   let poolLogs = await getLogs({
     target: "0x9424B1412450D0f8Fc2255FAf6046b98213B76Bd",

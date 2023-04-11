@@ -113,12 +113,19 @@ export async function lookupBlock(
 
   let low = intialBlocks[chain] ?? 100;
   let lowBlock: TimestampBlock, highBlock: TimestampBlock
+
   try {
+    let firstBlock, lastBlock
     const provider = getExtraProvider(chain);
-    const [lastBlock, firstBlock] = await Promise.all([
-      getBlock(provider, "latest", chain),
-      getBlock(provider, low, chain),
-    ]);
+    if (['evmos'].includes(chain)) {
+      lastBlock = await getBlock(provider, "latest", chain)
+      firstBlock = await getBlock(provider, lastBlock.number -2 * 1e5, chain) // evmos hold only the last 200k block data
+    } else {
+      [lastBlock, firstBlock] = await Promise.all([
+        getBlock(provider, "latest", chain),
+        getBlock(provider, low, chain),
+      ])
+    }
     lowBlock = firstBlock
     highBlock = lastBlock
     if (
@@ -130,7 +137,7 @@ export async function lookupBlock(
         }"`
       );
     }
-    if (Math.abs(lastBlock.timestamp - timestamp) < 60) {
+    if (Math.abs(lastBlock.timestamp - timestamp) < 60 * 30) {
       // Short-circuit in case we are trying to get the current block
       return {
         block: lastBlock.number,
@@ -150,7 +157,8 @@ export async function lookupBlock(
       const blockDiff = highBlock.number - lowBlock.number
       const timeDiff = highBlock.timestamp - lowBlock.timestamp
       const avgBlockTime = timeDiff / blockDiff
-      const closeBlock = Math.floor(lowBlock.number + (timestamp - lowBlock.timestamp) / avgBlockTime);
+      let closeBlock = Math.floor(lowBlock.number + (timestamp - lowBlock.timestamp) / avgBlockTime);
+      if (closeBlock > highBlock.number)  closeBlock = highBlock.number
       const midBlock = Math.floor((lowBlock.number + highBlock.number) / 2)
       const blocks = await Promise.all([
         getBlock(provider, closeBlock, chain),
