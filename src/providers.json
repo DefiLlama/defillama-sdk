@@ -739,6 +739,12 @@
     ],
     "chainId": 324
   },
+  "eos_evm": {
+    "rpc": [
+      "https://api.evm.eosnetwork.com"
+    ],
+    "chainId": 17777
+  },
   "polygon_zkevm": {
     "rpc": [
       "https://zkevm-rpc.com"

@@ -330,6 +330,8 @@ function multicallAddress(chainId: number) {
       return "0x474a0768AeE3D378356524F331235b3e5fD21416";
     case 1101: // polygon zkevm
       return "0x554f16d513e1eB2fDf3b8CaAAb50405415Fa405A";
+    case 17777: // EOS EVM
+      return "0xf6ded65bf69FeC06b8cc95B4B06c33a66ab58A0F";
     default:
       return null;
   }
