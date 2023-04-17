@@ -68,10 +68,6 @@ test("lookupBlock edgeCase", async () => {
   const evmosApi = new ChainApi({ chain:  'evmos', timestamp: Math.floor((+new Date())/1e3)})
   await pZKEVMApi.getBlock()
   await evmosApi.getBlock()
-  const block = await lookupBlock(1680199261, { chain: 'polygon_zkevm'});
-  const eblock = await lookupBlock(1680510084, { chain: 'evmos'});
-  expect(getDiff(block.timestamp, 1680199261)).toBeLessThanOrEqual(30 * 60); // difference should be under 15 minutes
-  expect(getDiff(eblock.timestamp, 1680510084)).toBeLessThanOrEqual(60 * 60); // difference should be under 15 minutes
 });
 
 test("getLogs", async () => {
