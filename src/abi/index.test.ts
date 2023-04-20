@@ -1,4 +1,6 @@
 import { call, multiCall } from "./index";
+const getReservesAbi = "function getReserves() view returns (uint112 _reserve0, uint112 _reserve1, uint32 _blockTimestampLast)"
+const getReservesAbi2 = "function getReserves() view returns (uint112 _reserve0, uint112 _reserve1)"
 
 const calldata = '{"abi":{"constant":true,"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"allPairs","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},"chain":"avax", "target": "0x9Ad6C38BE94206cA50bb0d90783181662f0Cfa10", "calls": []}'
 test("large muticall", async () => {
@@ -174,15 +176,7 @@ test("call doesn't include __length__", async () => {
   expect(
     await call({
       target: "0x3dfd23A6c5E8BbcFc9581d2E864a68feb6a076d3",
-      abi: {
-        constant: true,
-        inputs: [],
-        name: "getReserves",
-        outputs: [{ internalType: "address[]", name: "", type: "address[]" }],
-        payable: false,
-        stateMutability: "view",
-        type: "function",
-      },
+      abi: 'address[]:getReserves',
     })
   ).toEqual({
     output: [
@@ -326,6 +320,42 @@ test("multiCall with bool", async () => {
   });
 });
 
+test("multiCall with revert throws error", async () => {
+  await expect(async () => multiCall({
+    calls: [
+      {
+        target: "0xbb2b8038a1640196fbe3e38816f3e67cba72d940",
+        params: [],
+      },
+      {
+        target: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", // Not a pair -> reverts the tx
+        params: [],
+      },
+      {
+        target: "0xd3d2e2692501a5c9ca623199d38826e513033a17",
+        params: [],
+      },
+    ],
+    abi: getReservesAbi,
+  })).rejects;
+});
+
+test("multiCall with revert throws error2", async () => {
+  await expect(async () => multiCall({
+    calls: [
+      {
+        target: "0x89d24a6b4ccb1b6faa2625fe562bdd9a23260359",
+        params: ["0x3FfBa143f5e69Aa671C9f8e3843C88742b1FA2D9"],
+      },
+      {
+        target: "0x89d24a6b4ccb1b6faa2625fe562bdd9a23260350", // invalid target
+        params: "0x3FfBa143f5e69Aa671C9f8e3843C88742b1FA2D9",
+      },
+    ],
+    abi: "erc20:balanceOf",
+  })).rejects;
+});
+
 test("multiCall with multiple return values and reverts", async () => {
   const response = await multiCall({
     calls: [
@@ -342,24 +372,9 @@ test("multiCall with multiple return values and reverts", async () => {
         params: [],
       },
     ],
-    abi: {
-      constant: true,
-      inputs: [],
-      name: "getReserves",
-      outputs: [
-        { internalType: "uint112", name: "_reserve0", type: "uint112" },
-        { internalType: "uint112", name: "_reserve1", type: "uint112" },
-        {
-          internalType: "uint32",
-          name: "_blockTimestampLast",
-          type: "uint32",
-        },
-      ],
-      payable: false,
-      stateMutability: "view",
-      type: "function",
-    },
+    abi: getReservesAbi,
     block: 15997547,
+    permitFailure: true,
   })
 
   const expectedResponse = {
@@ -423,7 +438,6 @@ test("multiCall with parameters and cached ABI", async () => {
         },
       ],
       abi: "erc20:balanceOf",
-      block: 12039078,
     })
   ).toEqual({
     output: [
@@ -490,6 +504,7 @@ test("maker multicall doesn't throw", async () => {
         '[{"target":"0xbaa65281c2fa2baacb2cb550ba051525a480d3f4"},{"target":"0x65c79fcb50ca1594b025960e539ed7a9a6d434a3"},{"target":"0x19c0976f590d67707e62397c87829d896dc0f1f1"},{"target":"0x197e90f9fad81970ba7976f33cbd77088e5d7cf7"},{"target":"0x78f2c2af65126834c51822f56be0d7469d7a523e"},{"target":"0xab14d3ce3f733cacb76ec2abe7d2fcb00c99f3d5"},{"target":"0xbe8e3e3618f7474f8cb1d074a26affef007e98fb"},{"target":"0x2f0b23f53734252bda2277357e97e1517d6b042a"},{"target":"0x3d0b1912b66114d4096f48a8cee3a56c231772ca"},{"target":"0xad37fd42185ba63009177058208dd1be4b136e6b"},{"target":"0x4d95a049d5b0b7d32058cd3f2163015747522e99"},{"target":"0xa191e578a6736167326d05c119ce0c90849e84b7"},{"target":"0xbf72da2bd84c5170618fbe5914b0eca9638d5eb5"},{"target":"0x2600004fd1585f7270756ddc88ad9cfa10dd0428"},{"target":"0x4454af7c8bb9463203b66c816220d41ed7837f44"},{"target":"0x475f1a89c1ed844a08e8f6c50a00228b5e59e4a9"},{"target":"0xc7e8cd72bdee38865b4f5615956ef47ce1a7e5d0"},{"target":"0xa6ea3b9c04b8a38ff5e224e7c3d6937ca44c0ef9"},{"target":"0xa41b6ef151e06da0e34b009b86e828308986736d"},{"target":"0xa5679c04fc3d9d8b0aab1f0ab83555b301ca70ea"},{"target":"0x0ac6a1d74e84c2df9063bddc31699ff2a2bb22a2"},{"target":"0x7e62b7e279dfc78deb656e34d6a435cc08a44666"},{"target":"0xbea7cdfb4b49ec154ae1c0d731e4dc773a3265aa"},{"target":"0x6c186404a7a238d3d6027c0299d1822c1cf5d8f1"},{"target":"0xdfccaf8fdbd2f4805c174f856a317765b49e4a50"},{"target":"0x08638ef1a205be6762a8b935f5da9b700cf7322c"},{"target":"0x4a03aa7fb3973d8f0221b466eefb53d0ac195f55"},{"target":"0x3ff33d9162ad47660083d7dc4bc02fb231c81677"},{"target":"0xe29a14bcdea40d83675aa43b72df07f649738c8b"},{"target":"0x3bc3a58b4fc1cbe7e98bb4ab7c99535e8ba9b8f1"},{"target":"0xfd5608515a47c37afba68960c1916b79af9491d0"},{"target":"0xc7bdd1f2b16447dcf3de045c4a039a60ec2f0ba3"},{"target":"0x24e459f61ceaa7b1ce70dbaea938940a7c5ad46e"},{"target":"0x2502f65d77ca13f183850b5f9272270454094a08"},{"target":"0x0a59649758aa4d66e25f08dd01271e891fe52199"},{"target":"0x7b3799b30f268ba55f926d7f714a3001af89d359"},{"target":"0xdc26c9b7a8fe4f5df648e314ec3e6dc3694e6dd2"},{"target":"0x03ae53b33feeac1222c3f372f32d37ba95f0f099"},{"target":"0xa81598667ac561986b70ae11bbe2dd5348ed4327"},{"target":"0x4aad139a88d2dd5e7410b408593208523a3a891d"},{"target":"0xdae88bde1fb38cf39b6a02b595930a3449e593a6"},{"target":"0xf11a98339fe1cde648e8d1463310ce3ccc3d7cc1"},{"target":"0xd40798267795cbf3aeea8e9f8dcbdba9b5281fcc"},{"target":"0x42afd448df7d96291551f1efe1a590101afb1dff"},{"target":"0xaf034d882169328caf43b823a4083dabc7eee0f4"},{"target":"0x476b81c12dc71edfad1f64b9e07caa60f4b156e2"},{"target":"0x88f88bb9e66241b73b84f3a6e197fbba487b1e30"}]'
       ),
       block: 15997547,
+      permitFailure: true,
     })
   ).toEqual({
     output: JSON.parse(
@@ -625,23 +640,7 @@ test("bsc multicall", async () => {
     // No block provided!
     (
       await multiCall({
-        abi: {
-          constant: true,
-          inputs: [],
-          name: "getReserves",
-          outputs: [
-            { internalType: "uint112", name: "_reserve0", type: "uint112" },
-            { internalType: "uint112", name: "_reserve1", type: "uint112" },
-            {
-              internalType: "uint32",
-              name: "_blockTimestampLast",
-              type: "uint32",
-            },
-          ],
-          payable: false,
-          stateMutability: "view",
-          type: "function",
-        },
+        abi: getReservesAbi,
         calls: [
           { target: "0xaeBE45E3a03B734c68e5557AE04BFC76917B4686" },
           { target: "0x1B96B92314C44b159149f7E0303511fB2Fc4774f" },

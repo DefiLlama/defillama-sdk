@@ -2,7 +2,7 @@ import { Address } from "../types";
 import catchedABIs from "./cachedABIs";
 import { ethers } from "ethers";
 import { getProvider, Chain } from "../general";
-import makeMultiCall from "./multicall";
+import makeMultiCall from "./multicall3";
 import convertResults from "./convertResults";
 import { debugLog } from "../util/debugLog";
 import { getCache, setCache, CacheOptions, } from "../util/cache";
@@ -52,7 +52,7 @@ function resolveABI(providedAbi: string | any) {
   };
 }
 
-type CallParams = string | number | (string | number)[] | undefined;
+type CallParams = any;
 
 type CallOptions = {
   target: Address;
@@ -75,9 +75,10 @@ type MulticallOptions = {
   chunkSize?: number;
   skipCache?: boolean;
   contractCalls?: any;
+  permitFailure?: boolean;
 }
 
-function normalizeParams(params: CallParams): (string | number)[] {
+function normalizeParams(params: CallParams): (any)[] {
   if (params === undefined) {
     return [];
   } else if (typeof params === "object") {
@@ -167,8 +168,10 @@ export async function multiCall(params: MulticallOptions): Promise<any> {
   const flatResults = [].concat.apply([], results) as any[]
 
   const failedQueries = flatResults.filter(r => !r.success)
-  if (failedQueries.length)
+  if (failedQueries.length) {
     debugLog(`[chain: ${params.chain ?? "ethereum"}] Failed multicalls:`, failedQueries.map(r => r.input))
+    if (!params.permitFailure) throw new Error('Multicall failed!')
+  }
 
   return {
     output: flatResults, // flatten array
@@ -229,7 +232,7 @@ async function cachedMultiCall(params: MulticallOptions) {
     }
   })
 
-  if (!missing.length)  return response
+  if (!missing.length) return response
 
   params.contractCalls = missing
   const response_ = await multiCall(params)

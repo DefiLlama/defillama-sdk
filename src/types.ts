@@ -35,6 +35,7 @@ export type MulticallOptions = {
   requery?: boolean;
   withMetadata?: boolean;
   skipCache?: boolean;
+  permitFailure?: boolean;
 }
 
 export type FetchListOptions = {
