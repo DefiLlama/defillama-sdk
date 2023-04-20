@@ -232,7 +232,7 @@ async function cachedMultiCall(params: MulticallOptions) {
     }
   })
 
-  if (!missing.length) return response
+  if (!missing.length) return  { output: response }
 
   params.contractCalls = missing
   const response_ = await multiCall(params)

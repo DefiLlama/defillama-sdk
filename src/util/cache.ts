@@ -5,7 +5,7 @@ const cacheFile = process.env.CACHE_FILE
 
 let cache: any = {}
 
-if (cacheFile) cache = require(cacheFile)
+// if (cacheFile) cache = require(cacheFile) // disabled for now
 
 export function getCache(options: CacheOptions) {
   let { address, abi, chain = "ethereum" } = options
