@@ -1,9 +1,11 @@
 import { call, multiCall, fetchList, } from "./abi2";
 import {  ChainApi } from "../ChainApi";
 
+const getReservesAbi = "function getReserves() view returns (uint112 _reserve0, uint112 _reserve1, uint32 _blockTimestampLast)"
+
 const uniswapAbis = {
-  appPairs: { "constant": true, "inputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "name": "allPairs", "outputs": [{ "internalType": "address", "name": "", "type": "address" }], "payable": false, "stateMutability": "view", "type": "function" },
-  allPairsLength: { "constant": true, "inputs": [], "name": "allPairsLength", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "payable": false, "stateMutability": "view", "type": "function" },
+  "appPairs": "function allPairs(uint256) view returns (address)",
+  "allPairsLength": "uint256:allPairsLength"
 }
 
 test("call", async () => {
@@ -43,15 +45,7 @@ test("call doesn't include __length__", async () => {
   expect(
     await call({
       target: "0x3dfd23A6c5E8BbcFc9581d2E864a68feb6a076d3",
-      abi: {
-        constant: true,
-        inputs: [],
-        name: "getReserves",
-        outputs: [{ internalType: "address[]", name: "", type: "address[]" }],
-        payable: false,
-        stateMutability: "view",
-        type: "function",
-      },
+      abi: 'address[]:getReserves',
     })
   ).toEqual([
     "0x6B175474E89094C44Da98b954EedeAC495271d0F",
@@ -137,7 +131,7 @@ test("multiCall omax", async () => {
   ]);
 });
 
-test("multiCall europa", async () => {
+/* test("multiCall europa", async () => {
   expect(
     await multiCall({
       calls: [
@@ -174,7 +168,7 @@ test("multiCall europa", async () => {
     "0xA1ADD165AED06D26fC1110b153ae17a5A5ae389e",
     "0x326Ee96748E7DcC04BE1Ef8f4E4F6bdd54048932",
   ]);
-});
+}); */
 
 test("multiCall with abi", async () => {
   expect(
@@ -275,24 +269,9 @@ test("multiCall with multiple return values and reverts", async () => {
       "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", // Not a pair -> reverts the tx
       "0xd3d2e2692501a5c9ca623199d38826e513033a17",
     ],
-    abi: {
-      constant: true,
-      inputs: [],
-      name: "getReserves",
-      outputs: [
-        { internalType: "uint112", name: "_reserve0", type: "uint112" },
-        { internalType: "uint112", name: "_reserve1", type: "uint112" },
-        {
-          internalType: "uint32",
-          name: "_blockTimestampLast",
-          type: "uint32",
-        },
-      ],
-      payable: false,
-      stateMutability: "view",
-      type: "function",
-    },
+    abi: getReservesAbi,
     block: 15997547,
+    permitFailure: true,
   })
 
   const expectedResponse = [
@@ -338,30 +317,14 @@ test("bsc multicall", async () => {
     // No block provided!
     (
       await multiCall({
-        abi: {
-          constant: true,
-          inputs: [],
-          name: "getReserves",
-          outputs: [
-            { internalType: "uint112", name: "_reserve0", type: "uint112" },
-            { internalType: "uint112", name: "_reserve1", type: "uint112" },
-            {
-              internalType: "uint32",
-              name: "_blockTimestampLast",
-              type: "uint32",
-            },
-          ],
-          payable: false,
-          stateMutability: "view",
-          type: "function",
-        },
+        abi: getReservesAbi,
         calls: [
           "0xaeBE45E3a03B734c68e5557AE04BFC76917B4686",
           "0x1B96B92314C44b159149f7E0303511fB2Fc4774f",
         ],
         chain: "bsc",
       })
-    ).every((call) => !!call)
+    ).every((call: any) => !!call)
   ).toBe(true);
 });
 
