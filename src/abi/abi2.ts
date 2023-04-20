@@ -8,7 +8,7 @@ export async function call(params: CallOptions): Promise<any>  {
   return response.output
 }
 
-export async function multiCall(params: MulticallOptions): Promise<any>  {
+export async function multiCall(params: MulticallOptions): Promise<any[]>  {
   params.calls = params.calls.map(i => {
     if (typeof i === 'object') return i
     if (typeof i === 'string') {
