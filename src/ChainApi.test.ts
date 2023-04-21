@@ -65,6 +65,14 @@ test("ChainApi - addTokens", async () => {
   expect(api.getBalances()).toEqual({ 'ethereum:eth': 15, 'ethereum:bsc': 15, 'bitcoin': 25, 'rsk': 5 });
 })
 
+test("ChainApi - cosmos ", async () => {
+  const api = new ChainApi({ chain: 'injective'})
+  api.add('peggy0x1Da189c1BA3d718Cc431a2ed240a3753f89CD47A', 5)
+  api.add('ibc/kijura/isk123', 1)
+  api.add('ibc/kijura/Factory/123', 5)
+  api.add('injectiveNative', 1)
+  expect(api.getBalances()).toEqual({ 'ethereum:0x1Da189c1BA3d718Cc431a2ed240a3753f89CD47A': 5, 'injective:injectiveNative': 1, 'ibc:kijura:isk123': 1, 'ibc:kijura:Factory:123': 5 });
+})
 test("ChainApi - log", async () => {
   const api = new ChainApi({})
   api.add('eth', 5)

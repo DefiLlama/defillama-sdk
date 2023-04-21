@@ -1,7 +1,7 @@
 import { Block, CallOptions, MulticallOptions, FetchListOptions, Balances, } from "./types";
-import { Chain, getProvider,  } from "./general";
-import{ call, multiCall, fetchList } from './abi/abi2'
-import{ getBlock } from './computeTVL/blocks'
+import { Chain, getProvider, } from "./general";
+import { call, multiCall, fetchList } from './abi/abi2'
+import { getBlock } from './computeTVL/blocks'
 import { ethers, } from "ethers";
 import providerList from './providers.json'
 
@@ -15,7 +15,7 @@ export class ChainApi {
   timestamp?: number;
   provider: ethers.providers.BaseProvider;
   _balances: Balances;
- 
+
   constructor(params: {
     block?: Block;
     chain?: Chain | string;
@@ -67,16 +67,25 @@ export class ChainApi {
     debugTable(...args)
   }
 
-  add(token: string, balance: any, { skipChain = false} = {}) {
-    const chain = !skipChain ? this.chain : undefined
+  add(token: string, balance: any, { skipChain = false } = {}) {
+    token = token.replace(/\//g, ':')
+    const isIBCToken = token.startsWith('ibc:')
+    let chain: string | undefined = this.chain
+    if (skipChain || isIBCToken) {
+      chain = undefined
+    }
+    if (chain === 'injective' && token.startsWith('peggy0x')) {
+      chain = 'ethereum'
+      token = token.replace('peggy', '')
+    }
     sumSingleBalance(this._balances, token, balance, chain)
   }
 
-  addToken(token: string, balance: any, { skipChain = false} = {}) {
+  addToken(token: string, balance: any, { skipChain = false } = {}) {
     this.add(token, balance, { skipChain })
   }
 
-  addTokens(tokens: string[], balances: any[], { skipChain = false} = {}) {
+  addTokens(tokens: string[], balances: any[], { skipChain = false } = {}) {
     tokens.forEach((v, i) => this.add(v, balances[i], { skipChain }))
   }
 
