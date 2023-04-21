@@ -169,7 +169,7 @@ export async function multiCall(params: MulticallOptions): Promise<any> {
 
   const failedQueries = flatResults.filter(r => !r.success)
   if (failedQueries.length) {
-    debugLog(`[chain: ${params.chain ?? "ethereum"}] Failed multicalls:`, failedQueries.map(r => r.input))
+    debugLog(`[chain: ${params.chain ?? "ethereum"}] [abi: ${params.abi}] Failed multicalls:`, failedQueries.map(r => r.input))
     if (!params.permitFailure) throw new Error('Multicall failed!')
   }
 
@@ -222,7 +222,7 @@ async function cachedMultiCall(params: MulticallOptions) {
     const cachedValue = getCache(cacheObject)
     if (cachedValue) {
       response[i] = {
-        input: value,
+        input: { target: value.contract, params: value.params, },
         output: cachedValue,
         success: true,
       }
