@@ -29,9 +29,13 @@ export async function multiCall(params: MulticallOptions): Promise<any[]>  {
 }
 
 export async function fetchList(params: FetchListOptions) {
-  const { startFrom = 0, lengthAbi, itemAbi, withMetadata, ...commonParams } = params
-  const itemLength = await call({ ...commonParams, abi: lengthAbi, })
+  let { startFrom = 0, lengthAbi, itemAbi, withMetadata, startFromOne = false , ...commonParams } = params
+  let itemLength = await call({ ...commonParams, abi: lengthAbi, })
   debugLog('length: ', itemLength)
+  if (startFromOne) {
+    itemLength++
+    if (startFrom === 0) startFrom = 1
+  }
   const calls = []
   for (let i = startFrom; i < itemLength; i++)  calls.push(i)
   return multiCall({ ...commonParams,  abi: itemAbi, calls, withMetadata })

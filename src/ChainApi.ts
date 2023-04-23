@@ -38,6 +38,10 @@ export class ChainApi {
     })
   }
 
+  batchCall(params: CallOptions[]) {
+    return Promise.all(params.map(i => this.call(i)))
+  }
+
   multiCall(params: MulticallOptions) {
     return multiCall({
       ...params,

@@ -46,4 +46,5 @@ export type FetchListOptions = {
   target: Address;
   chain?: Chain | string;
   withMetadata?: boolean;
+  startFromOne?: boolean;
 }

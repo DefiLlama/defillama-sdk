@@ -15,6 +15,7 @@ const DEPLOYMENT_BLOCK = {
   optimism: 4286263,
   polygon: 25770160,
   polygon_zkevm: 57746,
+  fantom: 33001987,
   bsc: 15921452,
   moonriver: 609002,
   moonbeam: 609002,
@@ -37,7 +38,7 @@ const DEPLOYMENT_BLOCK = {
   flare: 3002461,
   milkomeda: 4377424,
   velas: 55883577,
-  telos: 246530709,
+  // telos: 246530709,
   step: 5734583,
   canto: 2905789,
   iotex: 22163670,
@@ -57,6 +58,8 @@ export default async function makeMultiCall(
   chain: Chain,
   block?: BlockTag,
 ): Promise<any> {
+  if (!functionABI) throw new Error('Missing ABI parameter')
+  if (calls.some(i => !i.contract))   throw new Error('Missing target, abi:' + functionABI)
   if (!isMulticallV3Supported(chain, block))
     return makeMultiCallV2(functionABI, calls, chain, block)
   const contractInterface = new ethers.utils.Interface([functionABI])
