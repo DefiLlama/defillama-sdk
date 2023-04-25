@@ -238,7 +238,7 @@ async function cachedMultiCall(params: MulticallOptions) {
       response[i] = {
         input: { target: value.contract, params: value.params, },
         output: null,
-        success: params,
+        success: false,
       }
       debugLog(params.abi, 'Bad target passed:', value.contract, 'skipping call and returning null output for this')
       return;
