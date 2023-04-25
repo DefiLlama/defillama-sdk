@@ -8,6 +8,8 @@ import { debugLog } from "../util/debugLog";
 import { getCache, setCache, CacheOptions, } from "../util/cache";
 import { runInPromisePool, sliceIntoChunks, } from "../util";
 
+const nullAddress = '0x0000000000000000000000000000000000000000'
+
 // https://docs.soliditylang.org/en/latest/abi-spec.html
 const knownTypes = [
   'string', 'address', 'bool',
@@ -17,9 +19,10 @@ const knownTypes = [
 
 ([...knownTypes]).forEach(i => knownTypes.push(i + '[]')) // support array type for all known types
 
-const defaultChunkSize = !!process.env.SDK_MULTICALL_CHUNK_SIZE ? +process.env.SDK_MULTICALL_CHUNK_SIZE : 500
+const defaultChunkSize = !!process.env.SDK_MULTICALL_CHUNK_SIZE ? +process.env.SDK_MULTICALL_CHUNK_SIZE : 300
 
 function resolveABI(providedAbi: string | any) {
+  if (!providedAbi) throw new Error('Missing ABI parameter!')
   let abi = providedAbi;
   if (typeof abi === "string") {
     const [outputType, name] = providedAbi.split(':')
@@ -96,7 +99,13 @@ function fixBlockTag(params: any) {
   params.block = block
 }
 
+function isValidTarget(target: string) {
+  if (typeof target !== 'string') return false
+  return target.startsWith('0x') && target !== nullAddress
+}
+
 export async function call(params: CallOptions): Promise<any> {
+  if (!isValidTarget(params.target)) throw new Error('Invalid target: ' + params.target)
   fixBlockTag(params)
   if (catchedABIs[params.abi]) params.abi = catchedABIs[params.abi]
   if (!params.skipCache) return cachedCall(params)
@@ -132,7 +141,7 @@ export async function multiCall(params: MulticallOptions): Promise<any> {
   if (catchedABIs[params.abi]) params.abi = catchedABIs[params.abi]
   const chain = params.chain ?? 'ethereum'
   if (!params.calls) throw new Error('Missing calls parameter')
-  if (params.target && !params.target.startsWith('0x')) throw new Error('Invalid target: ' + params.target)
+  if (params.target && !isValidTarget(params.target)) throw new Error('Invalid target: ' + params.target)
 
   if (!params.calls.length) {
     return { output: [] }
@@ -142,6 +151,18 @@ export async function multiCall(params: MulticallOptions): Promise<any> {
   if (!params.chunkSize) {
     // Only a max of around 500 calls are supported by multicall, we have to split bigger batches
     chunkSize = defaultChunkSize
+  }
+
+  if (!params.target && !params.permitFailure) {
+    // check if target adddress is missing for one of the calls
+    if (params.calls.some((i: any) => {
+      if (typeof i === 'string' && i.startsWith('0x')) return !isValidTarget(i)
+      if (typeof i === 'object') return !isValidTarget(i.target)
+      return true
+    })) {
+      debugLog('Multicall is missing target', JSON.stringify(params, null, 2))
+      throw new Error('Multicall is missing a target')
+    }
   }
 
   let contractCalls = params.contractCalls;
@@ -161,7 +182,7 @@ export async function multiCall(params: MulticallOptions): Promise<any> {
   const abi = resolveABI(params.abi);
   const results = await runInPromisePool({
     items: sliceIntoChunks(contractCalls, chunkSize),
-    concurrency: 20,
+    concurrency: 10,
     processor: (calls: any) => makeMultiCall(abi, calls, chain as Chain, params.block)
   })
 
@@ -206,46 +227,60 @@ async function cachedCall(params: CallOptions) {
 
 async function cachedMultiCall(params: MulticallOptions) {
   params.skipCache = true
-  if (!isCachableAbi(params.abi)) return multiCall(params)
+  const isCacheable = isCachableAbi(params.abi)
 
   const response: any = []
   const missing: any = []
   const missingIndices: number[] = []
 
   params.contractCalls.forEach((value: any, i: number) => {
-
-    const cacheObject: CacheOptions = {
-      abi: params.abi,
-      chain: params.chain,
-      address: value.contract,
-    }
-    const cachedValue = getCache(cacheObject)
-    if (cachedValue) {
+    if (!isValidTarget(value.contract)) {
       response[i] = {
         input: { target: value.contract, params: value.params, },
-        output: cachedValue,
-        success: true,
+        output: null,
+        success: params,
       }
-    } else {
-      missing.push(value)
-      missingIndices.push(i)
+      debugLog(params.abi, 'Bad target passed:', value.contract, 'skipping call and returning null output for this')
+      return;
     }
+
+    if (isCacheable) {
+      const cacheObject: CacheOptions = {
+        abi: params.abi,
+        chain: params.chain,
+        address: value.contract,
+      }
+      const cachedValue = getCache(cacheObject)
+      if (cachedValue) {
+        response[i] = {
+          input: { target: value.contract, params: value.params, },
+          output: cachedValue,
+          success: true,
+        }
+        return;
+      }
+    }
+
+    missing.push(value)
+    missingIndices.push(i)
   })
 
-  if (!missing.length) return  { output: response }
+  if (!missing.length) return { output: response }
 
   params.contractCalls = missing
   const response_ = await multiCall(params)
 
   response_.output.forEach((value: any, i: number) => {
-    const cacheObject: CacheOptions = {
-      abi: params.abi,
-      chain: params.chain,
-      address: value.input.target,
-      value: value.output
-    }
+    if (isCacheable) {
+      const cacheObject: CacheOptions = {
+        abi: params.abi,
+        chain: params.chain,
+        address: value.input.target,
+        value: value.output
+      }
 
-    setCache(cacheObject)
+      setCache(cacheObject)
+    }
 
     response[missingIndices[i]] = value
   })

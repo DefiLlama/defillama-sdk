@@ -65,8 +65,9 @@ test("ChainApi - addTokens", async () => {
   expect(api.getBalances()).toEqual({ 'ethereum:eth': 15, 'ethereum:bsc': 15, 'bitcoin': 25, 'rsk': 5 });
 })
 
+
 test("ChainApi - cosmos ", async () => {
-  const api = new ChainApi({ chain: 'injective'})
+  const api = new ChainApi({ chain: 'injective' })
   api.add('peggy0x1Da189c1BA3d718Cc431a2ed240a3753f89CD47A', 5)
   api.add('ibc/kijura/isk123', 1)
   api.add('ibc/kijura/Factory/123', 5)
@@ -108,9 +109,9 @@ test("ChainApi - addBalances", async () => {
 
 test("ChainApi - getChainId", async () => {
   expect((new ChainApi({})).getChainId()).toEqual(1);
-  expect((new ChainApi({ chain: 'arbitrum'})).getChainId()).toEqual(42161);
-  expect((new ChainApi({ chain: 'optimism'})).getChainId()).toEqual(10);
-  expect((new ChainApi({ chain: 'solana'})).getChainId()).toEqual(undefined);
+  expect((new ChainApi({ chain: 'arbitrum' })).getChainId()).toEqual(42161);
+  expect((new ChainApi({ chain: 'optimism' })).getChainId()).toEqual(10);
+  expect((new ChainApi({ chain: 'solana' })).getChainId()).toEqual(undefined);
 })
 
 test("ChainApi - call", async () => {
@@ -139,3 +140,26 @@ test("ChainApi - multiCall", async () => {
     '0xECDbF021475C391564977a0A2d7BF9235bf13578'
   ]);
 })
+
+test("bad paramters throw error", async () => {
+  const nullAddress = '0x0000000000000000000000000000000000000000'
+  const testAbi = uniswapAbis.allPairsLength
+  const apiBsc = new ChainApi({ chain: 'bsc' })
+  const apiEth = new ChainApi({})
+  await apiBsc.multiCall({ abi: testAbi, calls: ['0xa098751d407796d773032f5cc219c3e6889fb893'] })
+
+  await expect(apiBsc.multiCall({ abi: testAbi, calls: ['0xa098751d407796d773032f5cc219c3e6889fb893', ''] })).rejects.toThrowError()
+  await expect(apiEth.multiCall({ abi: testAbi, calls: [{}] })).rejects.toThrowError()
+  await expect(apiEth.multiCall({ abi: testAbi, calls: [nullAddress] })).rejects.toThrowError()
+});
+
+test("bad paramters does not throw error with permitFailure Flag", async () => {
+  const nullAddress = '0x0000000000000000000000000000000000000000'
+  const testAbi = uniswapAbis.allPairsLength
+  const apiBsc = new ChainApi({ chain: 'bsc' })
+  const apiEth = new ChainApi({})
+  const testRes = await apiEth.multiCall({ abi: testAbi, permitFailure: true, calls: [nullAddress, 'ethTest'] })
+  const testRes2 = await apiBsc.multiCall({ abi: testAbi, permitFailure: true, calls: [nullAddress, 'tester', undefined as any, {}, '0xa098751d407796d773032f5cc219c3e6889fb893'] })
+  expect(testRes).toEqual([null, null])
+  expect(testRes2).toEqual([null, null, null, null, "2"])
+});

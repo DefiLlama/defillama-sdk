@@ -18,10 +18,6 @@ export async function multiCall(params: MulticallOptions): Promise<any[]>  {
     return { params: i }
   })
 
-  if (!params.target) {
-    if (params.calls.some(i => !i.target)) throw new Error('Missing target parameter')
-  }
-
   const { output } = await abi1.multiCall(params as any)
 
   if (params.withMetadata) return output
