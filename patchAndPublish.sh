@@ -1,6 +1,6 @@
 git checkout master
 git pull
-ts-node src/util/updateProviderList.ts
+npm run update-providers
 npm run test
 if [[ $? -ne 0 ]] ; then
   echo "Unit test failed, fix it before publishing new version"
@@ -11,7 +11,7 @@ npm version patch
 git push
 rm -rf build
 rm LICENSE
-ts-node src/util/updateProviderList.ts
+npm run update-providers
 npm publish
 git checkout master -- LICENSE
 git checkout master -- src/providers.json
