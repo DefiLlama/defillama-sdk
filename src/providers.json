@@ -157,6 +157,7 @@
   },
   "songbird": {
     "rpc": [
+      "https://songbird-api.flare.network/ext/C/rpc",
       "https://sgb.ftso.com.au/ext/bc/C/rpc"
     ],
     "chainId": 19

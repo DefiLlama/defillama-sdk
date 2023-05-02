@@ -66,7 +66,9 @@ test("lookupBlock celo", async () => {
 test("lookupBlock edgeCase", async () => {
   const pZKEVMApi = new ChainApi({ chain:  'polygon_zkevm', timestamp: Math.floor((+new Date())/1e3)})
   const evmosApi = new ChainApi({ chain:  'evmos', timestamp: Math.floor((+new Date())/1e3)})
-  await pZKEVMApi.getBlock()
+  const songbirdApi = new ChainApi({ chain:  'songbird', timestamp: Math.floor((+new Date())/1e3)})
+  // await pZKEVMApi.getBlock()
+  await songbirdApi.getBlock()
   await evmosApi.getBlock()
 });
 
