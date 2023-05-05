@@ -201,6 +201,7 @@
   },
   "fuse": {
     "rpc": [
+      "https://fuse-rpc.gateway.pokt.network",
       "https://rpc.fuse.io"
     ],
     "chainId": 122
