@@ -752,5 +752,12 @@
       "https://zkevm-rpc.com"
     ],
     "chainId": 1101
+  },
+  "bearnetworkchain": {
+    "rpc": [
+      "https://brnkc-mainnet.bearnetwork.net",
+      "https://brnkc-mainnet1.bearnetwork.net"
+    ],
+    "chainId": 641230
   }
 }
