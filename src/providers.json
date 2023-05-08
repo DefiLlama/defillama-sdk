@@ -752,5 +752,11 @@
       "https://zkevm-rpc.com"
     ],
     "chainId": 1101
+  },
+  "grove": {
+    "rpc": [
+      "https://mainnet.grovechain.io"
+    ],
+    "chainId": 770077
   }
 }

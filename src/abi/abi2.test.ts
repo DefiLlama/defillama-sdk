@@ -131,6 +131,21 @@ test("multiCall omax", async () => {
   ]);
 });
 
+test("multiCall grove", async () => {
+  expect(
+    await multiCall({
+      calls: [
+        { target: "0xE85f139488c689038028a3EB8fC38dcC29D4C340", },
+        { target: "0xE85f139488c689038028a3EB8fC38dcC29D4C340", },
+        { target: "0xE85f139488c689038028a3EB8fC38dcC29D4C340", },
+        { target: "0xE85f139488c689038028a3EB8fC38dcC29D4C340", },
+      ],
+      abi: "string:name",
+      chain: "grove",
+    })
+  ).toEqual(['Wrapped GRV', 'Wrapped GRV', 'Wrapped GRV', 'Wrapped GRV']);
+});
+
 /* test("multiCall europa", async () => {
   expect(
     await multiCall({

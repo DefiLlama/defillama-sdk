@@ -332,6 +332,8 @@ function multicallAddress(chainId: number) {
       return "0x554f16d513e1eB2fDf3b8CaAAb50405415Fa405A";
     case 17777: // EOS EVM
       return "0xf6ded65bf69FeC06b8cc95B4B06c33a66ab58A0F";
+    case 770077: // grove
+      return "0x118fa9297F4E2cBB310133A8aAa695f0e14D04c3";
     default:
       return null;
   }
