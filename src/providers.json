@@ -764,5 +764,11 @@
       "https://public-node.api.boraportal.io/bora/mainnet"
     ],
     "chainId": 77001
+  },
+  "pulsechain": {
+    "rpc": [
+      "https://rpc.pulsechain.com"
+    ],
+    "chainId": 369
   }
 }
