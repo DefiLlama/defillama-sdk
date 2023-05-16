@@ -765,7 +765,7 @@
     ],
     "chainId": 77001
   },
-  "pulsechain": {
+  "pulse": {
     "rpc": [
       "https://rpc.pulsechain.com"
     ],

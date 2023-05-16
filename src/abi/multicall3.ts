@@ -45,6 +45,7 @@ const DEPLOYMENT_BLOCK = {
   bitgert: 2118034,
   kava: 3661165,
   dfk: 14790551,
+  pulse: 14353601,
 } as {
   [key: string | Chain]: number
 }

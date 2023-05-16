@@ -14,6 +14,12 @@ test("multicall bsc", async () => {
   expect(output[0].success).toEqual(true);
 });
 
+test("multicall pulse", async () => {
+  const output = await makeMultiCall(decimalsAbi, [{ contract: '0xdac17f958d2ee523a2206206994597c13d831ec7', params: [] }], 'pulse')
+  expect(output[0].output).toEqual('6');
+  expect(output[0].success).toEqual(true);
+});
+
 test("multicall3: pre multicall3 deploy", async () => {
   const output = await makeMultiCall(decimalsAbi, [{ contract: '0xdac17f958d2ee523a2206206994597c13d831ec7', params: [] }], 'ethereum', 14353001)
   expect(output[0].output).toEqual('6');
