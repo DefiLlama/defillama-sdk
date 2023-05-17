@@ -499,7 +499,7 @@
   },
   "echelon": {
     "rpc": [
-      "https://rpc.ech.network"
+      "https://jrpc.eu.ech.world"
     ],
     "chainId": 3000
   },
