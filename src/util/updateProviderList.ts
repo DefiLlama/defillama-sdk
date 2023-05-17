@@ -10,13 +10,13 @@ function fetchJson(url: string) {
 async function main() {
   let chainData = await fetchJson('https://chainid.network/chains.json')
   const existingChainIds = new Set(Object.values(providerList).map(i => i.chainId))
-  const existingChainNames = new Set(Object.keys(providerList))
+  const existingChainNames = new Set(Object.keys(providerList).map(i => i.toLowerCase()))
   chainData = chainData
     .filter((i: any) => i.rpc.length)
     .filter((i: any) => !i.status || i.status === 'active')
     .filter((i: any) => i.shortName)
     .filter((i: any) => !existingChainIds.has(i.chainId))
-    .filter((i: any) => !existingChainNames.has(i.shortName))
+    .filter((i: any) => !existingChainNames.has(i.shortName.toLowerCase()))
   chainData.forEach((i: any) => {
     i.rpc = i.rpc.filter((j: any) => !/wss:/.test(j))
   })
