@@ -23,16 +23,6 @@ interface TimestampBlock {
   timestamp: number;
 }
 
-const kavaBlockProvider = {
-  getBlock: async (height: number | "latest"): Promise<TimestampBlock> =>
-    fetch(`https://api.data.kava.io/blocks/${height}`)
-      .then((res) => res.json())
-      .then((block: any) => ({
-        number: Number(block.block.header.height),
-        timestamp: Math.round(Date.parse(block.block.header.time) / 1000)
-      }))
-};
-
 const terraBlockProvider = {
   getBlock: async (height: number | "latest"): Promise<TimestampBlock> =>
     fetch(`https://lcd.terra.dev/blocks/${height}`)
@@ -73,8 +63,6 @@ async function getBlock(
 function getExtraProvider(chain: string | undefined) {
   if (chain === "terra") {
     return terraBlockProvider;
-  } else if (chain === "kava") {
-    return kavaBlockProvider;
   } else if (chain === "algorand") {
     return algorandBlockProvider;
   }

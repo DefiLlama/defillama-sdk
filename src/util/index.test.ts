@@ -1,6 +1,7 @@
 import {
   lookupBlock,
   getLogs,
+  getLatestBlock,
 } from "./index";
 
 import ChainApi from "../ChainApi";
@@ -10,6 +11,11 @@ jest.setTimeout(20000);
 function getDiff(a: number, b: number): number {
   return (a > b) ? a - b : b - a;
 }
+
+test("kava - get block", async () => {
+  await getLatestBlock('kava')
+  await lookupBlock(1669037786, {chain: 'kava'})
+});
 
 test("ChainApi - ethereum", async () => {
   const ethApi = new ChainApi({chain: 'ethereum', timestamp: 1669037786 })
