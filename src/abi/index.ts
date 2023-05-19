@@ -7,6 +7,7 @@ import convertResults from "./convertResults";
 import { debugLog } from "../util/debugLog";
 import { getCache, setCache, CacheOptions, } from "../util/cache";
 import { runInPromisePool, sliceIntoChunks, } from "../util";
+import * as Tron from './tron'
 
 const nullAddress = '0x0000000000000000000000000000000000000000'
 
@@ -99,18 +100,20 @@ function fixBlockTag(params: any) {
   params.block = block
 }
 
-function isValidTarget(target: string) {
+function isValidTarget(target: string, chain?: string) {
   if (typeof target !== 'string') return false
+  if (chain === 'tron') return true;
   return target.startsWith('0x') && target !== nullAddress
 }
 
 export async function call(params: CallOptions): Promise<any> {
-  if (!isValidTarget(params.target)) throw new Error('Invalid target: ' + params.target)
+  if (!isValidTarget(params.target, params.chain)) throw new Error('Invalid target: ' + params.target)
   fixBlockTag(params)
   if (catchedABIs[params.abi]) params.abi = catchedABIs[params.abi]
   if (!params.skipCache) return cachedCall(params)
   const abi = resolveABI(params.abi);
   const callParams = normalizeParams(params.params);
+  if (params.chain === 'tron') return Tron.call({ ...params, abi, params: callParams })
 
   const contractInterface = new ethers.utils.Interface([abi]);
   const functionABI = ethers.utils.FunctionFragment.from(abi);
@@ -141,7 +144,7 @@ export async function multiCall(params: MulticallOptions): Promise<any> {
   if (catchedABIs[params.abi]) params.abi = catchedABIs[params.abi]
   const chain = params.chain ?? 'ethereum'
   if (!params.calls) throw new Error('Missing calls parameter')
-  if (params.target && !isValidTarget(params.target)) throw new Error('Invalid target: ' + params.target)
+  if (params.target && !isValidTarget(params.target, chain)) throw new Error('Invalid target: ' + params.target)
 
   if (!params.calls.length) {
     return { output: [] }
@@ -234,7 +237,7 @@ async function cachedMultiCall(params: MulticallOptions) {
   const missingIndices: number[] = []
 
   params.contractCalls.forEach((value: any, i: number) => {
-    if (!isValidTarget(value.contract)) {
+    if (!isValidTarget(value.contract, params.chain)) {
       response[i] = {
         input: { target: value.contract, params: value.params, },
         output: null,

@@ -25,7 +25,8 @@
   "dependencies": {
     "@supercharge/promise-pool": "^2.1.0",
     "ethers": "^5.4.5",
-    "node-fetch": "^2.6.7"
+    "node-fetch": "^2.6.7",
+    "tron-format-address": "^0.1.11"
   },
   "devDependencies": {
     "@types/jest": "^29.2.3",

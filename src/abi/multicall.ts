@@ -6,6 +6,7 @@ import { call } from "./rpcCall";
 import { BlockTag } from "@ethersproject/providers"
 import { debugLog } from "../util/debugLog"
 import { runInPromisePool, sliceIntoChunks, } from "../util"
+import * as Tron from './tron'
 
 export const MULTICALL_ADDRESS_MAINNET =
   "0xeefba1e63905ef1d7acba5a8513c70307c1ce441";
@@ -49,6 +50,7 @@ export default async function makeMultiCall(
   chain: Chain,
   block?: BlockTag,
 ) {
+  if (chain === 'tron') return Tron.multiCall(functionABI, calls)
   const contractInterface = new ethers.utils.Interface([functionABI]);
   let fd = Object.values(contractInterface.functions)[0];
 
@@ -154,7 +156,7 @@ async function executeCalls(
 
 async function multicallAddressOrThrow(chain: Chain) {
   const network = await getProvider(chain).getNetwork();
-  const address = multicallAddress(network.chainId);
+  const address = multicallAddress(network?.chainId);
   if (address === null) {
     const msg = `multicall is not available on the network ${network.chainId}`;
     console.error(msg);
@@ -164,8 +166,8 @@ async function multicallAddressOrThrow(chain: Chain) {
 }
 
 export function networkSupportsMulticall(chain: Chain) {
-  const network = getProvider(chain).network;
-  const address = multicallAddress(network.chainId);
+  const network = getProvider(chain)?.network;
+  const address = multicallAddress(network?.chainId);
   return address !== null;
 }
 
