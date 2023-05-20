@@ -39,6 +39,14 @@
     ],
     "chainId": 250
   },
+  "filecoin": {
+    "rpc": [
+      "https://api.node.glif.io",
+      "https://filecoin.chainup.net/rpc/v1",
+      "https://rpc.ankr.com/filecoin"
+    ],
+    "chainId": 314
+  },
   "rsk": {
     "rpc": [
       "https://public-node.rsk.co"
