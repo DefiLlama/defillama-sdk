@@ -62,6 +62,15 @@ test("multicall: tron", async () => {
   ).toEqual(["TGnK2w6vWX9dTL7ZsbXAarvc1CVujv9os8", tronPair, "TPT5yEpBxtS18cEGpRkkrBAANB4pD79ERT", "TF7ALfmpZeMhQhzJK8JXfhghrH7Exk2gkx", "TXemHTu125mZqubnibGPXrbgqKe89nV2Dv"]);
 });
 
+test("multicall no target passed: tron", async () => {
+  expect(
+    await tronApi.multiCall({
+      abi: "address:token0",
+      calls: ['TS2xnL5XW4JqMgSVizrhGLKNBekn5ubrLr', 'TLw6HAYJxZG2SEsmn2fx8myaqeFkGRa9KH', 'TAUtMLMQUcabAr48pJgxNUmX2zfDMSPptb', 'TEYbSjBNBN1kphjvbjKsBbtPLa5QdgArdx', 'TXPbj1xgKKWFuM6R4qG9iQx1Ao1aiBShML', 'TVGdFgp1oKksGXcozoYdM614by7pdJnzty',]
+    })
+  ).toEqual(["TLa2f6VPqDgRE67v1736s7bJ8Ray5wYjU7", "TCFLL5dx5ZJdKnWuesXxi1VPwjLVmWZZy9", "TNUC9Qb1rRpS5CbWLmNMxXBjyFoydXjWFR", "TNUC9Qb1rRpS5CbWLmNMxXBjyFoydXjWFR", "TNUC9Qb1rRpS5CbWLmNMxXBjyFoydXjWFR", "TKqvrVG7a2zJvQ3VysLoiz9ijuMNDehwy7",]);
+});
+
 test("tron: getBalance", async () => {
   expect(
     await getBalance({

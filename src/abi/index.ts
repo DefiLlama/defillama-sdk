@@ -159,8 +159,8 @@ export async function multiCall(params: MulticallOptions): Promise<any> {
   if (!params.target && !params.permitFailure) {
     // check if target adddress is missing for one of the calls
     if (params.calls.some((i: any) => {
-      if (typeof i === 'string' && i.startsWith('0x')) return !isValidTarget(i)
-      if (typeof i === 'object') return !isValidTarget(i.target)
+      if (typeof i === 'string' && i.startsWith('0x')) return !isValidTarget(i, params.chain)
+      if (typeof i === 'object') return !isValidTarget(i.target, params.chain)
       return true
     })) {
       debugLog('Multicall is missing target', JSON.stringify(params, null, 2))
