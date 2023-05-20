@@ -1,15 +1,17 @@
 
 import fetch from "node-fetch";
-import { BytesLike, ParamType } from "ethers/lib/utils";
+import { ParamType } from "ethers/lib/utils";
 import { ethers } from "ethers";
 import { fromHex, toHex } from 'tron-format-address'
 import { Address } from "../types";
 import convertResults from "./convertResults";
 import { debugLog } from "../util/debugLog"
 import { runInPromisePool, sliceIntoChunks, } from "../util"
+import { handleDecimals } from "../general";
 
 const ownerAddress = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t'
 const endpoint = 'https://rpc.ankr.com/http/tron/wallet/triggerconstantcontract'
+const MULTICALL_ADDRESS = 'TGXuuKAb4bnrn137u39EKbYzKNXvdCes98'
 
 type CallParams = any;
 
@@ -18,24 +20,6 @@ type CallOptions = {
   abi: string | any;
   params?: CallParams;
   isMulticall?: boolean;
-}
-
-async function post(body = {}) {
-  const response = await fetch(endpoint, {
-    method: 'post',
-    body: JSON.stringify(body),
-    headers: { 'Content-Type': 'application/json' }
-  });
-  return response.json()
-}
-
-function unhexifyTarget(address: string) {
-  if (address.startsWith('0x')) return fromHex(address)
-  return address
-}
-function hexifyTarget(address: string) {
-  if (!address.startsWith('0x')) return toHex(address)
-  return address
 }
 
 export async function call(options: CallOptions) {
@@ -86,8 +70,6 @@ export async function call(options: CallOptions) {
   };
 }
 
-const MULTICALL_ADDRESS = 'TGXuuKAb4bnrn137u39EKbYzKNXvdCes98'
-
 export async function multiCall(
   functionABI: any,
   calls: {
@@ -107,6 +89,30 @@ export async function multiCall(
       output,
     };
   });
+}
+
+
+export async function getBalance(params: {
+  target: Address;
+  decimals?: number;
+}) {
+  const { output: balance } = await call({ target: MULTICALL_ADDRESS, abi: ETH_BALANCE_API, params: [params.target] })
+  return {
+    output: handleDecimals(balance, params.decimals),
+  };
+}
+
+// TODO: Optimize this? (not sure if worth it tho, barely any adapters use it)
+export async function getBalances(params: {
+  targets: Address[];
+  block?: number;
+  decimals?: number;
+}) {
+  const { targets, decimals} = params
+  const res = await multiCall(ETH_BALANCE_API, targets.map((i: any) => ({ contract: MULTICALL_ADDRESS, params: [hexifyTarget(i)]})) as any)
+  return {
+    output: res.map((v: any, i:number) => ({ target: params.targets[i], balance: handleDecimals(v.output, decimals)})),
+  };
 }
 
 async function executeCalls(
@@ -176,6 +182,24 @@ async function executeCalls(
   })
 }
 
+function unhexifyTarget(address: string) {
+  if (address.startsWith('0x')) return fromHex(address)
+  return address
+}
+function hexifyTarget(address: string) {
+  if (!address.startsWith('0x')) return toHex(address)
+  return address
+}
+
+async function post(body = {}) {
+  const response = await fetch(endpoint, {
+    method: 'post',
+    body: JSON.stringify(body),
+    headers: { 'Content-Type': 'application/json' }
+  });
+  return response.json()
+}
+
 // this is needed else correct function identifier wont be picked up while calling
 const MULTICALL_ABI = {
   "inputs": [
@@ -212,4 +236,26 @@ const MULTICALL_ABI = {
   ],
   "stateMutability": "view",
   "type": "function"
+}
+
+const ETH_BALANCE_API = {
+  constant: true,
+  inputs: [
+    {
+      internalType: 'address',
+      name: 'addr',
+      type: 'address',
+    },
+  ],
+  name: 'getEthBalance',
+  outputs: [
+    {
+      internalType: 'uint256',
+      name: 'balance',
+      type: 'uint256',
+    },
+  ],
+  payable: false,
+  stateMutability: 'view',
+  type: 'function',
 }

@@ -1,4 +1,5 @@
 import { ChainApi } from "../ChainApi";
+import { getBalance, getBalances } from "../eth/index";
 
 jest.setTimeout(20000);
 
@@ -25,7 +26,7 @@ test("call tron address TR...", async () => {
   ).toEqual("6");
 });
 
-test("call: get token balance", async () => {
+test("tron call: get token balance", async () => {
   expect(
     await tronApi.call({
       target: tUSDT,
@@ -35,7 +36,7 @@ test("call: get token balance", async () => {
   ).toEqual("0");
 });
 
-test("call: uniswap methods", async () => {
+test("tron call: uniswap methods", async () => {
   expect(
     +await tronApi.call({
       target: intercroneFactory,
@@ -52,16 +53,33 @@ test("call: uniswap methods", async () => {
 });
 
 test("multicall: tron", async () => {
-  // await tronApi.call({ target: intercroneFactory, abi: 'function aggregate(Call[] calldata calls) external view returns (uint256 blockNumber, bytes[] memory returnData)'})
   expect(
     await tronApi.multiCall({
       target: intercroneFactory,
       abi: "function allPairs(uint256) view returns (address)",
-      calls: [
-        // 25, 
-        0, 1, 2, 3, 4
-      ]
+      calls: [0, 1, 2, 3, 4]
     })
-  ).toEqual( ["TGnK2w6vWX9dTL7ZsbXAarvc1CVujv9os8", tronPair, "TPT5yEpBxtS18cEGpRkkrBAANB4pD79ERT", "TF7ALfmpZeMhQhzJK8JXfhghrH7Exk2gkx", "TXemHTu125mZqubnibGPXrbgqKe89nV2Dv"]);
+  ).toEqual(["TGnK2w6vWX9dTL7ZsbXAarvc1CVujv9os8", tronPair, "TPT5yEpBxtS18cEGpRkkrBAANB4pD79ERT", "TF7ALfmpZeMhQhzJK8JXfhghrH7Exk2gkx", "TXemHTu125mZqubnibGPXrbgqKe89nV2Dv"]);
 });
 
+test("tron: getBalance", async () => {
+  expect(
+    await getBalance({
+      chain: 'tron',
+      target: intercroneFactory,
+    })
+  ).toEqual({ "output": "0" });
+});
+
+test("tron: getBalances", async () => {
+  const res = await getBalances({
+    chain: 'tron',
+    targets: [intercroneFactory, tronPair],
+  })
+  expect(res).toEqual({
+    "output": [
+      { "target": intercroneFactory, "balance": "0" },
+      { "target": tronPair, "balance": "498" },
+    ]
+  })
+});
