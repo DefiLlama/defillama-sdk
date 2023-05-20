@@ -36,6 +36,16 @@ test("tron call: get token balance", async () => {
     })
   ).toEqual("0");
 });
+test("tron multicall: get token balance", async () => {
+  const res = await tronApi.multiCall({
+    calls: [
+      { target: tUSDT, params: intercroneFactory, },
+      { target: tUSDT, params: intercroneFactory, },
+    ],
+    abi: "erc20:balanceOf",
+  })
+  expect(res.map(i => +i)).toEqual([0, 0]);
+});
 
 test("tron call: uniswap methods", async () => {
   expect(

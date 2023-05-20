@@ -77,6 +77,14 @@ export async function multiCall(
     params: any[];
   }[]
 ) {
+  if (functionABI.inputs?.length) {
+    const inputs = functionABI.inputs
+    calls.forEach((call: any) => {
+      call.params?.forEach((v: any, i: number) => {
+        if (inputs[i].type === 'address') call.params[i] = hexifyTarget(v)
+      })
+    })
+  }
   const returnValues = await executeCalls(functionABI, calls);
 
   return returnValues.map((output: any, index: number) => {
