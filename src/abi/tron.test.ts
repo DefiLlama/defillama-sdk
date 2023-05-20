@@ -45,6 +45,7 @@ test("tron multicall: get token balance", async () => {
     abi: "erc20:balanceOf",
   })
   expect(res.map(i => +i)).toEqual([0, 0]);
+  expect(res).toEqual(['0', '0']);
 });
 
 test("tron call: uniswap methods", async () => {

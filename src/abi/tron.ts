@@ -156,8 +156,7 @@ async function executeCalls(
         let outputName = functionABI.outputs[i].name
         if (outputName && outputName.length) output[outputName] = v
       })
-      if (output.length === 1) output = output[0]
-      return output
+      return convertResults(output)
     })
   } catch (e) {
     console.error(e)
