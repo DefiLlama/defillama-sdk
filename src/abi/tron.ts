@@ -59,11 +59,11 @@ export async function call(options: CallOptions) {
   decodedResult = [...decodedResult]
   decodedResult.forEach((v: any, i: number) => {
     if (outputTypes[i] === 'address' && v.startsWith('0x')) {
-      const newValue = fromHex(v)
-      decodedResult[i] = newValue
-      let outputName = abi.outputs[i].name
-      if (outputName && outputName.length) decodedResult[outputName] = newValue
+      v = fromHex(v)
+      decodedResult[i] = v
     }
+    let outputName = abi.outputs[i].name
+    if (outputName && outputName.length) decodedResult[outputName] = v
   })
   return {
     output: convertResults(decodedResult),
@@ -108,10 +108,10 @@ export async function getBalances(params: {
   block?: number;
   decimals?: number;
 }) {
-  const { targets, decimals} = params
-  const res = await multiCall(ETH_BALANCE_API, targets.map((i: any) => ({ contract: MULTICALL_ADDRESS, params: [hexifyTarget(i)]})) as any)
+  const { targets, decimals } = params
+  const res = await multiCall(ETH_BALANCE_API, targets.map((i: any) => ({ contract: MULTICALL_ADDRESS, params: [hexifyTarget(i)] })) as any)
   return {
-    output: res.map((v: any, i:number) => ({ target: params.targets[i], balance: handleDecimals(v.output, decimals)})),
+    output: res.map((v: any, i: number) => ({ target: params.targets[i], balance: handleDecimals(v.output, decimals) })),
   };
 }
 
@@ -142,11 +142,11 @@ async function executeCalls(
       let output = [...decodedResult]
       output.forEach((v: any, i: number) => {
         if (outputTypes[i] === 'address' && v.startsWith('0x')) {
-          const newValue = fromHex(v)
-          output[i] = newValue
-          let outputName = functionABI.outputs[i].name
-          if (outputName && outputName.length) output[outputName] = newValue
+          v = fromHex(v)
+          output[i] = v
         }
+        let outputName = functionABI.outputs[i].name
+        if (outputName && outputName.length) output[outputName] = v
       })
       if (output.length === 1) output = output[0]
       return output

@@ -7,6 +7,7 @@ const intercroneFactory = 'TPvaMEL5oY2gWsJv7MDjNQh2dohwvwwVwx'
 const tronPair = 'TW1gkyFAHstM33MJVk6tmKdcaPKkD2G4MG'
 const tUSDT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t'
 const tronApi = new ChainApi({ chain: 'tron' })
+const reservesAbi = "function getReserves() view returns (uint112 _reserve0, uint112 _reserve1, uint32 _blockTimestampLast)"
 
 test("call tron address 0x", async () => {
   expect(
@@ -69,6 +70,25 @@ test("multicall no target passed: tron", async () => {
       calls: ['TS2xnL5XW4JqMgSVizrhGLKNBekn5ubrLr', 'TLw6HAYJxZG2SEsmn2fx8myaqeFkGRa9KH', 'TAUtMLMQUcabAr48pJgxNUmX2zfDMSPptb', 'TEYbSjBNBN1kphjvbjKsBbtPLa5QdgArdx', 'TXPbj1xgKKWFuM6R4qG9iQx1Ao1aiBShML', 'TVGdFgp1oKksGXcozoYdM614by7pdJnzty',]
     })
   ).toEqual(["TLa2f6VPqDgRE67v1736s7bJ8Ray5wYjU7", "TCFLL5dx5ZJdKnWuesXxi1VPwjLVmWZZy9", "TNUC9Qb1rRpS5CbWLmNMxXBjyFoydXjWFR", "TNUC9Qb1rRpS5CbWLmNMxXBjyFoydXjWFR", "TNUC9Qb1rRpS5CbWLmNMxXBjyFoydXjWFR", "TKqvrVG7a2zJvQ3VysLoiz9ijuMNDehwy7",]);
+});
+
+test("call: output params with labels are honoured", async () => {
+  const res = await tronApi.call({
+    abi: reservesAbi,
+    target: 'TS2xnL5XW4JqMgSVizrhGLKNBekn5ubrLr'
+  })
+  expect(res._reserve0).toBeDefined()
+  expect(res._reserve1).toBeDefined()
+});
+test("multicall: output params with labels are honoured", async () => {
+  const res = await tronApi.multiCall({
+    abi: reservesAbi,
+    calls: ['TS2xnL5XW4JqMgSVizrhGLKNBekn5ubrLr', 'TLw6HAYJxZG2SEsmn2fx8myaqeFkGRa9KH', 'TAUtMLMQUcabAr48pJgxNUmX2zfDMSPptb', 'TEYbSjBNBN1kphjvbjKsBbtPLa5QdgArdx', 'TXPbj1xgKKWFuM6R4qG9iQx1Ao1aiBShML', 'TVGdFgp1oKksGXcozoYdM614by7pdJnzty',]
+  })
+  res.forEach((i: any) => {
+    expect(i._reserve0).toBeDefined()
+    expect(i._reserve1).toBeDefined()
+  })
 });
 
 test("tron: getBalance", async () => {
