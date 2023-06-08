@@ -770,5 +770,11 @@
       "https://rpc.pulsechain.com"
     ],
     "chainId": 369
+  },
+  "onus": {
+    "rpc": [
+      "https://rpc.onuschain.io"
+    ],
+    "chainId": 1975
   }
 }

@@ -20,6 +20,18 @@ test("multicall pulse", async () => {
   expect(output[0].success).toEqual(true);
 });
 
+test("multicall onus", async () => {
+  const output = await makeMultiCall(decimalsAbi, [{ contract: '0x4c761E48d1E735af551cc38ABCBDCe1d7FaaC6E4', params: [] }], 'onus')
+  expect(output[0].output).toEqual('18');
+  expect(output[0].success).toEqual(true);
+});
+
+test("multicall kardia", async () => {
+  const output = await makeMultiCall(decimalsAbi, [{ contract: '0xAF984E23EAA3E7967F3C5E007fbe397D8566D23d', params: [] }], 'kardia')
+  expect(output[0].output).toEqual('18');
+  expect(output[0].success).toEqual(true);
+});
+
 test("multicall3: pre multicall3 deploy", async () => {
   const output = await makeMultiCall(decimalsAbi, [{ contract: '0xdac17f958d2ee523a2206206994597c13d831ec7', params: [] }], 'ethereum', 14353001)
   expect(output[0].output).toEqual('6');
