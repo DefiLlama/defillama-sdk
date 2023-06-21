@@ -1,6 +1,6 @@
 {
   "name": "@chaos-labs/defillama-sdk",
-  "version": "2.3.99",
+  "version": "2.3.100",
   "description": "SDK for calculating TVL",
   "main": "build/index.js",
   "scripts": {
