@@ -116,6 +116,7 @@ export const providers = {
   posi: createProvider("posi", "https://api.posichain.org,https://api.s0.posichain.org", 900000),
   arbitrum_nova: createProvider("posi", "https://nova.arbitrum.io/rpc", 42170),
   goerli: createProvider("goerli", "https://rpc.ankr.com/eth_goerli,https://goerli.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161", 5),
+  arbitrum_goerli: createProvider("arbitrum_goerli", "https://endpoints.omniatech.io/v1/arbitrum/goerli/public", 421613),
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
@@ -202,6 +203,7 @@ export type Chain =
   | "posi"
   | "arbitrum_nova"
   | "goerli"
+  | "arbitrum_goerli"
 export function getProvider(chain: Chain = "ethereum") {
   return providers[chain];
 }
