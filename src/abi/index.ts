@@ -1,4 +1,4 @@
-import { Address } from "../types";
+import { Address, ByteCodeCallOptions, } from "../types";
 import catchedABIs from "./cachedABIs";
 import { ethers } from "ethers";
 import { getProvider, Chain } from "../general";
@@ -133,6 +133,23 @@ export async function call(params: CallOptions): Promise<any> {
     functionABI,
     result
   );
+
+  return {
+    output: convertResults(decodedResult),
+  };
+}
+
+export async function bytecodeCall(params: ByteCodeCallOptions): Promise<any> {
+  fixBlockTag(params)
+  const { block, bytecode, inputTypes, inputs, outputTypes, chain } = params
+  if (!bytecode) throw new Error('Missing bytecode parameter!')
+  if (chain === 'tron') throw new Error('Bytecode call is not supported on Tron')
+
+  const inputData = ethers.utils.defaultAbiCoder.encode(inputTypes, inputs);
+  const callData = '0x' + bytecode.concat(inputData.slice(2))
+
+  const result = await getProvider(chain as Chain).call({ data: callData, }, block ?? "latest");
+  const decodedResult = ethers.utils.defaultAbiCoder.decode(outputTypes, result)
 
   return {
     output: convertResults(decodedResult),

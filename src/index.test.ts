@@ -9,6 +9,7 @@ test("imports", async () => {
       "ChainApi": [Function],
       "api": {
         "abi": {
+          "bytecodeCall": [Function],
           "call": [Function],
           "multiCall": [Function],
         },
@@ -41,6 +42,7 @@ test("imports", async () => {
       },
       "api2": {
         "abi": {
+          "bytecodeCall": [Function],
           "call": [Function],
           "fetchList": [Function],
           "multiCall": [Function],
@@ -99,9 +101,11 @@ test("imports", async () => {
         "setCache": [Function],
         "startCache": [Function],
       },
+      "getProvider": [Function],
       "humanizeNumber": [Function],
       "log": [Function],
       "logTable": [Function],
+      "setProvider": [Function],
       "util": {
         "blocks": {
           "chainsForBlocks": [

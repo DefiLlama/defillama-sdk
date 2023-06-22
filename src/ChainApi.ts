@@ -1,6 +1,6 @@
-import { Block, CallOptions, MulticallOptions, FetchListOptions, Balances, } from "./types";
+import { Block, CallOptions, MulticallOptions, FetchListOptions, Balances, ByteCodeCallOptions } from "./types";
 import { Chain, getProvider, } from "./general";
-import { call, multiCall, fetchList } from './abi/abi2'
+import { call, multiCall, fetchList, bytecodeCall } from './abi/abi2'
 import { getBlock } from './computeTVL/blocks'
 import { ethers, } from "ethers";
 import providerList from './providers.json'
@@ -52,6 +52,14 @@ export class ChainApi {
 
   fetchList(params: FetchListOptions) {
     return fetchList({
+      ...params,
+      block: this.block,
+      chain: this.chain,
+    })
+  }
+
+  bytecodeCall(params: ByteCodeCallOptions) {
+    return bytecodeCall({
       ...params,
       block: this.block,
       chain: this.chain,

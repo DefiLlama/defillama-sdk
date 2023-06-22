@@ -39,7 +39,7 @@ export type MulticallOptions = {
 }
 
 export type FetchListOptions = {
-  lengthAbi: string | any;
+  lengthAbi?: string | any;
   itemAbi: string | any;
   block?: Block;
   startFrom?: number;
@@ -47,4 +47,15 @@ export type FetchListOptions = {
   chain?: Chain | string;
   withMetadata?: boolean;
   startFromOne?: boolean;
+  itemCount?: number;
+}
+
+export type ByteCodeCallOptions = {
+  bytecode: string;
+  inputTypes: string[];
+  inputs: any[];
+  block?: number | string;
+  chain?: Chain | string;
+  outputTypes: string[];
+  withMetadata?: boolean;
 }

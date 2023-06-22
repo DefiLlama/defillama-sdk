@@ -1,6 +1,7 @@
 import { debugLog, debugTable } from "./util/debugLog"
 
 export { ChainApi } from './ChainApi'
+export { getProvider, setProvider } from './general'
 export * as util from "./generalUtil";
 export * as cache from "./util/cache";
 export * as api from "./api";
