@@ -776,5 +776,11 @@
       "https://rpc.onuschain.io"
     ],
     "chainId": 1975
+  },
+  "ozone":{
+    "rpc": [
+      "https://node1.ozonechain.io"
+    ],
+    "chainId": 4000
   }
 }
