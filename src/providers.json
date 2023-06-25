@@ -776,5 +776,13 @@
       "https://rpc.onuschain.io"
     ],
     "chainId": 1975
+  },
+  "filecoin": {
+    "rpc": [
+      "https://api.node.glif.io",
+      "https://rpc.ankr.com/filecoin",
+      "https://rpc.themis.capital/filecoin"
+    ],
+    "chainId": 314
   }
 }
