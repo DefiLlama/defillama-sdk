@@ -776,5 +776,11 @@
       "https://rpc.onuschain.io"
     ],
     "chainId": 1975
+  },
+  "rollux": {
+    "rpc": [
+      "https://rpc.rollux.com"
+    ],
+    "chainId": 570
   }
 }
