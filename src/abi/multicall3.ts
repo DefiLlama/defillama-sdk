@@ -47,6 +47,7 @@ const DEPLOYMENT_BLOCK = {
   dfk: 14790551,
   pulse: 14353601,
   onus: 805931,
+  rollux: 119222,
 } as {
   [key: string | Chain]: number
 }
@@ -102,6 +103,7 @@ export default async function makeMultiCall(
     let multicallAddress = MULTICALL_V3_ADDRESS
     switch (chain) {  
       case 'onus': multicallAddress = '0x748c384f759cc596f0d9fa96dcabe8a11e443b30'; break;
+      case 'rollux': multicallAddress = '0xcA11bde05977b3631167028862bE2a173976CA11'; break;
     }
     const { output: returnData } = await call({ chain, block, target: multicallAddress, abi: 'function tryAggregate(bool requireSuccess, tuple(address target, bytes callData)[] calls) payable returns (tuple(bool success, bytes returnData)[] returnData)', params: [false, contractCalls.map((call) => [call.to, call.data])] })
 
