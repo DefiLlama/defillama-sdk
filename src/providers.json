@@ -811,5 +811,13 @@
       "https://developer-access-mainnet.base.org/"
     ],
     "chainId": 8453
+  },
+  "darwinia": {
+    "rpc": [
+      "https://rpc.darwinia.network",
+      "https://darwinia-rpc.darwiniacommunitydao.xyz",
+      "https://darwinia-rpc.dwellir.com"
+    ],
+    "chainId": 46
   }
 }
