@@ -208,7 +208,7 @@
   },
   "smartbch": {
     "rpc": [
-      "https://smartbch.greyh.at"
+      "https://smartbch.fountainhead.cash/mainnet,https://smartbch.greyh.at"
     ],
     "chainId": 10000
   },
