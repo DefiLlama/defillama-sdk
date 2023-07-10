@@ -112,6 +112,7 @@ test("ChainApi - getChainId", async () => {
   expect((new ChainApi({ chain: 'arbitrum' })).getChainId()).toEqual(42161);
   expect((new ChainApi({ chain: 'optimism' })).getChainId()).toEqual(10);
   expect((new ChainApi({ chain: 'solana' })).getChainId()).toEqual(undefined);
+  expect((new ChainApi({ chain: 'solana' })).provider).toEqual(null);
 })
 
 test("ChainApi - call", async () => {
