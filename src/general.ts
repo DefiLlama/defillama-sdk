@@ -1,48 +1,75 @@
+import { debugLog} from './util/debugLog'
 import { ethers, BigNumber } from "ethers"
 import providerList from './providers.json'
 
+function createProvider(name: string, rpcString: string, chainId: number) {
+  const rpcList = rpcString.split(',')
 
-function createProvider(name: string, defaultRpc: string, chainId: number) {
   if (process.env.HISTORICAL) {
     if (chainId === 1) {
       console.log("RPC providers set to historical, only the first RPC provider will be used")
     }
     return new ethers.providers.StaticJsonRpcProvider(
-      (process.env[name.toUpperCase() + "_RPC"] ?? defaultRpc)?.split(',')[0],
+      rpcList[0],
       {
         name,
         chainId,
       }
     )
   } else {
-    return new ethers.providers.FallbackProvider(
-      (process.env[name.toUpperCase() + "_RPC"] ?? defaultRpc).split(',').map((url, i) => ({
-        provider: new ethers.providers.StaticJsonRpcProvider(
-          url,
-          {
-            name,
-            chainId,
-          }
-        ),
-        priority: i
-      })),
-      1
-    )
+    try {
+      return new ethers.providers.FallbackProvider(
+        rpcList.map((url, i) => ({
+          provider: new ethers.providers.StaticJsonRpcProvider(
+            url,
+            {
+              name,
+              chainId,
+            }
+          ),
+          priority: i
+        })),
+        1
+      )
+    } catch (e) {
+      debugLog(`Error creating provider for ${name} with RPCs: ${rpcList.join(', ')}`)
+      // we dont throw errors for chains not present in providers.json, these can be non-evm chains like solana
+      if ((providerList as any)[name])
+        throw e
+      return null
+    }
   }
 }
 
+type Provider = ethers.providers.StaticJsonRpcProvider | ethers.providers.FallbackProvider
+
+type ProviderWrapped = {
+  rpcList: string;
+  _provider: Provider;
+}
+
 export const providers = {} as {
-  [chain: string]: ethers.providers.BaseProvider;
+  [chain: string]: ProviderWrapped;
 };
 
-Object.entries(providerList).forEach(([name, value]) => {
-  const { rpc, chainId } = value as any
-  providers[name] = createProvider(name, rpc.join(','), chainId)
-})
-
 export type Chain = string
-export function getProvider(chain: Chain = "ethereum"): ethers.providers.BaseProvider {
-  return providers[chain];
+export function getProvider(chain: Chain = "ethereum"): Provider {
+  // use RPC from env variable if set else use RPC from providers.json
+  let rpcList: (string | undefined) = process.env[chain.toUpperCase() + "_RPC"]
+  if (!rpcList) rpcList = (providerList as any)[chain]?.rpc.join(',')
+  if (!rpcList) {
+    // in case provider was set using `setProvider` function
+    if (providers[chain]) return providers[chain]._provider
+    // @ts-ignore (throwing error here would alter function behavior and have side effects)
+    return null
+  }
+  if (!providers[chain] || providers[chain].rpcList !== rpcList) {
+    providers[chain] = {
+      rpcList,
+      _provider: (createProvider(chain, rpcList, (providerList as any)[chain]?.chainId) as Provider)
+    }
+  }
+  return providers[chain]._provider
 }
 
 export const TEN = BigNumber.from(10);
@@ -59,7 +86,10 @@ export const ETHER_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 export function setProvider(
   chain: Chain,
-  provider: ethers.providers.BaseProvider
+  provider: Provider
 ) {
-  providers[chain] = provider;
+  providers[chain] = {
+    rpcList: "",
+    _provider: provider
+  }
 }
