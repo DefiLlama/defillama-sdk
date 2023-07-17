@@ -133,6 +133,7 @@ export function getMulticallAddress(chain: Chain, block?: BlockTag) {
   let multicallAddress = MULTICALL_V3_ADDRESS
   switch (chain) {
     case 'onus': multicallAddress = '0x748c384f759cc596f0d9fa96dcabe8a11e443b30'; break;
+    case 'era': multicallAddress = '0xF9cda624FBC7e059355ce98a31693d299FACd963'; break;
     case 'tron': multicallAddress = 'TEazPvZwDjDtFeJupyo7QunvnrnUjPH8ED'; break;
   }
   return multicallAddress
