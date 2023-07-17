@@ -10,7 +10,7 @@ import { runInPromisePool, sliceIntoChunks, } from "../util"
 import { handleDecimals } from "../general";
 
 const ownerAddress = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t'
-const endpoint = 'https://rpc.ankr.com/http/tron/wallet/triggerconstantcontract'
+const endpoint = 'https://api.trongrid.io/wallet/triggerconstantcontract'
 const MULTICALL_ADDRESS = 'TGXuuKAb4bnrn137u39EKbYzKNXvdCes98'
 
 type CallParams = any;
