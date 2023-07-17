@@ -782,5 +782,11 @@
       "https://rpc.rollux.com"
     ],
     "chainId": 570
+  },
+  "linea": {
+    "rpc": [
+      "https://linea-mainnet.infura.io/v3"
+    ],
+    "chainId": 59144
   }
 }

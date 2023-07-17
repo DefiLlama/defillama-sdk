@@ -18,7 +18,6 @@ export async function getBalance(params: {
   };
 }
 
-// TODO: Optimize this? (not sure if worth it tho, barely any adapters use it)
 export async function getBalances(params: {
   targets: Address[];
   block?: number;

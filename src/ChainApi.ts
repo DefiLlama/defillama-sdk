@@ -6,8 +6,11 @@ import { ethers, } from "ethers";
 import providerList from './providers.json'
 
 import { debugLog, debugTable, } from "./util/debugLog";
-import { sumSingleBalance } from "./generalUtil";
+import { sumSingleBalance, getUniqueAddresses, } from "./generalUtil";
+import { getMulticallAddress } from "./abi/multicall3";
+import { getBalances } from "./eth";
 
+const nullAddress = '0x0000000000000000000000000000000000000000'
 export class ChainApi {
   block?: Block;
   chain: Chain | string;
@@ -113,6 +116,69 @@ export class ChainApi {
   getChainId(): number | undefined {
     return this.chainId
   }
+
+  async sumTokens({
+    tokens = [],
+    owners = [],
+    tokensAndOwners = [],
+    tokensAndOwners2 = [],
+    blacklistedTokens = [],
+    blacklistedOwners = [],
+  }: {
+    tokens?: string[],
+    owners?: string[],
+    tokensAndOwners?: string[][],
+    tokensAndOwners2?: string[][],
+    blacklistedTokens?: string[],
+    blacklistedOwners?: string[],
+  }): Promise<Balances> {
+
+    if (tokensAndOwners2.length)
+      tokensAndOwners.push(...tokensAndOwners2[0].map((i: string, j: number) => [i, tokensAndOwners2[1][j]]))
+
+    if (tokens.length && owners.length)
+      tokensAndOwners.push(...tokens.map(i => owners.map(j => [i, j])).flat())
+
+    tokensAndOwners = getUniqueTokensAndOwners(tokensAndOwners, this.chain as string)
+    blacklistedOwners = getUniqueAddresses(blacklistedOwners)
+    blacklistedTokens = getUniqueAddresses(blacklistedTokens)
+
+    tokensAndOwners = tokensAndOwners.filter(i => !blacklistedTokens.includes(i[0]) && !blacklistedOwners.includes(i[1]))
+    const ethBalOwners = tokensAndOwners.filter(i => i[0] === nullAddress).map(i => i[1])
+    tokensAndOwners = tokensAndOwners.filter(i => i[0] !== nullAddress)
+
+    const bals = await this.multiCall({
+      calls: tokensAndOwners.map(i => ({ target: i[0], params: [i[1]] })),
+      abi: 'erc20:balanceOf',
+    })
+    this.addTokens(tokensAndOwners.map(i => i[0]), bals)
+
+    if (ethBalOwners.length) {
+      let ethBals: string[] = []
+      const multicallAddress = getMulticallAddress(this.chain as string, this.block)
+      if (multicallAddress) {
+        ethBals = await this.multiCall({
+          calls: ethBalOwners,
+          target: multicallAddress,
+          abi: 'function getEthBalance(address) view returns (uint256)',
+        })
+      } else {
+        const res = await getBalances({ chain: this.chain as string, targets: ethBalOwners, block: this.block as number })
+        ethBals = res.output.map((i: any) => i.balance)
+      }
+      ethBals.map(i => this.addToken(nullAddress, i))
+    }
+
+    return this.getBalances()
+  }
 }
 
 export default ChainApi
+
+
+function getUniqueTokensAndOwners(toa: string[][], chain?: string): string[][] {
+  if (!toa.length) return []
+  const mergedToa = toa.map(i => i.join('~'))
+  const uniqueMerged = getUniqueAddresses(mergedToa, chain)
+  return uniqueMerged.map(i => i.split('~'))
+}
