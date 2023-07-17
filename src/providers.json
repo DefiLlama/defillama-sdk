@@ -788,5 +788,11 @@
       "https://linea-mainnet.infura.io/v3"
     ],
     "chainId": 59144
+  },
+  "mantle": {
+    "rpc": [
+      "https://rpc.mantle.xyz"
+    ],
+    "chainId": 5000
   }
 }

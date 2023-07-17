@@ -59,6 +59,7 @@ const DEPLOYMENT_BLOCK = {
   dogechain: 14151696,
   tron: 51067989,
   era: 3908235,
+  mantle: 3962,
 
 } as {
   [key: string | Chain]: number
@@ -134,6 +135,7 @@ export function getMulticallAddress(chain: Chain, block?: BlockTag) {
   switch (chain) {
     case 'onus': multicallAddress = '0x748c384f759cc596f0d9fa96dcabe8a11e443b30'; break;
     case 'era': multicallAddress = '0xF9cda624FBC7e059355ce98a31693d299FACd963'; break;
+    case 'mantle': multicallAddress = '0x05f3105fc9FC531712b2570f1C6E11dD4bCf7B3c'; break;
     case 'tron': multicallAddress = 'TEazPvZwDjDtFeJupyo7QunvnrnUjPH8ED'; break;
   }
   return multicallAddress
