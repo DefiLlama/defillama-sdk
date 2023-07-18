@@ -56,7 +56,7 @@ const DEPLOYMENT_BLOCK = {
   linea: 42,
   zora: 5882,
   eos_evm: 7943933,
-  dogechain: 14151696,
+  // dogechain: 14151696, // for some reason this is not working
   tron: 51067989,
   era: 3908235,
   mantle: 3962,
