@@ -271,12 +271,33 @@ test("ChainApi - sumTokens - era", async () => {
     "era:0x0000000000000000000000000000000000000000": "1000000000000000",
   })
 })
+
 test("ChainApi - sumTokens - mantle", async () => {
   const api = new ChainApi({ chain: 'mantle' })
   const polkaMultisig = '0x3BfC20f0B9aFcAcE800D73D2191166FF16540258'
-  const token1 = '0xfb243bc5e98286e8560f17c3f6b48203afe43139'
   const blacklistedToken = '0xfe633a37c77241b825f1cf39afff44cb56242b77'
-  const token2 = '0x537edd52ebcb9f48ff2f8a28c51fcdb9d6a6e0d4'
+  const blacklistedToken2Owner = '0xc5Fba8936315A57217222593f0A6Bb0Bdcc2985B'
+  const res = await api.sumTokens({
+    tokensAndOwners2: [
+      [nullAddress, nullAddress],
+      [polkaMultisig, polkaMultisig, polkaMultisig],
+    ],
+    tokensAndOwners: [
+      [nullAddress, polkaMultisig],
+      [nullAddress, polkaMultisig],
+    ],
+    blacklistedTokens: [blacklistedToken],
+    blacklistedOwners: [blacklistedToken2Owner],
+    tokens: [nullAddress],
+    owners: [polkaMultisig, blacklistedToken2Owner],
+  })
+  expect(res).toEqual({})
+})
+
+test("ChainApi - sumTokens - neon_evm", async () => {
+  const api = new ChainApi({ chain: 'neon_evm' })
+  const polkaMultisig = '0x3BfC20f0B9aFcAcE800D73D2191166FF16540258'
+  const blacklistedToken = '0xfe633a37c77241b825f1cf39afff44cb56242b77'
   const blacklistedToken2Owner = '0xc5Fba8936315A57217222593f0A6Bb0Bdcc2985B'
   const res = await api.sumTokens({
     tokensAndOwners2: [

@@ -60,7 +60,7 @@ const DEPLOYMENT_BLOCK = {
   tron: 51067989,
   era: 3908235,
   mantle: 3962,
-
+  neon_evm: 205939275,
 } as {
   [key: string | Chain]: number
 }
@@ -137,6 +137,7 @@ export function getMulticallAddress(chain: Chain, block?: BlockTag) {
     case 'era': multicallAddress = '0xF9cda624FBC7e059355ce98a31693d299FACd963'; break;
     case 'mantle': multicallAddress = '0x05f3105fc9FC531712b2570f1C6E11dD4bCf7B3c'; break;
     case 'tron': multicallAddress = 'TEazPvZwDjDtFeJupyo7QunvnrnUjPH8ED'; break;
+    case 'neon_evm': multicallAddress = '0x2f6eee8ee450a959e640b6fb4dd522b5d5dcd20f'; break;
   }
   return multicallAddress
 }

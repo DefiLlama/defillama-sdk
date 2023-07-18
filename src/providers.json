@@ -794,5 +794,11 @@
       "https://rpc.mantle.xyz"
     ],
     "chainId": 5000
+  },
+  "neon_evm": {
+    "rpc": [
+      "https://neon-proxy-mainnet.solana.p2p.org"
+    ],
+    "chainId": 245022934
   }
 }
