@@ -555,8 +555,11 @@
   },
   "bitgert": {
     "rpc": [
+      "https://flux-rpc1.brisescan.com",
+      "https://flux-rpc2.brisescan.com",
+      "https://mainnet-rpc.brisescan.com",
       "https://rpc.icecreamswap.com",
-      "https://nodes.vefinetwork.org/bitgert"
+      "https://chainrpc.com"
     ],
     "chainId": 32520
   },
