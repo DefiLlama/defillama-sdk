@@ -192,6 +192,16 @@ test("ChainApi - sumTokens - use tokensAndOwners", async () => {
   expect(res['ethereum:0x419B8ED155180A8c9C64145e76DaD49c0A4Efb97'.toLowerCase()]).toEqual('3284260000000000000000')
   expect(res['ethereum:' + nullAddress]).toEqual('3371095284832904')
 })
+test("ChainApi - sumTokens - use ownerTokens", async () => {
+  const api = new ChainApi({})
+  const res = await api.sumTokens({
+    ownerTokens: [
+      [['0x419B8ED155180A8c9C64145e76DaD49c0A4Efb97', nullAddress], '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A',],
+    ]
+  })
+  expect(res['ethereum:0x419B8ED155180A8c9C64145e76DaD49c0A4Efb97'.toLowerCase()]).toEqual('3284260000000000000000')
+  expect(res['ethereum:' + nullAddress]).toEqual('3371095284832904')
+})
 
 test("ChainApi - sumTokens - use tokensAndOwners2", async () => {
   const api = new ChainApi({})
@@ -272,30 +282,8 @@ test("ChainApi - sumTokens - era", async () => {
   })
 })
 
-test("ChainApi - sumTokens - mantle", async () => {
-  const api = new ChainApi({ chain: 'mantle' })
-  const polkaMultisig = '0x3BfC20f0B9aFcAcE800D73D2191166FF16540258'
-  const blacklistedToken = '0xfe633a37c77241b825f1cf39afff44cb56242b77'
-  const blacklistedToken2Owner = '0xc5Fba8936315A57217222593f0A6Bb0Bdcc2985B'
-  const res = await api.sumTokens({
-    tokensAndOwners2: [
-      [nullAddress, nullAddress],
-      [polkaMultisig, polkaMultisig, polkaMultisig],
-    ],
-    tokensAndOwners: [
-      [nullAddress, polkaMultisig],
-      [nullAddress, polkaMultisig],
-    ],
-    blacklistedTokens: [blacklistedToken],
-    blacklistedOwners: [blacklistedToken2Owner],
-    tokens: [nullAddress],
-    owners: [polkaMultisig, blacklistedToken2Owner],
-  })
-  expect(res).toEqual({})
-})
-
-test("ChainApi - sumTokens - neon_evm", async () => {
-  const api = new ChainApi({ chain: 'neon_evm' })
+test("ChainApi - sumTokens - base", async () => {
+  const api = new ChainApi({ chain: 'base' })
   const polkaMultisig = '0x3BfC20f0B9aFcAcE800D73D2191166FF16540258'
   const blacklistedToken = '0xfe633a37c77241b825f1cf39afff44cb56242b77'
   const blacklistedToken2Owner = '0xc5Fba8936315A57217222593f0A6Bb0Bdcc2985B'

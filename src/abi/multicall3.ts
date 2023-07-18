@@ -61,6 +61,7 @@ const DEPLOYMENT_BLOCK = {
   era: 3908235,
   mantle: 3962,
   neon_evm: 205939275,
+  base: 5022,
 } as {
   [key: string | Chain]: number
 }

@@ -124,11 +124,13 @@ export class ChainApi {
     tokensAndOwners2 = [],
     blacklistedTokens = [],
     blacklistedOwners = [],
+    ownerTokens = [],
   }: {
     tokens?: string[],
     owners?: string[],
     tokensAndOwners?: string[][],
     tokensAndOwners2?: string[][],
+    ownerTokens?: any[],
     blacklistedTokens?: string[],
     blacklistedOwners?: string[],
   }): Promise<Balances> {
@@ -138,6 +140,9 @@ export class ChainApi {
 
     if (tokens.length && owners.length)
       tokensAndOwners.push(...tokens.map(i => owners.map(j => [i, j])).flat())
+    
+    for (const [tokens, owner] of ownerTokens)
+      tokens.forEach((i: any) => tokensAndOwners.push([i, owner]))
 
     tokensAndOwners = getUniqueTokensAndOwners(tokensAndOwners, this.chain as string)
     blacklistedOwners = getUniqueAddresses(blacklistedOwners)

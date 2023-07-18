@@ -800,5 +800,11 @@
       "https://neon-proxy-mainnet.solana.p2p.org"
     ],
     "chainId": 245022934
+  },
+  "base": {
+    "rpc": [
+      "https://developer-access-mainnet.base.org/"
+    ],
+    "chainId": 8453
   }
 }
