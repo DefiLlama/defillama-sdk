@@ -13,6 +13,8 @@ const ownerAddress = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t'
 const endpoint = 'https://api.trongrid.io/wallet/triggerconstantcontract'
 const MULTICALL_ADDRESS = 'TGXuuKAb4bnrn137u39EKbYzKNXvdCes98'
 
+const getEndpoint = () => process.env.TRON_RPC || endpoint
+
 type CallParams = any;
 
 type CallOptions = {
@@ -199,7 +201,7 @@ function hexifyTarget(address: string) {
 }
 
 async function post(body = {}) {
-  const response = await fetch(endpoint, {
+  const response = await fetch(getEndpoint(), {
     method: 'post',
     body: JSON.stringify(body),
     headers: { 'Content-Type': 'application/json' }
