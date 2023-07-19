@@ -557,18 +557,14 @@
   },
   "bitgert": {
     "rpc": [
-      "https://flux-rpc1.brisescan.com",
-      "https://flux-rpc2.brisescan.com",
-      "https://mainnet-rpc.brisescan.com",
-      "https://rpc.icecreamswap.com",
-      "https://chainrpc.com"
+      "https://rpc.icecreamswap.com"
     ],
     "chainId": 32520
   },
   "canto": {
     "rpc": [
-      "https://jsonrpc.canto.nodestake.top",
-      "https://canto.evm.chandrastation.com/"
+      "https://mainnode.plexnode.org:8545",
+      "https://canto.slingshot.finance"
     ],
     "chainId": 7700
   },
