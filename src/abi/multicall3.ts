@@ -62,6 +62,7 @@ const DEPLOYMENT_BLOCK = {
   mantle: 3962,
   neon_evm: 205939275,
   base: 5022,
+  darwinia: 251739,
 } as {
   [key: string | Chain]: number
 }
