@@ -238,7 +238,7 @@ test("ChainApi - sumTokens - duplicated entries", async () => {
   const res = await api.sumTokens({
     tokensAndOwners2: [
       [nullAddress, nullAddress],
-      [polkaMultisig, polkaMultisig, polkaMultisig],
+      [polkaMultisig, polkaMultisig, polkaMultisig, polkaMultisig],
     ],
     tokensAndOwners: [
       [token1, polkaMultisig],
@@ -252,7 +252,7 @@ test("ChainApi - sumTokens - duplicated entries", async () => {
   expect(res).toEqual({
     'ethereum:0xfb243bc5e98286e8560f17c3f6b48203afe43139': '1000000000',
     'ethereum:0x537edd52ebcb9f48ff2f8a28c51fcdb9d6a6e0d4': '135000000000000000000',
-    'ethereum:0x0000000000000000000000000000000000000000': '306276635371399926202000'
+    'ethereum:0x0000000000000000000000000000000000000000': '306276635371399926206398'
   })
 })
 

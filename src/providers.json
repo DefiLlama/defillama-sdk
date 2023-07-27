@@ -786,7 +786,7 @@
   },
   "linea": {
     "rpc": [
-      "https://linea-mainnet.infura.io/v3"
+      "https://rpc.linea.build"
     ],
     "chainId": 59144
   },
