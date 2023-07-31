@@ -182,8 +182,13 @@
   },
   "ethereumclassic": {
     "rpc": [
-      "https://www.ethercluster.com/etc",
-      "https://blockscout.com/etc/mainnet/api/eth-rpc"
+      "https://etc.etcdesktop.com",
+      "https://besu-at.etc-network.info",
+      "https://besu-de.etc-network.info",
+      "https://etc.rivet.link",
+      "https://etc.mytokenpocket.vip",
+      "https://geth-de.etc-network.info",
+      "https://geth-at.etc-network.info"
     ],
     "chainId": 61
   },
@@ -804,7 +809,8 @@
   },
   "base": {
     "rpc": [
-      "https://developer-access-mainnet.base.org/"
+      "https://developer-access-mainnet.base.org/",
+      "https://base.blockpi.network/v1/rpc/public"
     ],
     "chainId": 8453
   },
@@ -813,6 +819,12 @@
       "https://rpc.darwinia.network",
       "https://darwinia-rpc.darwiniacommunitydao.xyz",
       "https://darwinia-rpc.dwellir.com"
+    ],
+    "chainId": 46
+  },
+  "pgn": {
+    "rpc": [
+      "https://rpc.publicgoods.network"
     ],
     "chainId": 46
   }

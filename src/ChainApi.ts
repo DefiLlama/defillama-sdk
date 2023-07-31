@@ -120,6 +120,7 @@ export class ChainApi {
   async sumTokens({
     tokens = [],
     owners = [],
+    owner,
     tokensAndOwners = [],
     tokensAndOwners2 = [],
     blacklistedTokens = [],
@@ -127,6 +128,7 @@ export class ChainApi {
     ownerTokens = [],
   }: {
     tokens?: string[],
+    owner?: string,
     owners?: string[],
     tokensAndOwners?: string[][],
     tokensAndOwners2?: string[][],
@@ -138,8 +140,10 @@ export class ChainApi {
     if (tokensAndOwners2.length)
       tokensAndOwners.push(...tokensAndOwners2[0].map((i: string, j: number) => [i, tokensAndOwners2[1][j]]))
 
-    if (tokens.length && owners.length)
+    if (tokens.length) {
+      if (owner) owners.push(owner)
       tokensAndOwners.push(...tokens.map(i => owners.map(j => [i, j])).flat())
+    }
     
     for (const [tokens, owner] of ownerTokens)
       tokens.forEach((i: any) => tokensAndOwners.push([i, owner]))
