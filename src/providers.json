@@ -480,9 +480,7 @@
   },
   "lachain": {
     "rpc": [
-      "https://rpc1.mainnet.lachain.network",
-      "https://rpc2.mainnet.lachain.network",
-      "https://lachain.rpc-nodes.cedalio.dev"
+      "https://rpc-mainnet.lachain.io"
     ],
     "chainId": 225
   },

@@ -246,7 +246,6 @@ function multicallAddress(chainId: number) {
     case 57: // Syscoin
     case 61: // etc
     case 70: // hoo
-    case 61: // etc
     case 60: // go
     case 66: // okxchain
     case 19: // songbird
