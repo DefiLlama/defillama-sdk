@@ -2,7 +2,7 @@ import { debugLog} from './util/debugLog'
 import { ethers, BigNumber } from "ethers"
 import providerList from './providers.json'
 
-function createProvider(name: string, rpcString: string, chainId: number) {
+function createProvider(name: string, rpcString: string, chainId: number = 2424242424242422) {
   const rpcList = rpcString.split(',')
 
   if (process.env.HISTORICAL) {

@@ -48,6 +48,7 @@ export type FetchListOptions = {
   withMetadata?: boolean;
   startFromOne?: boolean;
   itemCount?: number;
+  permitFailure?: boolean;
 }
 
 export type ByteCodeCallOptions = {

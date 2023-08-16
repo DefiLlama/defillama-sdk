@@ -825,5 +825,11 @@
       "https://rpc.publicgoods.network"
     ],
     "chainId": 46
+  },
+  "op_bnb": {
+    "rpc": [
+      "https://opbnb-mainnet-rpc.bnbchain.org"
+    ],
+    "chainId": 204
   }
 }
