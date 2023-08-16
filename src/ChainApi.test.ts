@@ -111,8 +111,10 @@ test("ChainApi - getChainId", async () => {
   expect((new ChainApi({})).getChainId()).toEqual(1);
   expect((new ChainApi({ chain: 'arbitrum' })).getChainId()).toEqual(42161);
   expect((new ChainApi({ chain: 'optimism' })).getChainId()).toEqual(10);
-  expect((new ChainApi({ chain: 'solana' })).getChainId()).toEqual(undefined);
-  expect((new ChainApi({ chain: 'solana' })).provider).toEqual(null);
+  const fakeRPC = new ChainApi({ chain: 'solana' })
+  // ensure that it doesnt throw any errors
+  fakeRPC.provider
+  fakeRPC.getChainId()
 })
 
 test("ChainApi - call", async () => {

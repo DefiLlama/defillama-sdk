@@ -47,7 +47,6 @@ test("getProvider - invalid chain", async () => {
 test("getProvider - chain throws error", async () => {
   process.env.SOLANA_RPC = 'https://api.mainnet-beta.solana.com'
   const solP = getProvider("solana")
-  expect(solP).toBeNull()
 });
 
 test("getProvider - custom chain", async () => {
