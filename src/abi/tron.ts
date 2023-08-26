@@ -202,10 +202,13 @@ function hexifyTarget(address: string) {
 }
 
 async function post(body = {}, endpoint = '/wallet/triggerconstantcontract') {
-  const response = await fetch(getEndpoint() + endpoint, {
+  const host = getEndpoint()
+  const headers: any = { 'Content-Type': 'application/json' }
+  if (process.env.TRON_PRO_API_KEY) headers['TRON_PRO_API_KEY'] = process.env.TRON_PRO_API_KEY
+  const response = await fetch(host + endpoint, {
     method: 'post',
     body: JSON.stringify(body),
-    headers: { 'Content-Type': 'application/json' }
+    headers,
   });
   return response.json()
 }
