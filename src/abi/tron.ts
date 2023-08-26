@@ -10,10 +10,10 @@ import { runInPromisePool, sliceIntoChunks, } from "../util"
 import { handleDecimals } from "../general";
 
 const ownerAddress = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t'
-const endpoint = 'https://api.trongrid.io/wallet/triggerconstantcontract'
+const endpoint = 'https://api.trongrid.io'
 const MULTICALL_ADDRESS = 'TGXuuKAb4bnrn137u39EKbYzKNXvdCes98'
 
-const getEndpoint = () => process.env.TRON_RPC || endpoint
+const getEndpoint = () => process.env.TRON_RPC ?? endpoint
 
 type CallParams = any;
 
@@ -106,22 +106,23 @@ export async function getBalance(params: {
   target: Address;
   decimals?: number;
 }) {
-  const { output: balance } = await call({ target: MULTICALL_ADDRESS, abi: ETH_BALANCE_API, params: [params.target] })
+  const data  = await post({ address: params.target, visible: true,}, '/wallet/getaccount')
+  const balance = ((data.balance ?? 0) + (data.frozen?.reduce((t: any, { frozen_balance }: any) => t + frozen_balance, 0) ?? 0)).toString()
+  
   return {
     output: handleDecimals(balance, params.decimals),
   };
 }
 
-// TODO: Optimize this? (not sure if worth it tho, barely any adapters use it)
 export async function getBalances(params: {
   targets: Address[];
   block?: number;
   decimals?: number;
 }) {
   const { targets, decimals } = params
-  const res = await multiCall(ETH_BALANCE_API, targets.map((i: any) => ({ contract: MULTICALL_ADDRESS, params: [hexifyTarget(i)] })) as any)
+  const res = await Promise.all(targets.map(i => getBalance({ target: i, decimals })))
   return {
-    output: res.map((v: any, i: number) => ({ target: params.targets[i], balance: handleDecimals(v.output, decimals) })),
+    output: res.map((v: any, i: number) => ({ target: targets[i], balance: v.output })),
   };
 }
 
@@ -200,8 +201,8 @@ function hexifyTarget(address: string) {
   return address
 }
 
-async function post(body = {}) {
-  const response = await fetch(getEndpoint(), {
+async function post(body = {}, endpoint = '/wallet/triggerconstantcontract') {
+  const response = await fetch(getEndpoint() + endpoint, {
     method: 'post',
     body: JSON.stringify(body),
     headers: { 'Content-Type': 'application/json' }

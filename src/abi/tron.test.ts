@@ -123,3 +123,11 @@ test("tron: getBalances", async () => {
     ]
   })
 });
+
+test("tron: getBalances", async () => {
+  const res = await getBalances({
+    chain: 'tron',
+    targets: ['TKgD8Qnx9Zw3DNvG6o83PkufnMbtEXis4T'],
+  })
+  expect(+res.output[0].balance).toBeGreaterThan(1e6)
+});
