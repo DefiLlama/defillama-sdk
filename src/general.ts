@@ -117,6 +117,7 @@ export const providers = {
   arbitrum_nova: createProvider("posi", "https://nova.arbitrum.io/rpc", 42170),
   goerli: createProvider("goerli", "https://rpc.ankr.com/eth_goerli,https://goerli.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161", 5),
   arbitrum_goerli: createProvider("arbitrum_goerli", "https://endpoints.omniatech.io/v1/arbitrum/goerli/public", 421613),
+  base: createProvider("https://developer-access-mainnet.base.org/", "https://base.blockpi.network/v1/rpc/public", 8453)
 } as {
   [chain: string]: ethers.providers.BaseProvider;
 };
