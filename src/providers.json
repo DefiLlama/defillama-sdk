@@ -795,7 +795,7 @@
   },
   "mantle": {
     "rpc": [
-      "https://rpc.mantle.xyz"
+      "https://mantle-mainnet.public.blastapi.io,https://mantle.publicnode.com,https://rpc.mantle.xyz"
     ],
     "chainId": 5000
   },
