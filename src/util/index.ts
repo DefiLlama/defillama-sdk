@@ -77,8 +77,10 @@ export async function lookupBlock(
     let high = lastBlock.number;
     let low = intialBlocks[extraParams?.chain ?? "ethereum"] ?? 0;
     let block: TimestampBlock;
+    let count = 0;
     do {
       const mid = Math.floor((high + low) / 2);
+      console.log(`mid ${mid}, count ${count++}`)
       block = await getBlock(provider, mid, extraParams.chain);
       if (block.timestamp < timestamp) {
         low = mid + 1;
