@@ -8,6 +8,9 @@ import convertResults from "./convertResults";
 import { debugLog } from "../util/debugLog"
 import { runInPromisePool, sliceIntoChunks, } from "../util"
 import { handleDecimals } from "../general";
+import pLimit from 'p-limit';
+
+const limitRPCCalls = pLimit(+(process.env.TRON_RPC_CONCURRENCY_LIMIT ?? 5));
 
 const ownerAddress = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t'
 const endpoint = 'https://api.trongrid.io'
@@ -52,7 +55,7 @@ export async function call(options: CallOptions) {
     visible: true,
   }
 
-  const { constant_result: [data] } = await post(body)
+  const { constant_result: [data] } = await limitRPCCalls(() => post(body))
 
   let decodedResult: any = contractInterface.decodeFunctionResult(
     functionABI,
@@ -106,9 +109,9 @@ export async function getBalance(params: {
   target: Address;
   decimals?: number;
 }) {
-  const data  = await post({ address: params.target, visible: true,}, '/wallet/getaccount')
+  const data = await limitRPCCalls(() => post({ address: params.target, visible: true, }, '/wallet/getaccount'))
   const balance = ((data.balance ?? 0) + (data.frozen?.reduce((t: any, { frozen_balance }: any) => t + frozen_balance, 0) ?? 0)).toString()
-  
+
   return {
     output: handleDecimals(balance, params.decimals),
   };
@@ -251,24 +254,3 @@ const MULTICALL_ABI = {
   "type": "function"
 }
 
-const ETH_BALANCE_API = {
-  constant: true,
-  inputs: [
-    {
-      internalType: 'address',
-      name: 'addr',
-      type: 'address',
-    },
-  ],
-  name: 'getEthBalance',
-  outputs: [
-    {
-      internalType: 'uint256',
-      name: 'balance',
-      type: 'uint256',
-    },
-  ],
-  payable: false,
-  stateMutability: 'view',
-  type: 'function',
-}

@@ -28,6 +28,7 @@
     "ethers": "^5.4.5",
     "lzma-native": "^8.0.6",
     "node-fetch": "^2.6.7",
+    "p-limit": "^3.0.0",
     "tron-format-address": "^0.1.11"
   },
   "devDependencies": {

@@ -15,8 +15,10 @@ export async function call(provider: BaseProvider, data: Deferrable<TransactionR
   const counter: Counter = getChainCounter(chain)
   const currentId = counter.requestCount++
   const eventId = `${chain}-${currentId}`
+  let chainMaxParallelCalls = maxParallelCalls
+  if (['avax', 'harmony'].includes(chain)) chainMaxParallelCalls = 20
 
-  if (counter.activeWorkers > maxParallelCalls) {
+  if (counter.activeWorkers > chainMaxParallelCalls) {
     counter.queue.push(eventId)
     await once(emitter, eventId)
   }
