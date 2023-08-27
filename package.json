@@ -23,8 +23,10 @@
     "build"
   ],
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.400.0",
     "@supercharge/promise-pool": "^2.1.0",
     "ethers": "^5.4.5",
+    "lzma-native": "^8.0.6",
     "node-fetch": "^2.6.7",
     "tron-format-address": "^0.1.11"
   },

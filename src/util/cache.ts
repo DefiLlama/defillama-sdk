@@ -1,59 +1,108 @@
-import * as fs from 'fs'
+import { debugLog } from "./debugLog";
+import { storeR2JSONString, getR2JSONString, } from "./r2";
 
-// const cacheFile = __dirname + '/../../../sc-cache1.json'
-const cacheFile = process.env.CACHE_FILE
+const fs = require('fs').promises;
+const path = require('path');
+const lzma = require('lzma-native');
+const { promisify } = require('util');
 
-let cache: any = {}
+const zipAsync = promisify(lzma.compress);
+const unzipAsync = promisify(lzma.decompress);
 
-// if (cacheFile) cache = require(cacheFile) // disabled for now
+const foldersCreated: {
+  [key: string]: boolean
+} = {}
 
-export function getCache(options: CacheOptions) {
-  let { address, abi, chain = "ethereum" } = options
-  if (!address) return;
+const currentVersion = 'llama-zip-1.0.0'
 
-  address = address.slice(2).toLowerCase()
-
-  if (!cache[chain])
-    cache[chain] = {}
-  
-  if (!cache[chain][abi])
-    cache[chain][abi] = {}
-
-  return cache[chain][abi][address]
+function getCacheRootFolder() {
+  return process.env.TVL_LOCAL_CACHE_ROOT_FOLDER || path.join(__dirname, 'local_cache')
 }
 
-
-export function setCache(options: CacheOptions) {
-  let { address, abi, chain = "ethereum", value } = options
-  if (!address) return;
-
-  address = address.slice(2).toLowerCase()
-
-  if (!cache[chain])
-    cache[chain] = {}
-  
-  if (!cache[chain][abi])
-    cache[chain][abi] = {}
-
-  cache[chain][abi][address] = value
+function getFilePath(file: string) {
+  return path.join(getCacheRootFolder(), file);
 }
 
-export function saveCache() {
-  fs.writeFileSync(cacheFile || './cache.json', JSON.stringify(cache))
+async function createSubPath(folderPath: string) {
+  const datRoot = getCacheRootFolder();
+  folderPath = folderPath.replace(datRoot, '')
+  if (foldersCreated[folderPath]) return;
+  try {
+    await fs.mkdir(path.join(datRoot, folderPath), { recursive: true });
+  } catch (error) {
+    // sdk.log('Error creating folder path:', error)
+  }
+  foldersCreated[folderPath] = true;
 }
 
-export function startCache(_cache = {}) {
-  cache = _cache
+export async function readCache(file: string, options: ReadCacheOptions = {}): Promise<any> {
+  try {
+    const data = await readFile(file, options)
+    return await parseCache(data)
+  } catch (error) {
+    // debugLog('Error reading cache:', error)
+    return {}
+  }
+
+
+  async function readFile(file: string, options: ReadCacheOptions = {}) {
+    const filePath = getFilePath(file)
+    try {
+      const data = await fs.readFile(filePath)
+      return data
+    } catch (error) {
+      // debugLog('Error reading cache:', error)
+      if (options.skipR2Cache) return;
+      const r2Data = await getR2JSONString(file)
+
+      if (r2Data) {
+        await writeCache(file, r2Data, { alreadyCompressed: true, skipR2CacheWrite: true })
+        return r2Data
+      }
+    }
+  }
 }
 
-export function retriveCache() {
-  return cache
+interface WriteCacheOptions {
+  skipR2CacheWrite?: boolean,
+  alreadyCompressed?: boolean
 }
 
+interface ReadCacheOptions {
+  skipR2Cache?: boolean
+}
 
-export type CacheOptions = {
-  address: string;
-  abi: string;
-  chain?: string;
-  value?: any;
+export async function writeCache(file: string, data: any, options: WriteCacheOptions = {}): Promise<string | undefined> {
+
+  const fileData = options.alreadyCompressed ? data : await compressCache(data)
+
+  if (!data || (typeof data === 'string' && data.length < 50) || fileData.length < 120) {
+    debugLog('Data too small to cache: ', file);
+    return;
+  }
+  if (isSameData(data, await readCache(file, { skipR2Cache: true }))) return;
+
+  const filePath = getFilePath(file)
+  await createSubPath(path.dirname(filePath))
+  await fs.writeFile(filePath, fileData)
+  if (!options.skipR2CacheWrite) {
+    await storeR2JSONString(file, fileData)
+  }
+
+  return fileData
+}
+
+export async function parseCache(dataString: string | object) {
+  if (typeof dataString === 'string') dataString = Buffer.from(dataString, 'base64')
+  const decompressed = await unzipAsync(dataString)
+  return JSON.parse(decompressed).llamaWrapped
+}
+
+export async function compressCache(data: any) {
+  const comressedCache = await zipAsync(JSON.stringify({ version: currentVersion, llamaWrapped: data }), 9)
+  return comressedCache
+}
+
+function isSameData(data1: any, data2: any) {
+  return JSON.stringify(data1) === JSON.stringify(data2)
 }

@@ -95,16 +95,22 @@ test("imports", async () => {
         "getCurrentBlocks": [Function],
       },
       "cache": {
+        "compressCache": [Function],
+        "parseCache": [Function],
+        "readCache": [Function],
+        "writeCache": [Function],
+      },
+      "getProvider": [Function],
+      "humanizeNumber": [Function],
+      "log": [Function],
+      "logTable": [Function],
+      "sdkCache": {
         "getCache": [Function],
         "retriveCache": [Function],
         "saveCache": [Function],
         "setCache": [Function],
         "startCache": [Function],
       },
-      "getProvider": [Function],
-      "humanizeNumber": [Function],
-      "log": [Function],
-      "logTable": [Function],
       "setProvider": [Function],
       "util": {
         "blocks": {

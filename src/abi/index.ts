@@ -5,7 +5,7 @@ import { getProvider, Chain } from "../general";
 import makeMultiCall from "./multicall3";
 import convertResults from "./convertResults";
 import { debugLog } from "../util/debugLog";
-import { getCache, setCache, CacheOptions, } from "../util/cache";
+import { getCache, setCache, CacheOptions, } from "../util/internal-cache";
 import { runInPromisePool, sliceIntoChunks, } from "../util";
 import * as Tron from './tron'
 
