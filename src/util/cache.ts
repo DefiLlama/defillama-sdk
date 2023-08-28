@@ -1,13 +1,23 @@
 import { debugLog } from "./debugLog";
 import { storeR2JSONString, getR2JSONString, } from "./r2";
+import { constants, brotliCompress, brotliDecompress } from "zlib";
+import { promisify } from 'util';
+
+const brotliOptions = {
+  [constants.BROTLI_PARAM_MODE]: constants.BROTLI_MODE_TEXT,
+  [constants.BROTLI_PARAM_QUALITY]: constants.BROTLI_MAX_QUALITY,
+}
+
+function zipAsync(data: string) {
+  return promisify(brotliCompress)(data, brotliOptions)
+}
+
+function unzipAsync(data: Buffer) {
+  return promisify(brotliDecompress)(data, brotliOptions).then(r=>r.toString())
+}
 
 const fs = require('fs').promises;
 const path = require('path');
-const lzma = require('lzma-native');
-const { promisify } = require('util');
-
-const zipAsync = promisify(lzma.compress);
-const unzipAsync = promisify(lzma.decompress);
 
 const foldersCreated: {
   [key: string]: boolean
@@ -92,14 +102,14 @@ export async function writeCache(file: string, data: any, options: WriteCacheOpt
   return fileData
 }
 
-export async function parseCache(dataString: string | object) {
+export async function parseCache(dataString: string | Buffer) {
   if (typeof dataString === 'string') dataString = Buffer.from(dataString, 'base64')
   const decompressed = await unzipAsync(dataString)
   return JSON.parse(decompressed).llamaWrapped
 }
 
 export async function compressCache(data: any) {
-  const comressedCache = await zipAsync(JSON.stringify({ version: currentVersion, llamaWrapped: data }), 9)
+  const comressedCache = await zipAsync(JSON.stringify({ version: currentVersion, llamaWrapped: data }))
   return comressedCache
 }
 
