@@ -96,6 +96,7 @@ test("imports", async () => {
       },
       "cache": {
         "compressCache": [Function],
+        "currentVersion": "zlib-1.0",
         "parseCache": [Function],
         "readCache": [Function],
         "writeCache": [Function],
