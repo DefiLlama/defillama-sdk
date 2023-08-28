@@ -13,7 +13,7 @@ function zipAsync(data: string) {
 }
 
 function unzipAsync(data: Buffer) {
-  return promisify(brotliDecompress)(data, brotliOptions).then(r=>r.toString())
+  return promisify(brotliDecompress)(data, brotliOptions).then(r => r.toString())
 }
 
 const fs = require('fs').promises;
@@ -23,10 +23,10 @@ const foldersCreated: {
   [key: string]: boolean
 } = {}
 
-const currentVersion = 'llama-zip-1.0.0'
+export const currentVersion = 'zlib-1.0'
 
 function getCacheRootFolder() {
-  return process.env.TVL_LOCAL_CACHE_ROOT_FOLDER || path.join(__dirname, 'local_cache')
+  return path.join(process.env.TVL_LOCAL_CACHE_ROOT_FOLDER || path.join(__dirname, 'local_cache'), currentVersion)
 }
 
 function getFilePath(file: string) {
@@ -63,7 +63,7 @@ export async function readCache(file: string, options: ReadCacheOptions = {}): P
     } catch (error) {
       // debugLog('Error reading cache:', error)
       if (options.skipR2Cache) return;
-      const r2Data = await getR2JSONString(file)
+      const r2Data = await getR2JSONString(currentVersion + '/' + file)
 
       if (r2Data) {
         await writeCache(file, r2Data, { alreadyCompressed: true, skipR2CacheWrite: true })
@@ -86,7 +86,7 @@ export async function writeCache(file: string, data: any, options: WriteCacheOpt
 
   const fileData = options.alreadyCompressed ? data : await compressCache(data)
 
-  if (!data || (typeof data === 'string' && data.length < 50) || fileData.length < 120) {
+  if (!data || (typeof data === 'string' && data.length < 20) || fileData.length < 20) {
     debugLog('Data too small to cache: ', file);
     return;
   }
@@ -96,7 +96,7 @@ export async function writeCache(file: string, data: any, options: WriteCacheOpt
   await createSubPath(path.dirname(filePath))
   await fs.writeFile(filePath, fileData)
   if (!options.skipR2CacheWrite) {
-    await storeR2JSONString(file, fileData)
+    await storeR2JSONString(currentVersion + '/' + file, fileData)
   }
 
   return fileData
