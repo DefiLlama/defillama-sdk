@@ -335,6 +335,8 @@ function multicallAddress(chainId: number) {
       return "0xf6ded65bf69FeC06b8cc95B4B06c33a66ab58A0F";
     case 770077: // grove
       return "0x118fa9297F4E2cBB310133A8aAa695f0e14D04c3";
+    case 109: // shibarium
+      return "0x80ad06DF035d28d6BE1167c3b06E638B561cf90E";
     default:
       return null;
   }

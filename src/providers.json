@@ -831,5 +831,11 @@
       "https://opbnb-mainnet-rpc.bnbchain.org"
     ],
     "chainId": 204
+  },
+  "shibarium": {
+    "rpc": [
+      "https://www.shibrpc.com"
+    ],
+    "chainId": 109
   }
 }
