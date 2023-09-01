@@ -261,7 +261,10 @@ function multicallAddress(chainId: number) {
     case 311: // omax
     case 1111: // omax
     case 32659: // fusion
+    case 3797: // alvey
       return "0x18fA376d92511Dd04090566AB6144847c03557d8";
+    case 75: // decimalchain
+      return "0x949d1A0757803C51F2EfFFEb5472C861A898B8E8";
     case 40: // telos
       return "0x74D01B798F0aEdc39548D3EA5fC922B291293b95";
     case 2222:

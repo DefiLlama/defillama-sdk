@@ -837,5 +837,11 @@
       "https://www.shibrpc.com"
     ],
     "chainId": 109
+  },
+  "alv": {
+    "rpc": [
+      "https://rpc2.alvey.io/rpc"
+    ],
+    "chainId": 3797
   }
 }
