@@ -452,6 +452,9 @@
   },
   "crab": {
     "rpc": [
+      "https://darwiniacrab-rpc.dwellir.com",
+      "https://crab-rpc.darwiniacommunitydao.xyz",
+      "https://crab.api.onfinality.io/public",
       "https://crab-rpc.darwinia.network"
     ],
     "chainId": 44

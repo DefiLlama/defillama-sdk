@@ -58,6 +58,7 @@ export async function readCache(file: string, options: ReadCacheOptions = {}): P
   async function readFile(file: string, options: ReadCacheOptions = {}) {
     const filePath = getFilePath(file)
     try {
+      if (options.readFromR2Cache) throw new Error('Read from R2 cache')
       const data = await fs.readFile(filePath)
       return data
     } catch (error) {
@@ -79,6 +80,7 @@ interface WriteCacheOptions {
 }
 
 interface ReadCacheOptions {
+  readFromR2Cache?: boolean,
   skipR2Cache?: boolean
 }
 
