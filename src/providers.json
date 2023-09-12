@@ -810,6 +810,14 @@
   },
   "base": {
     "rpc": [
+      "https://mainnet.base.org",
+      "https://1rpc.io/base",
+      "https://rpc.notadegen.com/base",
+      "https://base.publicnode.com",
+      "https://base-mainnet.public.blastapi.io",
+      "https://base.publicnode.com",
+      "https://base.meowrpc.com",
+      "https://base-mainnet.diamondswap.org/rpc",
       "https://developer-access-mainnet.base.org/",
       "https://base.blockpi.network/v1/rpc/public"
     ],
