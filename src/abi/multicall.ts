@@ -220,6 +220,10 @@ function multicallAddress(chainId: number) {
       return "0xfFE2FF36c5b8D948f788a34f867784828aa7415D"; // palm
     case 416:
       return "0x834a005DDCF990Ba1a79f259e840e58F2D14F49a"; // sx
+    case 20201022:
+      return "0xA363151e5CC8c0dBcC3eD2287A08f261bE08A33C"; // pg
+    case 255:
+      return "0xE3c886498ac54433F2B0E6842FAE421006067751"; // kroma
     case 246: // energy web chain
     case 336: // shiden
     case 592: // astar
