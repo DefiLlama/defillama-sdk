@@ -854,5 +854,11 @@
       "https://rpc2.alvey.io/rpc"
     ],
     "chainId": 3797
+  },
+  "shimmer_evm": {
+    "rpc": [
+      "https://json-rpc.evm.shimmer.network"
+    ],
+    "chainId": 148
   }
 }
