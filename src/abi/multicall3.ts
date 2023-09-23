@@ -64,6 +64,7 @@ const DEPLOYMENT_BLOCK = {
   base: 5022,
   darwinia: 251739,
   op_bnb: 412254,
+  manta: 41570,
 } as {
   [key: string | Chain]: number
 }
@@ -142,6 +143,7 @@ export function getMulticallAddress(chain: Chain, block?: BlockTag) {
     case 'tron': multicallAddress = 'TEazPvZwDjDtFeJupyo7QunvnrnUjPH8ED'; break;
     case 'neon_evm': multicallAddress = '0x2f6eee8ee450a959e640b6fb4dd522b5d5dcd20f'; break;
     case 'op_bnb': multicallAddress = '0x5eF9501fE659b97C45f3A7efD298c14405b454D1'; break;
+    case 'manta': multicallAddress = '0xf43727c9BEb4C0aA3fEE1281A902e518f8586E54'; break;
   }
   return multicallAddress
 }
