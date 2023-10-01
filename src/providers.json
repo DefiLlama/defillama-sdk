@@ -269,8 +269,11 @@
   },
   "cronos": {
     "rpc": [
-      "https://cronosrpc-1.xstaking.sg",
       "https://evm.cronos.org",
+      "https://1rpc.io/cro",
+      "https://cronos.rpc.thirdweb.com",
+      "https://cronos.blockpi.network/v1/rpc/public",
+      "https://cronosrpc-1.xstaking.sg",
       "https://rpc.vvs.finance",
       "https://evm-cronos.crypto.org"
     ],
@@ -328,6 +331,7 @@
   },
   "klaytn": {
     "rpc": [
+      "https://klaytn.api.onfinality.io/public",
       "https://klaytn.blockpi.network/v1/rpc/public",
       "https://public-node-api.klaytnapi.com/v1/cypress",
       "https://cypress.fautor.app/archive"
