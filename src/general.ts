@@ -1,7 +1,6 @@
 import { debugLog} from './util/debugLog'
 import { ethers, BigNumber } from "ethers"
 import providerList from './providers.json'
-import { Connection } from '@solana/web3.js'
 
 function createProvider(name: string, rpcString: string, chainId: number = 2424242424242422) {
   const rpcList = rpcString.split(',')
@@ -94,9 +93,3 @@ export function setProvider(
     _provider: provider
   }
 }
-
- export function getSolanaConnection(): Connection {
-   const rpc =
-     process.env["SOLANA_RPC"] ?? "https://api.mainnet-beta.solana.com";
-   return new Connection(rpc);
- }
