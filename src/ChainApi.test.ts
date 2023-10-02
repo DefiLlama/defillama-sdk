@@ -311,22 +311,22 @@ test("ChainApi - sumTokens - era", async () => {
 
 test("ChainApi - sumTokens - base", async () => {
   const api = new ChainApi({ chain: 'base' })
-  const polkaMultisig = '0x3BfC20f0B9aFcAcE800D73D2191166FF16540258'
+  const emptyAddr = '0x3BfC20f0B9aFcAcE800D73D2191166FF16540257'
   const blacklistedToken = '0xfe633a37c77241b825f1cf39afff44cb56242b77'
   const blacklistedToken2Owner = '0xc5Fba8936315A57217222593f0A6Bb0Bdcc2985B'
   const res = await api.sumTokens({
     tokensAndOwners2: [
       [nullAddress, nullAddress],
-      [polkaMultisig, polkaMultisig, polkaMultisig],
+      [emptyAddr, emptyAddr, emptyAddr],
     ],
     tokensAndOwners: [
-      [nullAddress, polkaMultisig],
-      [nullAddress, polkaMultisig],
+      [nullAddress, emptyAddr],
+      [nullAddress, emptyAddr],
     ],
     blacklistedTokens: [blacklistedToken],
     blacklistedOwners: [blacklistedToken2Owner],
     tokens: [nullAddress],
-    owners: [polkaMultisig, blacklistedToken2Owner],
+    owners: [emptyAddr, blacklistedToken2Owner],
   })
   expect(res).toEqual({})
 })
