@@ -865,4 +865,11 @@
     ],
     "chainId": 148
   }
+  ,
+  "beam": {
+    "rpc": [
+      "https://subnets.avax.network/beam/mainnet/rpc"
+    ],
+    "chainId": 4337
+  }
 }
