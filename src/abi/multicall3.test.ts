@@ -19,6 +19,11 @@ test("multicall pulse", async () => {
   expect(output[0].output).toEqual('6');
   expect(output[0].success).toEqual(true);
 });
+test("multicall nos", async () => {
+  const output = await makeMultiCall(decimalsAbi, [{ contract: '0x111808AbE352c8003e0eFfcc04998EaB26Cebe3c', params: [] }], 'nos')
+  expect(output[0].output).toEqual('18');
+  expect(output[0].success).toEqual(true);
+});
 
 test("multicall onus", async () => {
   const output = await makeMultiCall(decimalsAbi, [{ contract: '0x4c761E48d1E735af551cc38ABCBDCe1d7FaaC6E4', params: [] }], 'onus')

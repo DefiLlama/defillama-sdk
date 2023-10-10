@@ -67,6 +67,7 @@ const DEPLOYMENT_BLOCK = {
   shimmer_evm: 1290,
   manta: 41570,
   beam: 3,
+  nos: 1578065,
 } as {
   [key: string | Chain]: number
 }
@@ -147,6 +148,7 @@ export function getMulticallAddress(chain: Chain, block?: BlockTag) {
     case 'op_bnb': multicallAddress = '0x5eF9501fE659b97C45f3A7efD298c14405b454D1'; break;
     case 'manta': multicallAddress = '0xf43727c9BEb4C0aA3fEE1281A902e518f8586E54'; break;
     case 'beam': multicallAddress = '0x4956f15efdc3dc16645e90cc356eafa65ffc65ec'; break;
+    case 'nos': multicallAddress = '0x337F5fBB75007e59cC4A6132017Bd96748b09F7F'; break;
   }
   return multicallAddress
 }
