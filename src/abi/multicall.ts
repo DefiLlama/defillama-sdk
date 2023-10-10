@@ -344,6 +344,8 @@ function multicallAddress(chainId: number) {
       return "0x118fa9297F4E2cBB310133A8aAa695f0e14D04c3";
     case 109: // shibarium
       return "0x80ad06DF035d28d6BE1167c3b06E638B561cf90E";
+    case 192837465: // gth
+      return "0x372d0695E75563D9180F8CE31c9924D7e8aaac47";
     default:
       return null;
   }

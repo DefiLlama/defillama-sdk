@@ -870,5 +870,11 @@
       "https://node.l2.trustless.computer"
     ],
     "chainId": 42213
+  },
+  "vinu": {
+    "rpc": [
+      "https://vinuchain-rpc.com"
+    ],
+    "chainId": 207
   }
 }
