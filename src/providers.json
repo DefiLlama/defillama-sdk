@@ -876,5 +876,11 @@
       "https://vinuchain-rpc.com"
     ],
     "chainId": 207
+  },
+  "scroll": {
+    "rpc": [
+      "https://rpc.scroll.io"
+    ],
+    "chainId": 534352
   }
 }
