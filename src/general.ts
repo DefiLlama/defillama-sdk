@@ -89,7 +89,7 @@ export const providers = {
   astar: createProvider("astar", "https://evm.astar.network/,https://rpc.astar.network:8545,https://astar.api.onfinality.io/public", 592),
   godwoken_v1: createProvider("godwoken", "https://v1.mainnet.godwoken.io/rpc", 71402),
   godwoken: createProvider("godwoken", "https://mainnet.godwoken.io/rpc", 71394),
-  evmos: createProvider("evmos", "https://json-rpc.evmos.blockhunters.org,https://evmos-json-rpc.stakely.io,https://eth.bd.evmos.org:8545/,https://evmos-mainnet.gateway.pokt.network/v1/lb/627586ddea1b320039c95205", 9001),
+  evmos: createProvider("evmos", "https://evmos-mainnet.public.blastapi.io,https://eth.bd.evmos.org:8545/,https://evmos-json-rpc.stakely.io,https://evmos-mainnet.gateway.pokt.network/v1/lb/627586ddea1b320039c95205,https://jsonrpc-evmos-ia.cosmosia.notional.ventures,https://evmos-evm.publicnode.com,https://jsonrpc-evmos.goldenratiostaking.net", 9001),
   conflux: createProvider("conflux", "https://evm.confluxrpc.com", 1030),
   milkomeda: createProvider("milkomeda", "https://rpc-mainnet-cardano-evm.c1.milkomeda.com", 2001),
   dfk: createProvider("dfk", "https://subnets.avax.network/defi-kingdoms/dfk-chain/rpc", 53935),
