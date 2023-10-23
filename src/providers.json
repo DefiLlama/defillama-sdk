@@ -27,6 +27,7 @@
   },
   "heco": {
     "rpc": [
+      "https://http-mainnet-node.huobichain.com",
       "https://http-mainnet.hecochain.com"
     ],
     "chainId": 128
@@ -124,7 +125,9 @@
   },
   "moonriver": {
     "rpc": [
-      "https://rpc.api.moonriver.moonbeam.network/",
+      "https://moonriver.public.blastapi.io",
+      "https://moonriver.unitedbloc.com",
+      "https://rpc.api.moonriver.moonbeam.network",
       "https://moonriver.api.onfinality.io/public"
     ],
     "chainId": 1285
@@ -183,9 +186,9 @@
   "ethereumclassic": {
     "rpc": [
       "https://etc.etcdesktop.com",
+      "https://etc.rivet.link",
       "https://besu-at.etc-network.info",
       "https://besu-de.etc-network.info",
-      "https://etc.rivet.link",
       "https://etc.mytokenpocket.vip",
       "https://geth-de.etc-network.info",
       "https://geth-at.etc-network.info"
@@ -332,7 +335,9 @@
   "klaytn": {
     "rpc": [
       "https://klaytn.api.onfinality.io/public",
+      "https://1rpc.io/klay",
       "https://klaytn.blockpi.network/v1/rpc/public",
+      "https://klaytn.drpc.org",
       "https://public-node-api.klaytnapi.com/v1/cypress",
       "https://cypress.fautor.app/archive"
     ],
@@ -388,6 +393,8 @@
   },
   "moonbeam": {
     "rpc": [
+      "https://moonbeam.public.blastapi.io",
+      "https://moonbeam.unitedbloc.com",
       "https://rpc.api.moonbeam.network"
     ],
     "chainId": 1284
@@ -420,6 +427,7 @@
   },
   "evmos": {
     "rpc": [
+      "https://evmos-evm.publicnode.com",
       "https://evmos-mainnet.public.blastapi.io",
       "https://eth.bd.evmos.org:8545/",
       "https://evmos-json-rpc.stakely.io",
@@ -542,6 +550,7 @@
   },
   "nova": {
     "rpc": [
+      "https://connect.novanetwork.io",
       "http://dataseed-0.rpc.novanetwork.io:8545",
       "https://rpc.novanetwork.io:9070"
     ],
@@ -879,6 +888,9 @@
   },
   "scroll": {
     "rpc": [
+      "https://rpc-scroll.icecreamswap.com",
+      "https://1rpc.io/scroll",
+      "https://scroll.blockpi.network/v1/rpc/public",
       "https://rpc.scroll.io"
     ],
     "chainId": 534352

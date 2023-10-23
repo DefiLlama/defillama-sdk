@@ -7,10 +7,12 @@ import makeMultiCallV2 from './multicall'
 import * as Tron from './tron'
 import { call } from './index'
 // https://github.com/mds1/multicall
+// https://www.multicall3.com/deployments
 const MULTICALL_V3_ADDRESS = '0xca11bde05977b3631167028862be2a173976ca11'
 
 const DEPLOYMENT_BLOCK = {
   ethereum: 14353601,
+  ethf: 14353601,
   arbitrum: 7654707,
   arbitrum_nova: 1746963,
   optimism: 4286263,
@@ -59,15 +61,22 @@ const DEPLOYMENT_BLOCK = {
   // dogechain: 14151696, // for some reason this is not working
   tron: 51067989,
   era: 3908235,
-  mantle: 3962,
-  neon_evm: 205939275,
+  mantle: 304717,
   base: 5022,
   darwinia: 251739,
   op_bnb: 412254,
   shimmer_evm: 1290,
-  manta: 41570,
+  manta: 332890,
+  neon_evm: 206545524,
   beam: 3,
+  pgn: 3380209,
+  meter: 41238476,
+  meer: 744781,
+  lukso: 468183,
   nos: 1578065,
+  scroll: 14,
+  q: 8357148,
+  edg: 18117872,
 } as {
   [key: string | Chain]: number
 }
@@ -142,11 +151,8 @@ export function getMulticallAddress(chain: Chain, block?: BlockTag) {
   switch (chain) {
     case 'onus': multicallAddress = '0x748c384f759cc596f0d9fa96dcabe8a11e443b30'; break;
     case 'era': multicallAddress = '0xF9cda624FBC7e059355ce98a31693d299FACd963'; break;
-    case 'mantle': multicallAddress = '0x05f3105fc9FC531712b2570f1C6E11dD4bCf7B3c'; break;
     case 'tron': multicallAddress = 'TEazPvZwDjDtFeJupyo7QunvnrnUjPH8ED'; break;
-    case 'neon_evm': multicallAddress = '0x2f6eee8ee450a959e640b6fb4dd522b5d5dcd20f'; break;
     case 'op_bnb': multicallAddress = '0x5eF9501fE659b97C45f3A7efD298c14405b454D1'; break;
-    case 'manta': multicallAddress = '0xf43727c9BEb4C0aA3fEE1281A902e518f8586E54'; break;
     case 'beam': multicallAddress = '0x4956f15efdc3dc16645e90cc356eafa65ffc65ec'; break;
     case 'nos': multicallAddress = '0x337F5fBB75007e59cC4A6132017Bd96748b09F7F'; break;
   }
