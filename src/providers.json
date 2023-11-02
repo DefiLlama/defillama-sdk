@@ -209,8 +209,8 @@
   },
   "fuse": {
     "rpc": [
-      "https://fuse-rpc.gateway.pokt.network",
-      "https://rpc.fuse.io"
+      "https://rpc.fuse.io",
+      "https://fuse-rpc.gateway.pokt.network"
     ],
     "chainId": 122
   },
@@ -290,9 +290,9 @@
   },
   "zyx": {
     "rpc": [
+      "https://rpc-1.zyx.network/",
       "https://rpc-6.zyx.network",
       "https://rpc-4.zyx.network",
-      "https://rpc-1.zyx.network/",
       "https://rpc-2.zyx.network/",
       "https://rpc-3.zyx.network/",
       "https://rpc-5.zyx.network/"
