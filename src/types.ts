@@ -24,10 +24,7 @@ export type CallOptions = {
   chain?: Chain | string;
   withMetadata?: boolean;
   skipCache?: boolean;
-  logArray?: {
-    token: Address;
-    holder: Address;
-  }[];
+  logArray?: LogArray
 }
 
 export type MulticallOptions = {
@@ -40,10 +37,7 @@ export type MulticallOptions = {
   withMetadata?: boolean;
   skipCache?: boolean;
   permitFailure?: boolean;
-  logArray?: {
-    token: Address;
-    holder: Address;
-  }[];
+  logArray?: LogArray
 }
 
 export type FetchListOptions = {
