@@ -9,7 +9,7 @@ export async function getBalance(params: {
   chain?: Chain;
   logArray?: LogArray
 }) {
-  if (params.logArray) params.logArray.push({ holder: params.target })
+  if (params.logArray) params.logArray.push({ holder: `${params.chain ?? "ethereum"}:${params.target}` })
   if (params.chain === 'tron') return Tron.getBalance(params)
   const balance = await getProvider(params.chain).getBalance(
     params.target,
@@ -27,7 +27,7 @@ export async function getBalances(params: {
   chain?: Chain;
   logArray?: LogArray
 }) {
-  if (params.logArray) params.logArray.push(...params.targets.map((holder: Address) => ({ holder })))
+  if (params.logArray) params.logArray.push(...params.targets.map((t: Address) => ({ holder: `${params.chain ?? "ethereum"}:${t}` })))
   if (params.chain === 'tron') return Tron.getBalances(params)
   const balances = params.targets.map(async (target) => ({
     target,

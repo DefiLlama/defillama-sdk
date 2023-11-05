@@ -128,16 +128,17 @@ export async function call(params: CallOptions): Promise<any> {
   if (!isValidTarget(params.target, params.chain))
     throw new Error("Invalid target: " + params.target);
   fixBlockTag(params);
+  const chain = params.chain ?? "ethereum";
   if (catchedABIs[params.abi]) params.abi = catchedABIs[params.abi];
   if (!params.skipCache) return cachedCall(params);
   const abi = resolveABI(params.abi);
   if (params.logArray && abi == rawBalanceOfAbi)
     params.logArray.push({
-      token: params.target,
-      holder: params.params.length ? params.params[0] : params.params,
+      token: `${chain}:${params.target}`,
+      holder: `${chain}:${params.params.length ? params.params[0] : params.params}`,
     });
   const callParams = normalizeParams(params.params);
-  if (params.chain === "tron")
+  if (chain === "tron")
     return Tron.call({ ...params, abi, params: callParams });
 
   const contractInterface = new ethers.utils.Interface([abi]);
@@ -147,7 +148,7 @@ export async function call(params: CallOptions): Promise<any> {
     callParams,
   );
 
-  const result = await getProvider(params.chain as Chain).call(
+  const result = await getProvider(chain as Chain).call(
     {
       to: params.target,
       data: callData,
@@ -237,8 +238,8 @@ export async function multiCall(params: MulticallOptions): Promise<any> {
   if (params.logArray)
     params.logArray.push(
       ...contractCalls.map((c: any) => ({
-        holder: c.params.length ? c.params[0] : c.params,
-        token: c.contract,
+        holder: `${chain}:${c.params.length ? c.params[0] : c.params}`,
+        token: `${chain}:${c.contract}`,
       })),
     );
   if (!params.skipCache) return cachedMultiCall(params);
