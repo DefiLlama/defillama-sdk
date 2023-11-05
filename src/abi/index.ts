@@ -65,6 +65,10 @@ type CallOptions = {
   params?: CallParams;
   chain?: Chain | string;
   skipCache?: boolean;
+  logArray?: {
+    target: Address;
+    params?: CallParams;
+  }[];
 }
 
 type MulticallOptions = {
@@ -80,6 +84,10 @@ type MulticallOptions = {
   skipCache?: boolean;
   contractCalls?: any;
   permitFailure?: boolean;
+  logArray?: {
+    target: Address;
+    params?: CallParams;
+  }[];
 }
 
 function normalizeParams(params: CallParams): (any)[] {
@@ -107,6 +115,7 @@ function isValidTarget(target: string, chain?: string) {
 }
 
 export async function call(params: CallOptions): Promise<any> {
+  if (params.logArray) params.logArray.push({target: params.target, params: params.params})
   if (!isValidTarget(params.target, params.chain)) throw new Error('Invalid target: ' + params.target)
   fixBlockTag(params)
   if (catchedABIs[params.abi]) params.abi = catchedABIs[params.abi]
@@ -197,6 +206,7 @@ export async function multiCall(params: MulticallOptions): Promise<any> {
     })
     params.contractCalls = contractCalls
   }
+  if (params.logArray) params.logArray.push(...contractCalls.map((c: any) => ({ params: c.params, target: c.contract })))
   if (!params.skipCache) return cachedMultiCall(params)
 
   const abi = resolveABI(params.abi);
