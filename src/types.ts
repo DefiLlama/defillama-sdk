@@ -25,8 +25,8 @@ export type CallOptions = {
   withMetadata?: boolean;
   skipCache?: boolean;
   logArray?: {
-    target: Address;
-    params?: CallParams;
+    token: Address;
+    holder: Address;
   }[];
 }
 
@@ -41,8 +41,8 @@ export type MulticallOptions = {
   skipCache?: boolean;
   permitFailure?: boolean;
   logArray?: {
-    target: Address;
-    params?: CallParams;
+    token: Address;
+    holder: Address;
   }[];
 }
 
@@ -57,10 +57,7 @@ export type FetchListOptions = {
   startFromOne?: boolean;
   itemCount?: number;
   permitFailure?: boolean;
-  logArray?: {
-    target: Address;
-    params?: CallParams;
-  }[];
+  logArray?: LogArray
 }
 
 export type ByteCodeCallOptions = {
@@ -72,3 +69,8 @@ export type ByteCodeCallOptions = {
   outputTypes: string[];
   withMetadata?: boolean;
 }
+
+export type LogArray = {
+  token?: Address;
+  holder: Address;
+}[]

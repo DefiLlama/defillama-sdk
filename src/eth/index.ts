@@ -1,4 +1,4 @@
-import { Address } from "../types";
+import { Address, LogArray } from "../types";
 import { Chain, getProvider, handleDecimals } from "../general";
 import * as Tron from "../abi/tron";
 
@@ -7,11 +7,9 @@ export async function getBalance(params: {
   block?: number;
   decimals?: number;
   chain?: Chain;
-  logArray?: {
-    target: Address;
-  }[];
+  logArray?: LogArray
 }) {
-  if (params.logArray) params.logArray.push({ target: params.target })
+  if (params.logArray) params.logArray.push({ holder: params.target })
   if (params.chain === 'tron') return Tron.getBalance(params)
   const balance = await getProvider(params.chain).getBalance(
     params.target,
@@ -27,11 +25,9 @@ export async function getBalances(params: {
   block?: number;
   decimals?: number;
   chain?: Chain;
-  logArray?: {
-    target: Address;
-  }[];
+  logArray?: LogArray
 }) {
-  if (params.logArray) params.logArray.push(...params.targets.map((target: Address) => ({ target })))
+  if (params.logArray) params.logArray.push(...params.targets.map((holder: Address) => ({ holder })))
   if (params.chain === 'tron') return Tron.getBalances(params)
   const balances = params.targets.map(async (target) => ({
     target,

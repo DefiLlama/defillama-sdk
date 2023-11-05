@@ -1,5 +1,5 @@
-import { Address, ByteCodeCallOptions, } from "../types";
-import catchedABIs from "./cachedABIs";
+import { Address, ByteCodeCallOptions, LogArray, } from "../types";
+import catchedABIs, { rawBalanceOfAbi } from "./cachedABIs";
 import { ethers } from "ethers";
 import { getProvider, Chain } from "../general";
 import makeMultiCall from "./multicall3";
@@ -65,10 +65,7 @@ type CallOptions = {
   params?: CallParams;
   chain?: Chain | string;
   skipCache?: boolean;
-  logArray?: {
-    target: Address;
-    params?: CallParams;
-  }[];
+  logArray?: LogArray
 }
 
 type MulticallOptions = {
@@ -84,10 +81,7 @@ type MulticallOptions = {
   skipCache?: boolean;
   contractCalls?: any;
   permitFailure?: boolean;
-  logArray?: {
-    target: Address;
-    params?: CallParams;
-  }[];
+  logArray?: LogArray
 }
 
 function normalizeParams(params: CallParams): (any)[] {
@@ -115,12 +109,12 @@ function isValidTarget(target: string, chain?: string) {
 }
 
 export async function call(params: CallOptions): Promise<any> {
-  if (params.logArray) params.logArray.push({target: params.target, params: params.params})
   if (!isValidTarget(params.target, params.chain)) throw new Error('Invalid target: ' + params.target)
   fixBlockTag(params)
   if (catchedABIs[params.abi]) params.abi = catchedABIs[params.abi]
   if (!params.skipCache) return cachedCall(params)
   const abi = resolveABI(params.abi);
+  if (params.logArray && abi == rawBalanceOfAbi) params.logArray.push({token: params.target, holder: params.params.length ? params.params[0] : params.params })
   const callParams = normalizeParams(params.params);
   if (params.chain === 'tron') return Tron.call({ ...params, abi, params: callParams })
 
@@ -206,10 +200,11 @@ export async function multiCall(params: MulticallOptions): Promise<any> {
     })
     params.contractCalls = contractCalls
   }
-  if (params.logArray) params.logArray.push(...contractCalls.map((c: any) => ({ params: c.params, target: c.contract })))
+  const abi = resolveABI(params.abi);
+  if (params.logArray) params.logArray.push(...contractCalls.map((c: any) => ({ holder: c.params.length ? c.params[0] : c.params, token: c.contract })))
   if (!params.skipCache) return cachedMultiCall(params)
 
-  const abi = resolveABI(params.abi);
+
   const results = await runInPromisePool({
     items: sliceIntoChunks(contractCalls, chunkSize),
     concurrency: 10,
