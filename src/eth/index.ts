@@ -1,5 +1,5 @@
 import { Address, LogArray } from "../types";
-import { Chain, getProvider, handleDecimals } from "../general";
+import { Chain, ETHER_ADDRESS, getProvider, handleDecimals } from "../general";
 import * as Tron from "../abi/tron";
 
 export async function getBalance(params: {
@@ -9,7 +9,9 @@ export async function getBalance(params: {
   chain?: Chain;
   logArray?: LogArray
 }) {
-  if (params.logArray) params.logArray.push({ holder: `${params.chain ?? "ethereum"}:${params.target}` })
+  if (params.logArray) params.logArray.push(
+    { holder: `${params.chain ?? "ethereum"}:${params.target}`, token: ETHER_ADDRESS }
+  )
   if (params.chain === 'tron') return Tron.getBalance(params)
   const balance = await getProvider(params.chain).getBalance(
     params.target,
@@ -27,7 +29,9 @@ export async function getBalances(params: {
   chain?: Chain;
   logArray?: LogArray
 }) {
-  if (params.logArray) params.logArray.push(...params.targets.map((t: Address) => ({ holder: `${params.chain ?? "ethereum"}:${t}` })))
+  if (params.logArray) params.logArray.push(...params.targets.map(
+    (t: Address) => ({ holder: `${params.chain ?? "ethereum"}:${t}`, token: ETHER_ADDRESS })
+  ))
   if (params.chain === 'tron') return Tron.getBalances(params)
   const balances = params.targets.map(async (target) => ({
     target,

@@ -65,6 +65,6 @@ export type ByteCodeCallOptions = {
 }
 
 export type LogArray = {
-  token?: Address;
+  token: Address;
   holder: Address;
 }[]
