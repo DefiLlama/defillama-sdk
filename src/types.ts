@@ -68,4 +68,5 @@ export type LogArray = {
   token: Address;
   holder: Address;
   chain: Chain;
+  amount: any
 }[]
