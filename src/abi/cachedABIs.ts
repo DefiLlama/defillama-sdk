@@ -6,5 +6,3 @@ export default {
 } as {
   [method: string]: any | undefined;
 };
-
-export const rawBalanceOfAbi = {"inputs":[{"internalType":"address","name":"account","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}

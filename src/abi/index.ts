@@ -1,5 +1,5 @@
 import { Address, ByteCodeCallOptions, LogArray, } from "../types";
-import catchedABIs, { rawBalanceOfAbi } from "./cachedABIs";
+import catchedABIs from "./cachedABIs";
 import { ethers } from "ethers";
 import { getProvider, Chain } from "../general";
 import makeMultiCall from "./multicall3";
@@ -139,7 +139,7 @@ export async function call(params: CallOptions): Promise<any> {
 
   const output = convertResults(decodedResult)
 
-  if (params.logArray && abi == rawBalanceOfAbi)
+  if (params.logArray && abi.name == 'balanceOf' && abi.outputs[0].type == 'uint256')
     params.logArray.push({
       chain,
       token: params.target,
@@ -227,7 +227,7 @@ export async function multiCall(params: MulticallOptions): Promise<any> {
     if (!params.permitFailure) throw new Error('Multicall failed!')
   }
 
-  if (params.logArray && abi == rawBalanceOfAbi)
+  if (params.logArray && abi.name == 'balanceOf' && abi.outputs[0].type == 'uint256')
     params.logArray.push(
       ...contractCalls.map((c: any, i: number) => ({
         chain,
