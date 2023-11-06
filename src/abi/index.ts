@@ -134,8 +134,9 @@ export async function call(params: CallOptions): Promise<any> {
   const abi = resolveABI(params.abi);
   if (params.logArray && abi == rawBalanceOfAbi)
     params.logArray.push({
-      token: `${chain}:${params.target}`,
-      holder: `${chain}:${params.params.length ? params.params[0] : params.params}`,
+      chain,
+      token: params.target,
+      holder: params.params.length ? params.params[0] : params.params,
     });
   const callParams = normalizeParams(params.params);
   if (chain === "tron")
@@ -238,8 +239,9 @@ export async function multiCall(params: MulticallOptions): Promise<any> {
   if (params.logArray)
     params.logArray.push(
       ...contractCalls.map((c: any) => ({
-        holder: `${chain}:${c.params.length ? c.params[0] : c.params}`,
-        token: `${chain}:${c.contract}`,
+        chain,
+        holder: c.params.length ? c.params[0] : c.params,
+        token: c.contract,
       })),
     );
   if (!params.skipCache) return cachedMultiCall(params);
