@@ -227,7 +227,7 @@ export async function multiCall(params: MulticallOptions): Promise<any> {
     if (!params.permitFailure) throw new Error('Multicall failed!')
   }
 
-  if (params.logArray)
+  if (params.logArray && abi == rawBalanceOfAbi)
     params.logArray.push(
       ...contractCalls.map((c: any, i: number) => ({
         chain,
