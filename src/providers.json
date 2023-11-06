@@ -589,6 +589,7 @@
   },
   "dogechain": {
     "rpc": [
+      "https://dogechain.rpc.thirdweb.com",
       "https://rpc.ankr.com/dogechain",
       "https://rpc-us.dogechain.dog",
       "https://rpc.dogechain.dog",
@@ -852,7 +853,11 @@
   },
   "op_bnb": {
     "rpc": [
-      "https://opbnb-mainnet-rpc.bnbchain.org"
+      "https://opbnb-mainnet-rpc.bnbchain.org",
+      "https://opbnb.publicnode.com",
+      "https://1rpc.io/opbnb",
+      "https://opbnb-mainnet.nodereal.io/v1/64a9df0874fb4a93b9d0a3849de012d3",
+      "https://opbnb-mainnet.nodereal.io/v1/b6edc5ad8b7b48cd9cf196f772ffcbc2"
     ],
     "chainId": 204
   },
