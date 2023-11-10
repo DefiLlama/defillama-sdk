@@ -143,7 +143,7 @@ export async function call(params: CallOptions): Promise<any> {
     params.logArray.push({
       chain,
       token: params.target,
-      holder: params.params.length ? params.params[0] : params.params,
+      holder: params.params,
       amount: output
     });
 

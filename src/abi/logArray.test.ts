@@ -49,6 +49,15 @@ const expectedResults: { [test: string]: LogArray } = {
   ],
 };
 
+const objectArraysEqual = (oa1: any[], oa2: any[]) =>
+  !oa1
+    .map(
+      (o1: any, i: number) =>
+        Object.keys(o1).length === Object.keys(oa2[i]).length &&
+        Object.keys(o1).every((p) => o1[p] === oa2[i][p]),
+    )
+    .includes(false);
+
 test("log array call", async () => {
   const logArray: LogArray = [];
   await call({
@@ -58,7 +67,7 @@ test("log array call", async () => {
     block: 15997547,
     logArray,
   });
-  expect(logArray == expectedResults.call);
+  expect(objectArraysEqual(logArray, expectedResults.call)).toBe(true);
 });
 test("log array multiCall", async () => {
   const logArray: LogArray = [];
@@ -77,16 +86,16 @@ test("log array multiCall", async () => {
     block: 15997547,
     logArray,
   });
-  expect(logArray == expectedResults.multiCall);
+  expect(objectArraysEqual(logArray, expectedResults.multiCall)).toBe(true);
 });
 test("log array getBalance", async () => {
   const logArray: LogArray = [];
-  const res = await getBalance({
+  await getBalance({
     target: "0xd5524179cB7AE012f5B642C1D6D700Bbaa76B96b",
     block: 16018720,
     logArray,
   });
-  expect(logArray == expectedResults.getBalance);
+  expect(objectArraysEqual(logArray, expectedResults.getBalance)).toBe(true);
 });
 test("log array getBalancess", async () => {
   const logArray: LogArray = [];
@@ -98,5 +107,5 @@ test("log array getBalancess", async () => {
     block: 16018720,
     logArray,
   });
-  expect(logArray == expectedResults.getBalances);
+  expect(objectArraysEqual(logArray, expectedResults.getBalances)).toBe(true);
 });
