@@ -1,4 +1,4 @@
-import { Address, ByteCodeCallOptions, } from "../types";
+import { Address, ByteCodeCallOptions, LogArray, } from "../types";
 import catchedABIs from "./cachedABIs";
 import { ethers } from "ethers";
 import { getProvider, Chain } from "../general";
@@ -65,6 +65,7 @@ type CallOptions = {
   params?: CallParams;
   chain?: Chain | string;
   skipCache?: boolean;
+  logArray?: LogArray;
 }
 
 type MulticallOptions = {
@@ -80,6 +81,7 @@ type MulticallOptions = {
   skipCache?: boolean;
   contractCalls?: any;
   permitFailure?: boolean;
+  logArray?: LogArray;
 }
 
 function normalizeParams(params: CallParams): (any)[] {
@@ -109,11 +111,12 @@ function isValidTarget(target: string, chain?: string) {
 export async function call(params: CallOptions): Promise<any> {
   if (!isValidTarget(params.target, params.chain)) throw new Error('Invalid target: ' + params.target)
   fixBlockTag(params)
+  const chain = params.chain ?? "ethereum";
   if (catchedABIs[params.abi]) params.abi = catchedABIs[params.abi]
   if (!params.skipCache) return cachedCall(params)
   const abi = resolveABI(params.abi);
   const callParams = normalizeParams(params.params);
-  if (params.chain === 'tron') return Tron.call({ ...params, abi, params: callParams })
+  if (chain === 'tron') return Tron.call({ ...params, abi, params: callParams })
 
   const contractInterface = new ethers.utils.Interface([abi]);
   const functionABI = ethers.utils.FunctionFragment.from(abi);
@@ -134,8 +137,18 @@ export async function call(params: CallOptions): Promise<any> {
     result
   );
 
+  const output = convertResults(decodedResult)
+
+  if (params.logArray && abi.name == 'balanceOf' && abi.outputs[0].type == 'uint256')
+    params.logArray.push({
+      chain,
+      token: params.target,
+      holder: Array.isArray(params.params) ? params.params[0] : params.params,
+      amount: output
+    });
+
   return {
-    output: convertResults(decodedResult),
+    output,
   };
 }
 
@@ -214,6 +227,16 @@ export async function multiCall(params: MulticallOptions): Promise<any> {
     if (!params.permitFailure) throw new Error('Multicall failed!')
   }
 
+  if (params.logArray && abi.name == 'balanceOf' && abi.outputs[0].type == 'uint256')
+    params.logArray.push(
+      ...contractCalls.map((c: any, i: number) => ({
+        chain,
+        holder: c.params.length ? c.params[0] : c.params,
+        token: c.contract,
+        amount: flatResults[i].output
+      })),
+    );
+  
   return {
     output: flatResults, // flatten array
   };
