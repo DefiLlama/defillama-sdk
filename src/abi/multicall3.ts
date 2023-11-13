@@ -77,6 +77,7 @@ const DEPLOYMENT_BLOCK = {
   scroll: 14,
   q: 8357148,
   edg: 18117872,
+  azktn: 31317,
 } as {
   [key: string | Chain]: number
 }

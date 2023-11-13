@@ -348,6 +348,8 @@ function multicallAddress(chainId: number) {
       return "0x372d0695E75563D9180F8CE31c9924D7e8aaac47";
     case 534352: // scroll
       return "0xC2c8eDe80BB5aeB883077eCe496B0C374549D092";
+    case 1890: // lightlink - phoenix
+      return "0xC6a4B6667c44Fd56dC6E15C45108c4e8fC22F517";
     default:
       return null;
   }
