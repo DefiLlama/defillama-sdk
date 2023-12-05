@@ -350,6 +350,12 @@ function multicallAddress(chainId: number) {
       return "0xC2c8eDe80BB5aeB883077eCe496B0C374549D092";
     case 1890: // lightlink - phoenix
       return "0xC6a4B6667c44Fd56dC6E15C45108c4e8fC22F517";
+    case 1012: // newton
+      return "0x5c1537fd2B4e75D54f17535Cfd350b998068B04B";
+    case 1339:  // eon
+      return '0x952e846E505d4e4ddf579541A0d739f1681F2282';
+    case 34443: // mode
+      return '0xA1da7a7eB5A858da410dE8FBC5092c2079B58413';
     default:
       return null;
   }

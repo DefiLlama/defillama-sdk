@@ -77,7 +77,10 @@ const DEPLOYMENT_BLOCK = {
   scroll: 14,
   q: 8357148,
   edg: 18117872,
+  chz: 8007643,
   azktn: 31317,
+  lightlink_phoenix: 51289975,
+  eon: 646592,
 } as {
   [key: string | Chain]: number
 }
@@ -156,6 +159,9 @@ export function getMulticallAddress(chain: Chain, block?: BlockTag) {
     case 'op_bnb': multicallAddress = '0x5eF9501fE659b97C45f3A7efD298c14405b454D1'; break;
     case 'beam': multicallAddress = '0x4956f15efdc3dc16645e90cc356eafa65ffc65ec'; break;
     case 'nos': multicallAddress = '0x337F5fBB75007e59cC4A6132017Bd96748b09F7F'; break;
+    case 'chz': multicallAddress = '0x0E6a1Df694c4be9BFFC4D76f2B936bB1A1df7fAC'; break;
+    case 'lightlink_phoenix': multicallAddress = '0xb9a543d7B7dF05C8845AeA6627dE4a6622Ac863C'; break;
+    case 'eon': multicallAddress = '0x4ea6779581bDAcd376724A52070bE89FfB74eC39'; break;
   }
   return multicallAddress
 }

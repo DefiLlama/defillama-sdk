@@ -214,7 +214,7 @@ export async function getLogs(params: {
   while (currentBlock < params.toBlock) {
     const nextBlock = Math.min(params.toBlock, currentBlock + blockSpread);
     try {
-      const partLogs = await getProvider(params.chain).getLogs({
+      const partLogs = await getProvider(params.chain, true).getLogs({
         ...filter,
         fromBlock: currentBlock,
         toBlock: nextBlock

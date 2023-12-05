@@ -117,6 +117,13 @@ export class ChainApi {
     return this.chainId
   }
 
+  removeTokenBalance(token: string) {
+    const regex = new RegExp(token, 'i')
+    Object.keys(this._balances).forEach((i: string) => {
+      if (regex.test(i)) delete this._balances[i]
+    })
+  }
+
   async sumTokens({
     tokens = [],
     owners = [],

@@ -812,7 +812,11 @@
   },
   "mantle": {
     "rpc": [
-      "https://mantle-mainnet.public.blastapi.io,https://mantle.publicnode.com,https://rpc.mantle.xyz"
+      "https://mantle.publicnode.com",
+      "https://rpc.ankr.com/mantle",
+      "https://mantle.drpc.org",
+      "https://1rpc.io/mantle",
+      "https://mantle-mainnet.public.blastapi.io"
     ],
     "chainId": 5000
   },
@@ -899,5 +903,30 @@
       "https://rpc.scroll.io"
     ],
     "chainId": 534352
+  },
+  "chz": {
+    "rpc": [
+      "https://chiliz.publicnode.com",
+      "https://rpc.ankr.com/chiliz"
+    ],
+    "chainId": 534352
+  },
+  "mode": {
+    "rpc": [
+      "https://mainnet.mode.network"
+    ],
+    "chainId": 34443
+  },
+  "zilliqa": {
+    "rpc": [
+      "https://api.zilliqa.com"
+    ],
+    "chainId": 32769
+  },
+  "fsc": {
+    "rpc": [
+      "https://fsc-dataseed1.fonscan.io"
+    ],
+    "chainId": 201022
   }
 }

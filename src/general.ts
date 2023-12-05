@@ -53,7 +53,14 @@ export const providers = {} as {
 };
 
 export type Chain = string
-export function getProvider(chain: Chain = "ethereum"): Provider {
+export function getProvider(chain: Chain = "ethereum", getArchivalNode = false): Provider {
+  const chainArchivalpcEnv= process.env[chain.toUpperCase() + "_ARCHIVAL_RPC"]
+  if (getArchivalNode && typeof chainArchivalpcEnv === 'string' && chainArchivalpcEnv.length > 0) {
+    let rpcList = chainArchivalpcEnv?.split(',')
+    // shuffle rpcList
+    rpcList = rpcList!.sort(() => Math.random() - 0.5)
+    return (createProvider(chain, rpcList.join(','), (providerList as any)[chain]?.chainId) as Provider)
+  }
   // use RPC from env variable if set else use RPC from providers.json
   let rpcList: (string | undefined) = process.env[chain.toUpperCase() + "_RPC"]
   if (!rpcList) rpcList = (providerList as any)[chain]?.rpc.join(',')
