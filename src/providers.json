@@ -897,10 +897,14 @@
   },
   "scroll": {
     "rpc": [
-      "https://rpc-scroll.icecreamswap.com",
-      "https://1rpc.io/scroll",
+      "https://rpc.ankr.com/scroll",
+      "https://rpc.scroll.io",
       "https://scroll.blockpi.network/v1/rpc/public",
-      "https://rpc.scroll.io"
+      "https://scroll-mainnet.public.blastapi.io",
+      "https://scroll-mainnet-public.unifra.io",
+      "https://scroll-mainnet.chainstacklabs.com",
+      "https://1rpc.io/scroll",
+      "https://rpc-scroll.icecreamswap.com"
     ],
     "chainId": 534352
   },
