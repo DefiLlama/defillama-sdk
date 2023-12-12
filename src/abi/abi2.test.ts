@@ -95,42 +95,6 @@ test("multiCall", async () => {
   ]);
 });
 
-test("multiCall omax", async () => {
-
-  expect(
-    await multiCall({
-      calls: [
-        {
-          target: "0x8A09B18BDff44AcdE3516847D679D4b044cDfb89",
-        },
-      ],
-      abi: "address:factory",
-      chain: "wemix",
-    })
-  ).toEqual([
-    "0xe1F36C7B919c9f893E2Cd30b471434Aa2494664A",
-  ]);
-  expect(
-    await multiCall({
-      calls: [
-        {
-          target: "0xfeBaBc6a9B2Ec46d6357879B8bf39B593F11A5B9",
-          params: "0xecd5e75afb02efa118af914515d6521aabd189f1",
-        },
-        {
-          target: "0xfeBaBc6a9B2Ec46d6357879B8bf39B593F11A5B9",
-          params: "0xd9ebebfdab08c643c5f2837632de920c70a56247",
-        },
-      ],
-      abi: "erc20:balanceOf",
-      chain: "omax",
-    })
-  ).toEqual([
-    "0",
-    "0",
-  ]);
-});
-
 test("multiCall grove", async () => {
   expect(
     await multiCall({

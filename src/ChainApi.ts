@@ -1,4 +1,5 @@
-import { Block, CallOptions, MulticallOptions, FetchListOptions, Balances, ByteCodeCallOptions } from "./types";
+import { Block, CallOptions, MulticallOptions, FetchListOptions, ByteCodeCallOptions, Balances as BalancesV1 } from "./types";
+import Balances  from "./Balances";
 import { Chain, getProvider, } from "./general";
 import { call, multiCall, fetchList, bytecodeCall } from './abi/abi2'
 import { getBlock } from './computeTVL/blocks'
@@ -28,7 +29,7 @@ export class ChainApi {
     this.chain = params.chain ?? 'ethereum'
     this.timestamp = params.timestamp
     this.provider = getProvider(this.chain as Chain)
-    this._balances = {}
+    this._balances = new Balances({ chain: this.chain, timestamp: this.timestamp })
     // @ts-ignore
     this.chainId = providerList[this.chain]?.chainId
   }
@@ -82,35 +83,28 @@ export class ChainApi {
     debugTable(...args)
   }
 
-  add(token: string, balance: any, { skipChain = false } = {}) {
-    token = token.replace(/\//g, ':')
-    const isIBCToken = token.startsWith('ibc:')
-    let chain: string | undefined = this.chain
-    if (skipChain || isIBCToken) {
-      chain = undefined
-    }
-    if (chain === 'injective' && token.startsWith('peggy0x')) {
-      chain = 'ethereum'
-      token = token.replace('peggy', '')
-    }
-    sumSingleBalance(this._balances, token, balance, chain)
+  add(token: any, balance: any, { skipChain = false } = {}) {
+    this._balances.add(token, balance, { skipChain })
   }
 
   addToken(token: string, balance: any, { skipChain = false } = {}) {
     this.add(token, balance, { skipChain })
   }
 
+  addGasToken(balance: any) {
+    this.add(nullAddress, balance)
+  }
+
   addTokens(tokens: string[], balances: any[], { skipChain = false } = {}) {
-    tokens.forEach((v, i) => this.add(v, balances[i], { skipChain }))
+    this.add(tokens, balances, { skipChain })
   }
 
-  addBalances(balances: Balances) {
-    if (balances === this._balances) return;
-    Object.entries(balances).forEach(([token, balance]) => sumSingleBalance(this._balances, token, balance))
+  addBalances(balances: Balances | BalancesV1) {
+    this._balances.addBalances(balances)
   }
 
-  getBalances(): Balances {
-    return this._balances
+  getBalances(): BalancesV1 {
+    return this._balances.getBalances()
   }
 
   getChainId(): number | undefined {
@@ -118,10 +112,7 @@ export class ChainApi {
   }
 
   removeTokenBalance(token: string) {
-    const regex = new RegExp(token, 'i')
-    Object.keys(this._balances).forEach((i: string) => {
-      if (regex.test(i)) delete this._balances[i]
-    })
+    this._balances.removeTokenBalance(token)
   }
 
   async sumTokens({
@@ -142,7 +133,7 @@ export class ChainApi {
     ownerTokens?: any[],
     blacklistedTokens?: string[],
     blacklistedOwners?: string[],
-  }): Promise<Balances> {
+  }): Promise<BalancesV1> {
 
     if (tokensAndOwners2.length)
       tokensAndOwners.push(...tokensAndOwners2[0].map((i: string, j: number) => [i, tokensAndOwners2[1][j]]))

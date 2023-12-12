@@ -1,0 +1,97 @@
+import { Balances as BalancesV1 } from "./types";
+import { Chain, } from "./general";
+
+import { sumSingleBalance, } from "./generalUtil";
+import computeTVL from "./util/computeTVL";
+
+const nullAddress = '0x0000000000000000000000000000000000000000'
+export class Balances {
+  chain: Chain | string;
+  timestamp?: number;
+  _balances: BalancesV1;
+
+  constructor(params: {
+    chain?: Chain | string;
+    timestamp?: number;
+  }) {
+    this.chain = params.chain ?? 'ethereum'
+    this.timestamp = params.timestamp
+    this._balances = {}
+  }
+
+  _add(token: string, balance: any, { skipChain = false } = {}) {
+    token = token.replace(/\//g, ':')
+    const isIBCToken = token.startsWith('ibc:')
+    let chain: string | undefined = this.chain
+    if (skipChain || isIBCToken) {
+      chain = undefined
+    }
+    if (chain === 'injective' && token.startsWith('peggy0x')) {
+      chain = 'ethereum'
+      token = token.replace('peggy', '')
+    }
+    sumSingleBalance(this._balances, token, balance, chain)
+  }
+
+
+  add(token: string | string[], balance: any, { skipChain = false } = {}) {
+    if (!token) throw new Error('token is required')
+    if (!balance) throw new Error('balance is required')
+
+    if (Array.isArray(balance)) {
+      if (Array.isArray(token)) {
+        this.addTokens(token, balance, { skipChain })
+        return;
+      } else if (typeof token === 'string') {
+        balance.forEach((v) => this._add(token, v, { skipChain }))
+        return;
+      }
+    }
+
+    if (typeof token !== 'string') throw new Error('token must be a string')
+    this._add(token, balance, { skipChain })
+  }
+
+  addToken(token: string, balance: any, { skipChain = false } = {}) {
+    this._add(token, balance, { skipChain })
+  }
+
+  addGasToken(balance: any) {
+    this._add(nullAddress, balance)
+  }
+
+  addTokens(tokens: string[], balances: any[], { skipChain = false } = {}) {
+    if (!Array.isArray(tokens)) throw new Error('tokens must be an array')
+    if (!Array.isArray(balances)) throw new Error('balances must be an array')
+    if (tokens.length !== balances.length) throw new Error('token and balance must have the same length')
+
+    tokens.forEach((v, i) => this._add(v, balances[i], { skipChain }))
+  }
+
+  addBalances(balances: BalancesV1 | Balances) {
+    if (balances instanceof Balances) {
+      if (balances === this) return;
+      balances = balances.getBalances()
+    }
+    if (balances === this._balances) return;
+    Object.entries(balances).forEach(([token, balance]) => this._add(token, balance, { skipChain: true }))
+  }
+
+  getBalances(): BalancesV1 {
+    return this._balances
+  }
+
+  removeTokenBalance(token: string) {
+    const regex = new RegExp(token, 'i')
+    Object.keys(this._balances).forEach((i: string) => {
+      if (regex.test(i)) delete this._balances[i]
+    })
+  }
+
+  async getUSDValue() {
+    const { usdTvl } = await computeTVL(this.getBalances(), this.timestamp)
+    return usdTvl
+  }
+}
+
+export default Balances

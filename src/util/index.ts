@@ -81,6 +81,33 @@ const intialBlocks = {
   [chain: string]: number | undefined;
 };
 
+const blockscoutEndpoints: any = {
+  celo: 'https://explorer.celo.org',
+  kava: 'https://explorer.kava.io',
+  onus: 'https://explorer.onuschain.io',
+  base: 'https://base.blockscout.com',
+  scroll: 'https://blockscout.scroll.io',
+}
+
+async function getBlockscoutBlock(timestamp: number, chain: string) {
+
+  const api = `${blockscoutEndpoints[chain]}/api?module=block&action=getblocknobytime&timestamp=${timestamp}&closest=before`
+  const res = await fetch(api)
+  const data = await res.json()
+  if (data.status !== '1')
+    throw new Error(data.message)
+  return {
+    timestamp,
+    block: +data.result.blockNumber
+  }
+}
+
+const blockTimeCache: {
+  [chain: string]: {
+    [block: number]: TimestampBlock
+  }
+} = {}
+
 export async function lookupBlock(
   timestamp: number,
   extraParams: {
@@ -89,22 +116,41 @@ export async function lookupBlock(
 ) {
   const chain = extraParams?.chain ?? "ethereum"
 
-  if (chain === 'celo') {
-    const api = `https://explorer.celo.org/mainnet/api?module=block&action=getblocknobytime&timestamp=${timestamp}&closest=before`
+  if (blockscoutEndpoints[chain]) {
+    try {
+      const response = await getBlockscoutBlock(timestamp, chain)
+      return response
+    } catch (e) { // fallback to usual way of fetching logs
+      debugLog('error fetching block from blockscout', e)
+    }
+  }
+
+  if (chain === 'waves') {
+    const api = `https://nodes.wavesnodes.com/blocks/heightByTimestamp/${timestamp}`
     const res = await fetch(api)
     const data = await res.json()
     return {
       timestamp,
-      block: +data.result.blockNumber
+      block: +data.height
     }
   }
 
   let low = intialBlocks[chain] ?? 100;
-  let lowBlock: TimestampBlock, highBlock: TimestampBlock
+  let lowBlock: TimestampBlock = getLowBlock()
+  let highBlock: TimestampBlock = getHighBlock()
+
+  let block: TimestampBlock;
+  let i = 0
+  let time = Date.now()
+  let allowedTimeRange = 15 * 60 // how much imprecision is allowed (15 minutes now)
+  let acceptableBlockImprecision = chain === 'ethereum' ? 20 : 200
+  let blockImprecision: number
+  let imprecision: number
 
   try {
     let firstBlock, lastBlock
     const provider = getExtraProvider(chain);
+
     if (['evmos'].includes(chain)) {
       lastBlock = await getBlock(provider, "latest", chain)
       let firstBlockNum = lastBlock.number
@@ -115,36 +161,35 @@ export async function lookupBlock(
     } else {
       [lastBlock, firstBlock] = await Promise.all([
         getBlock(provider, "latest", chain),
-        getBlock(provider, low, chain),
+        lowBlock ? lowBlock : getBlock(provider, low, chain),
       ])
     }
+
     lowBlock = firstBlock
-    highBlock = lastBlock
-    if (
-      lastBlock.timestamp - timestamp < -30 * 60
-    ) {
+
+    if (!highBlock)
+      highBlock = lastBlock
+
+    if (lastBlock.timestamp - timestamp < -30 * 60) {
       throw new Error(
         `Last block of chain "${chain
         }" is further than 30 minutes into the past. Provider is "${(provider as any)?.connection?.url
         }"`
       );
     }
-    if (Math.abs(lastBlock.timestamp - timestamp) < 60 * 30) {
+
+    if (Math.abs(highBlock.timestamp - timestamp) < 60 * 30) {
       // Short-circuit in case we are trying to get the current block
       return {
-        block: lastBlock.number,
-        timestamp: lastBlock.timestamp
+        block: highBlock.number,
+        timestamp: highBlock.timestamp
       };
     }
-    let block: TimestampBlock;
-    let i = 0
-    let time = Date.now()
-    let allowedTimeRange = 15 * 60 // how much imprecision is allowed (15 minutes now)
-    let acceptableBlockImprecision = chain === 'ethereum' ? 20 : 200
-    let blockImprecision
-    let imprecision
-    const getPrecision = (block: TimestampBlock) => block.timestamp - timestamp > 0 ? block.timestamp - timestamp : timestamp - block.timestamp
-    do {
+
+
+    updateBlock()
+
+    while (imprecision! > allowedTimeRange && blockImprecision! > acceptableBlockImprecision) { // We lose some precision (max ~15 minutes) but reduce #calls needed 
       ++i
       const blockDiff = highBlock.number - lowBlock.number
       const timeDiff = highBlock.timestamp - lowBlock.timestamp
@@ -156,34 +201,70 @@ export async function lookupBlock(
         getBlock(provider, closeBlock, chain),
         getBlock(provider, midBlock, chain),
       ])
-      blocks.push(highBlock, lowBlock)
-      blocks.sort((a, b) => getPrecision(a) - getPrecision(b))
-      block = blocks[0]
-      // find the closest upper and lower bound between 4 points
-      lowBlock = blocks.filter(i => i.timestamp < timestamp).reduce((lowestBlock, block) => (timestamp - lowestBlock.timestamp) < (timestamp - block.timestamp) ? lowestBlock : block)
-      highBlock = blocks.filter(i => i.timestamp > timestamp).reduce((highestBlock, block) => (highestBlock.timestamp - timestamp) < (block.timestamp - timestamp) ? highestBlock : block)
-      imprecision = getPrecision(block)
-      blockImprecision = highBlock.number - lowBlock.number
-      // debugLog(`chain: ${chain} block: ${block.number} #calls: ${i} imprecision: ${Number((imprecision)/60).toFixed(2)} (min) block diff: ${blockImprecision} Time Taken: ${Number((Date.now()-time)/1000).toFixed(2)} (in sec)`)
-    } while (imprecision > allowedTimeRange && blockImprecision > acceptableBlockImprecision); // We lose some precision (max ~15 minutes) but reduce #calls needed
-    debugLog(`chain: ${chain} block: ${block.number} #calls: ${i} imprecision: ${Number((imprecision) / 60).toFixed(2)} (min) Time Taken: ${Number((Date.now() - time) / 1000).toFixed(2)} (in sec)`)
+      updateBlock(blocks)
+    }
+
+    debugLog(`chain: ${chain} block: ${block!.number} #calls: ${i} imprecision: ${Number((imprecision!) / 60).toFixed(2)} (min) Time Taken: ${Number((Date.now() - time) / 1000).toFixed(2)} (in sec)`)
+
+
     if (
       chain !== "bsc" && // this check is there because bsc halted the chain for few days
-      Math.abs(block.timestamp - timestamp) > 3600
+      Math.abs(block!.timestamp - timestamp) > 3600
     ) {
       throw new Error(
         "Block selected is more than 1 hour away from the requested timestamp"
       );
     }
+
+
     return {
-      block: block.number,
-      timestamp: block.timestamp
+      block: block!.number,
+      timestamp: block!.timestamp
     };
+
   } catch (e) {
-    console.log(e);
+    debugLog(e);
     throw new Error(
       `Couldn't find block height for chain ${chain}, RPC node rugged`
     );
+  }
+
+  function updateBlock(blocks: TimestampBlock[] = []) {
+    blocks.forEach(addBlockToCache)
+    const getPrecision = (block: TimestampBlock) => block.timestamp - timestamp > 0 ? block.timestamp - timestamp : timestamp - block.timestamp
+
+    blocks.push(highBlock, lowBlock)
+    blocks.sort((a, b) => getPrecision(a) - getPrecision(b))
+    block = blocks[0]
+    // find the closest upper and lower bound between 4 points
+    lowBlock = blocks.filter(i => i.timestamp < timestamp).reduce((lowestBlock, block) => (timestamp - lowestBlock.timestamp) < (timestamp - block.timestamp) ? lowestBlock : block)
+    highBlock = blocks.filter(i => i.timestamp > timestamp).reduce((highestBlock, block) => (highestBlock.timestamp - timestamp) < (block.timestamp - timestamp) ? highestBlock : block)
+    imprecision = getPrecision(block)
+    blockImprecision = highBlock.number - lowBlock.number
+    // debugLog(`chain: ${chain} block: ${block.number} #calls: ${i} imprecision: ${Number((imprecision)/60).toFixed(2)} (min) block diff: ${blockImprecision} Time Taken: ${Number((Date.now()-time)/1000).toFixed(2)} (in sec)`)
+  }
+
+  function getChainBlockTimeCache(chain: string) {
+    if (!blockTimeCache[chain])
+      blockTimeCache[chain] = {}
+
+    return blockTimeCache[chain]
+  }
+
+  function addBlockToCache(block: TimestampBlock) {
+    getChainBlockTimeCache(chain)[block.number] = block
+  }
+
+  function getLowBlock() {
+    return Object.values(getChainBlockTimeCache(chain))
+      .filter(i => i.timestamp < timestamp)
+      .sort((a, b) => b.timestamp - a.timestamp)[0]
+  }
+
+  function getHighBlock() {
+    return Object.values(getChainBlockTimeCache(chain))
+      .filter(i => i.timestamp > timestamp)
+      .sort((a, b) => a.timestamp - b.timestamp)[0]
   }
 }
 

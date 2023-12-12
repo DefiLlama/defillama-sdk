@@ -7,7 +7,7 @@
     "start": "npm run build && node build/index.js",
     "build": "tsc",
     "watch": "tsc --watch",
-    "test": "jest",
+    "test": "LLAMA_DEBUG_MODE='' SDK_DEBUG='' jest",
     "update-providers": "ts-node src/util/updateProviderList.ts",
     "format": "prettier --write \"src/**/*.ts\"",
     "prepublishOnly": "npm run build"
