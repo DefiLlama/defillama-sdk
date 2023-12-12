@@ -36,7 +36,7 @@ export class Balances {
 
   add(token: string | string[], balance: any, { skipChain = false } = {}) {
     if (!token) throw new Error('token is required')
-    if (!balance) throw new Error('balance is required')
+    if (!balance) return;
 
     if (Array.isArray(balance)) {
       if (Array.isArray(token)) {

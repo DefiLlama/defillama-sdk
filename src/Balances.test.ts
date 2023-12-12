@@ -68,3 +68,23 @@ test("Balances - getUSDValue", async () => {
   balances.add('tether', [100, 200], { skipChain: true })
   expect(await balances.getUSDValue()).toEqual(300)
 })
+
+test("Balances - balance is missing", async () => {
+  const balances = new Balances({ chain: 'bsc' })
+
+  balances.add('0001', [100, 200])
+  balances.add('0001', undefined)
+  balances.add('0001', 0)
+  balances.add('0001', null)
+  balances.add('0001', '')
+  expect(await balances.getUSDValue()).toEqual(0)
+
+  balances.add('tether', [100, 200], { skipChain: true })
+  expect(await balances.getUSDValue()).toEqual(300)
+})
+
+test("Balances - bad input", async () => {
+  const balances = new Balances({ chain: 'bsc' })
+
+  expect(() => balances.add('', '123')).toThrowError()
+})
