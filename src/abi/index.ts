@@ -8,6 +8,7 @@ import { debugLog } from "../util/debugLog";
 import { getCache, setCache, CacheOptions, } from "../util/internal-cache";
 import { runInPromisePool, sliceIntoChunks, } from "../util";
 import * as Tron from './tron'
+import { formError } from "../generalUtil";
 
 const nullAddress = '0x0000000000000000000000000000000000000000'
 
@@ -113,6 +114,9 @@ export async function call(params: CallOptions): Promise<any> {
   fixBlockTag(params)
   const chain = params.chain ?? "ethereum";
   if (catchedABIs[params.abi]) params.abi = catchedABIs[params.abi]
+  let errorParams: any = { ...params }
+  try {
+
   if (!params.skipCache) return cachedCall(params)
   const abi = resolveABI(params.abi);
   const callParams = normalizeParams(params.params);
@@ -125,13 +129,16 @@ export async function call(params: CallOptions): Promise<any> {
     callParams
   );
 
-  const result = await getProvider(params.chain as Chain).call(
+  const provider = getProvider(chain as Chain);
+  errorParams.provider = provider
+  const result = await provider.call(
     {
       to: params.target,
       data: callData,
     },
     params.block ?? "latest"
   );
+  errorParams.result = result
   const decodedResult = contractInterface.decodeFunctionResult(
     functionABI,
     result
@@ -150,6 +157,9 @@ export async function call(params: CallOptions): Promise<any> {
   return {
     output,
   };
+  } catch (e) {
+    throw formError(e, errorParams)
+  }
 }
 
 export async function bytecodeCall(params: ByteCodeCallOptions): Promise<any> {
@@ -223,8 +233,12 @@ export async function multiCall(params: MulticallOptions): Promise<any> {
 
   const failedQueries = flatResults.filter(r => !r.success)
   if (failedQueries.length) {
-    debugLog(`[chain: ${params.chain ?? "ethereum"}] [abi: ${params.abi}] Failed multicalls:`, failedQueries.map(r => r.input))
-    if (!params.permitFailure) throw new Error('Multicall failed!')
+    // debugLog(`[chain: ${params.chain ?? "ethereum"}] [abi: ${params.abi}] Failed multicalls:`, failedQueries.map(r => r.input))
+    if (!params.permitFailure) {
+      (params as any).failedQueries = failedQueries;
+      (params as any).isMultiCallError = true
+      throw formError('', params)
+    }
   }
 
   if (params.logArray && abi.name == 'balanceOf' && abi.outputs[0].type == 'uint256')
@@ -236,7 +250,7 @@ export async function multiCall(params: MulticallOptions): Promise<any> {
         amount: flatResults[i].output
       })),
     );
-  
+
   return {
     output: flatResults, // flatten array
   };

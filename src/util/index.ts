@@ -3,7 +3,7 @@ import fetch from "node-fetch";
 import type { Address } from "../types";
 import { utils, BigNumber, } from "ethers";
 import type { Log } from "@ethersproject/abstract-provider";
-import { sumSingleBalance } from "../generalUtil";
+import { formError, sumSingleBalance } from "../generalUtil";
 import { debugLog } from "./debugLog";
 import runInPromisePoolOrig from "./promisePool";
 
@@ -223,10 +223,7 @@ export async function lookupBlock(
     };
 
   } catch (e) {
-    debugLog(e);
-    throw new Error(
-      `Couldn't find block height for chain ${chain}, RPC node rugged`
-    );
+    throw formError(e)
   }
 
   function updateBlock(blocks: TimestampBlock[] = []) {

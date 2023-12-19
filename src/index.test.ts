@@ -129,6 +129,8 @@ test("imports", async () => {
           "getChainBlocks": [Function],
           "getCurrentBlocks": [Function],
         },
+        "formError": [Function],
+        "formErrorString": [Function],
         "getUniqueAddresses": [Function],
         "humanizeNumber": {
           "humanizeNumber": [Function],

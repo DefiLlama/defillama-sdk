@@ -66,21 +66,25 @@ export default async function makeMultiCall(
 
   return returnValues.map((values: any, index: number) => {
     let output: any;
+    let error = undefined
     try {
       output = convertResults(
         contractInterface.decodeFunctionResult(fd, values)
       );
     } catch (e) {
       output = null;
+      error = e
     }
-    return {
+    const res: any = {
       input: {
         params: calls[index].params,
         target: calls[index].contract,
       },
       success: output !== null,
       output,
-    };
+    }
+    if (error) res.error = error
+    return res;
   });
 }
 

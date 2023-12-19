@@ -77,6 +77,7 @@ test("Balances - balance is missing", async () => {
   balances.add('0001', 0)
   balances.add('0001', null)
   balances.add('0001', '')
+  balances.add('0001', '0')
   expect(await balances.getUSDValue()).toEqual(0)
 
   balances.add('tether', [100, 200], { skipChain: true })

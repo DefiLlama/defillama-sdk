@@ -114,23 +114,29 @@ export default async function makeMultiCall(
   try {
     await _call()
   } catch (e) {
-    debugLog('Multicall failed, retrying call...')
+    // debugLog(chain, 'Multicall failed, retrying call...')
     await _call()
   }
 
   return returnValues.map((values: any, index: number) => {
     let output = null
     let success = true
+    let error = null
     try {
       output = convertResults(contractInterface.decodeFunctionResult(fd, values.returnData));
-    } catch (e) { success = false }
-    return {
+    } catch (e) { 
+      error = e
+      success = false
+     }
+     const res: any = {
       input: {
         params: calls[index].params,
         target: calls[index].contract,
       },
       success, output,
-    };
+    }
+    if (error) res.error = error
+    return res;
   });
 
   async function _call() {
