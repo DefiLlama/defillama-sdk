@@ -173,7 +173,7 @@ export async function lookupBlock(
     if (lastBlock.timestamp - timestamp < -30 * 60) {
       throw new Error(
         `Last block of chain "${chain
-        }" is further than 30 minutes into the past. Provider is "${(provider as any)?.connection?.url
+        }" is further than 30 minutes into the past. Provider is "${(provider as any)?.connection?.url ?? ((provider as any)?.providerConfigs ?? [])[0]?.provider?.connection?.url
         }"`
       );
     }

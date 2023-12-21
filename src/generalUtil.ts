@@ -187,9 +187,9 @@ export function formErrorString(e: any, errorParams: any = {}) {
         return `Failed to call ${method} errors:
          ${eStrings.join('\n')}`
       }
-    } else if (e.code === 'CALL_EXCEPTION' && errorParams.chain && errorParams.result === '0x') {
+    } else if (e.code === 'CALL_EXCEPTION' && errorParams.isCallError) {
       let extraInfo = 'target: ' + errorParams.target
-      if (errorParams.params && errorParams.params.length) extraInfo += ' params: ' + errorParams.params.join(', ')
+      if (errorParams.params && errorParams.params.length) extraInfo += shortenString(' params: ' + errorParams.params.join(', '))
       return `Failed to call ${method} ${extraInfo} on chain: [${errorParams.chain}] rpc: ${providerUrl}  call reverted ${e.errorName ?? ''}   ${e.errorArgs ?? ''}`
     }
     if (method === 'eth_blockNumber') return `host: ${providerUrl} reason: ${e.reason} code: ${e.code}`
@@ -200,14 +200,19 @@ export function formErrorString(e: any, errorParams: any = {}) {
   return errorString
 }
 
+function shortenString(str: string, length = 150) {
+  return str.length > length ? str.slice(0, length).concat('...') : str
+}
+
 export function formError(e: any, errorParams: any = {}): Error {
   const error: Error = new Error(formErrorString(e, errorParams));
   try {
     if (errorParams.isMultiCallError)
-      (error as any)._underlyingErrors = errorParams?.failedQueries?.map((i: any) => i.error.toString().slice(0, 150));
+      (error as any)._underlyingErrors = errorParams?.failedQueries?.map((i: any) => shortenString(i.error.toString()));
     else
-      (error as any)._underlyingError = e.toString().slice(0, 150);
+      (error as any)._underlyingError = shortenString(e.toString())
   } catch (e) { }
   (error as any)._isCustomError = true;
+  error.stack = ''
   return error
 }

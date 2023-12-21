@@ -158,6 +158,7 @@ export async function call(params: CallOptions): Promise<any> {
     output,
   };
   } catch (e) {
+    errorParams.isCallError = true
     throw formError(e, errorParams)
   }
 }
