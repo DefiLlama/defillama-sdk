@@ -1,5 +1,7 @@
 
 import { PromisePool } from '@supercharge/promise-pool';
+import { formError } from '../generalUtil';
+formError
 
 export default async function runInPromisePool(params: {
  items: any[];
@@ -13,7 +15,7 @@ export default async function runInPromisePool(params: {
     .process(async (item, i) => [await params.processor(item, i), i])
 
   if (errors.length)
-    throw errors[0]
+    throw formError(null, { promisePoolErrors: errors})
 
   const flatResults = results.sort((a, b) => a[1] - b[1]).map((i => i[0])) as any[]
   return flatResults;

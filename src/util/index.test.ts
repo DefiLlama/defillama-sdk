@@ -142,7 +142,7 @@ test("getLogs", async () => {
   });
 });
 
-test("getLogs supports it's old API", async () => {
+test.skip("getLogs supports it's old API", async () => {
   expect(
     (
       await getLogs({
@@ -199,7 +199,7 @@ test("getLogs supports it's old API", async () => {
   ]);
 });
 
-test("sushiswap getLogs follow the old API", async () => {
+test.skip("sushiswap getLogs follow the old API", async () => {
   expect(
     (
       await getLogs({

@@ -237,7 +237,7 @@ export async function multiCall(params: MulticallOptions): Promise<any> {
     if (!params.permitFailure) {
       (params as any).failedQueries = failedQueries;
       (params as any).isMultiCallError = true
-      throw formError('', params)
+      throw formError(null, params)
     }
   }
 

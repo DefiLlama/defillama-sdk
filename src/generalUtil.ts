@@ -141,6 +141,10 @@ export function getUniqueAddresses(addresses: string[], chain?: string): string[
 
 export function formErrorString(e: any, errorParams: any = {}) {
   if (!e) {
+    if (errorParams.promisePoolErrors) {
+      const errors = errorParams.promisePoolErrors.map((i: any) => formErrorString(i))
+      return `Promise pool failed! \n ${errors.join('\n')}`
+    }
     if (errorParams.isMultiCallError) {
       const targetStr = errorParams.target ? `[target: ${errorParams.target}]` : ''
       let errorString = `Multicall failed! \n [chain: ${errorParams.chain ?? "ethereum"}] [fail count: ${errorParams.failedQueries?.length}] [abi: ${errorParams.abi}] ${targetStr} `
@@ -198,10 +202,12 @@ export function formErrorString(e: any, errorParams: any = {}) {
 
 export function formError(e: any, errorParams: any = {}): Error {
   const error: Error = new Error(formErrorString(e, errorParams));
-  if (errorParams.isMultiCallError)
-    (error as any)._underlyingErrors = errorParams?.failedQueries?.map((i: any) => i.error);
-  else
-    (error as any)._underlyingError = e;
+  try {
+    if (errorParams.isMultiCallError)
+      (error as any)._underlyingErrors = errorParams?.failedQueries?.map((i: any) => i.error.toString().slice(0, 150));
+    else
+      (error as any)._underlyingError = e.toString().slice(0, 150);
+  } catch (e) { }
   (error as any)._isCustomError = true;
   return error
 }
