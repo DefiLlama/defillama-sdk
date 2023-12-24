@@ -355,3 +355,21 @@ test("ChainApi - sumTokens - blacklisted entires", async () => {
   expect(res).toEqual({})
 })
 
+const balancerPools = [
+  '0x26fa40f1f29e3b495ec3c4c46b24df7EcDE796d9',
+  '0x0708b37dD778E459bEAB114FDF1C431068888379',
+  '0x9Bd09687Da5Ec6b50e8242E7cE3cc5C065FF07c9',
+  '0x53149F25aF0D7D19c0c2D7389e1eC73A3e479c72',
+]
+
+test("ChainApi - erc4626Sum - 1", async () => {
+  const api = new ChainApi({ chain: 'avax'})
+  await api.erc4626Sum({ calls: balancerPools, tokenAbi: 'address:stakingToken', balanceAbi: 'uint256:totalDeposits' })
+  expect(Object.keys(api.getBalances()).length).toBeGreaterThan(0)
+})
+
+test("ChainApi - erc4626Sum - 2", async () => {
+  const api = new ChainApi({ chain: 'avax'})
+  await api.erc4626Sum({ calls: balancerPools, tokenAbi: 'stakingToken', balanceAbi: 'totalDeposits' })
+  expect(Object.keys(api.getBalances()).length).toBeGreaterThan(0)
+})

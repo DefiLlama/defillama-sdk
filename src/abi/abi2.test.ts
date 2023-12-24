@@ -360,6 +360,60 @@ test("fetchList - other chains", async () => {
   ]);
 });
 
+
+
+test("fetchList 2", async () => {
+  const res = await fetchList({
+    target: "0xa556E2d77060A42516C9A8002E9156d8d3c832CE",
+    lengthAbi: 'allPairsLength',
+    itemAbi: 'allPairs',
+  })
+  expect(res).toEqual(['0x9536A78440f72f5E9612949F1848fe5E9D4934CC']);
+  const res2 = await fetchList({
+    withMetadata: true,
+    target: "0xa556E2d77060A42516C9A8002E9156d8d3c832CE",
+    lengthAbi: 'allPairsLength',
+    itemAbi: 'allPairs',
+  })
+  expect(res2).toEqual([
+    {
+      "input": {
+        "params": [
+          0
+        ],
+        "target": "0xa556E2d77060A42516C9A8002E9156d8d3c832CE"
+      },
+      "success": true,
+      "output": "0x9536A78440f72f5E9612949F1848fe5E9D4934CC"
+    }
+  ]
+  );
+});
+
+test("fetchList 2 - other chains", async () => {
+  const moonbeamRes = await fetchList({
+    chain: 'moonbeam',
+    target: "0xf6c49609e8d637c3d07133e28d369283b5e80c70",
+    lengthAbi: 'allPairsLength',
+    itemAbi: 'allPairs',
+    startFrom: 3
+  })
+  const bscRes = await fetchList({
+    chain: 'bsc',
+    target: "0xa098751d407796d773032f5cc219c3e6889fb893",
+    lengthAbi: 'allPairsLength',
+    itemAbi: 'allPairs',
+  })
+  expect(moonbeamRes).toEqual([
+    '0x58E4538fd53F14466b2Fe0A732d6eF7981065d55',
+    '0xECDbF021475C391564977a0A2d7BF9235bf13578'
+  ]);
+  expect(bscRes).toEqual([
+    '0x1Da189c1BA3d718Cc431a2ed240a3753f89CD47A',
+    '0xe606cEE895ddF32b0582A9DC7495176657b4909D'
+  ]);
+});
+
 test("ChainApi - bsc", async () => {
   const apiBsc = new ChainApi({ chain: 'bsc' })
   const apiMoonbeam = new ChainApi({ chain: 'moonbeam' })

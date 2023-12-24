@@ -1,5 +1,5 @@
 import { Block, CallOptions, MulticallOptions, FetchListOptions, ByteCodeCallOptions, Balances as BalancesV1 } from "./types";
-import Balances  from "./Balances";
+import Balances from "./Balances";
 import { Chain, getProvider, } from "./general";
 import { call, multiCall, fetchList, bytecodeCall } from './abi/abi2'
 import { getBlock } from './computeTVL/blocks'
@@ -115,6 +115,19 @@ export class ChainApi {
     this._balances.removeTokenBalance(token)
   }
 
+  async erc4626Sum({ calls, tokenAbi = 'address:token', balanceAbi = 'uint256:balance', balanceCalls, permitFailure = false }: any) {
+    if (typeof tokenAbi === 'string' && (!tokenAbi.includes(':') && !tokenAbi.includes('('))) tokenAbi = `address:${tokenAbi}`
+    if (typeof balanceAbi === 'string' && (!balanceAbi.includes(':') && !balanceAbi.includes('('))) balanceAbi = `uint256:${balanceAbi}`
+    
+    const tokens = await this.multiCall({ calls, abi: tokenAbi, permitFailure })
+    const balances = await this.multiCall({ calls: calls ?? balanceCalls, abi: balanceAbi, permitFailure })
+    if (!permitFailure) this.addTokens(tokens, balances)
+    else
+      tokens.forEach((i: any, j: number) => {
+        if (i && balances[j]) this.addToken(i, balances[j])
+      })
+  }
+
   async sumTokens({
     tokens = [],
     owners = [],
@@ -142,7 +155,7 @@ export class ChainApi {
       if (owner) owners.push(owner)
       tokensAndOwners.push(...tokens.map(i => owners.map(j => [i, j])).flat())
     }
-    
+
     for (const [tokens, owner] of ownerTokens)
       tokens.forEach((i: any) => tokensAndOwners.push([i, owner]))
 

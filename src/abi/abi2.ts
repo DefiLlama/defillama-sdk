@@ -26,6 +26,9 @@ export async function multiCall(params: MulticallOptions): Promise<any[]> {
 
 export async function fetchList(params: FetchListOptions) {
   let { startFrom = 0, lengthAbi, itemAbi, withMetadata, startFromOne = false, itemCount, ...commonParams } = params
+
+  if (typeof lengthAbi === 'string' && (!lengthAbi.includes(':') && !lengthAbi.includes('('))) lengthAbi = `uint256:${lengthAbi}`
+  if (typeof itemAbi === 'string' && (!itemAbi.includes(':') && !itemAbi.includes('('))) itemAbi = `function ${itemAbi}(uint256) view returns (address)`
   let itemLength
   if (itemCount) itemLength = itemCount
   else itemLength = await call({ ...commonParams, abi: lengthAbi, })
