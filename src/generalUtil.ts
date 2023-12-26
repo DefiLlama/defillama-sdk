@@ -166,6 +166,12 @@ export function formErrorString(e: any, errorParams: any = {}) {
   if ((e.reason || e.method) && e.code) { // ethers.js error
 
     let method = e.method
+    if (e.body) {
+      try {
+        e.body = JSON.parse(e.body)
+      } catch (e) { }
+      if (e.body?.error?.message) return e.body.error.message
+    }
     if (!method && e.requestBody) {
       try {
         e.requestBody = JSON.parse(e.requestBody)
@@ -184,7 +190,7 @@ export function formErrorString(e: any, errorParams: any = {}) {
       let errors = e.results.filter((i: any) => i.error).map((i: any) => i.error)
       if (errors.length) {
         const eStrings = errors.map((i: any) => formError(i))
-        return `Failed to call ${method} errors:
+        return `Failed to call method: ${method} provider: ${providerUrl}
          ${eStrings.join('\n')}`
       }
     } else if (e.code === 'CALL_EXCEPTION' && errorParams.isCallError) {
@@ -205,6 +211,7 @@ function shortenString(str: string, length = 150) {
 }
 
 export function formError(e: any, errorParams: any = {}): Error {
+  if (e?._isCustomError || (!Object.keys(errorParams).length && typeof e === 'object' && !Object.keys(e).length)) return e // already formatted or vannila error
   const error: Error = new Error(formErrorString(e, errorParams));
   try {
     if (errorParams.isMultiCallError)

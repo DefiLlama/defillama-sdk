@@ -1,10 +1,20 @@
 import { getCurrentBlocks } from "./blocks";
 
-jest.setTimeout(30000);
 test("multiple runs of getCurrentBlocks are fine", async () => {
-  const calls = [];
-  for (let i = 0; i < 3; i++) {
+  const calls: Promise<any>[] = [];
+  for (let i = 0; i < 50; i++) {
     calls.push(getCurrentBlocks());
   }
   await Promise.all(calls);
+});
+
+test("nahmii stopped producing new blocks", async () => {
+  const calls: Promise<any>[] = [];
+  for (let i = 0; i < 3; i++)
+    calls.push(getCurrentBlocks(["nahmii"]));
+
+  try {
+    await Promise.all(calls)
+    expect(true).toBe(false);
+  } catch (e) { }
 });

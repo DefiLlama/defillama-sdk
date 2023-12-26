@@ -16,7 +16,8 @@ function unzipAsync(data: Buffer) {
   return promisify(brotliDecompress)(data, brotliOptions).then(r => r.toString())
 }
 
-const fs = require('fs').promises;
+const _fs = require('fs');
+const fs = _fs.promises;
 const path = require('path');
 
 const foldersCreated: {
@@ -117,4 +118,50 @@ export async function compressCache(data: any) {
 
 function isSameData(data1: any, data2: any) {
   return JSON.stringify(data1) === JSON.stringify(data2)
+}
+
+const ONE_WEEK = 1000 * 60 * 60 * 24 * 7
+
+export function getTempLocalCache({ file, defaultData = {}, clearAfter = ONE_WEEK }: { file: string, defaultData?: any, clearAfter?: number }) {
+  let cache: any = defaultData
+  const now = Math.floor(Date.now() / 1e3)
+  let emptyFile = { created: now, data: defaultData }
+  let fileData = emptyFile
+  const filePath = getFilePath(file)
+  let saveCacheFlag = false
+  try {
+    const data = _fs.readFileSync(filePath)
+    fileData = JSON.parse(data.toString())
+    if (now - fileData.created > clearAfter)
+      fileData = emptyFile // clear cache
+  } catch (error) {}
+
+  // save cache on exit
+  process.on('exit', saveCache);
+  process.on('SIGTERM', saveCache)
+  process.on('SIGINT', saveCache)
+
+  return fileData.data
+
+  function saveCache() {
+    if (saveCacheFlag) return;
+    saveCacheFlag = true;
+
+    try {
+      removePromisesAndFunctions(fileData)
+      _fs.writeFileSync(filePath, JSON.stringify(fileData))
+    } catch (error) {
+      debugLog('Error writing cache:', error, file)
+    }
+  }
+
+  function removePromisesAndFunctions(data: any) {
+    if (typeof data === 'object') {
+      for (const key in data) {
+        if (typeof data[key] === 'function') delete data[key]
+        if (data[key] instanceof Promise) delete data[key]
+        else removePromisesAndFunctions(data[key])
+      }
+    }
+  }
 }

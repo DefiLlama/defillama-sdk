@@ -1,0 +1,326 @@
+import { getProvider, Chain } from "../general";
+import fetch from "node-fetch";
+import { formError, } from "../generalUtil";
+import { debugLog } from "./debugLog";
+import { isCosmosChain, getCosmosProvider } from "./cosmos";
+import { getTempLocalCache } from "./cache";
+import { blockscoutEndpoints, getBlockscoutBlock } from "./blockscout";
+
+const defaultChains = ["avax", "bsc", "polygon", "arbitrum"] as Chain[]
+export const chainsForBlocks = defaultChains;
+const blockRetries = 3;
+
+export async function getChainBlocks(timestamp: number | undefined, chains: Chain[] = defaultChains) {
+  const chainBlocks = {} as {
+    [chain: string]: number;
+  };
+  const setBlock = async (chain: Chain) => chainBlocks[chain] = (await getBlock(chain, timestamp)).block
+  await Promise.all(chains.map(setBlock));
+  return chainBlocks;
+}
+
+export async function getBlocks(timestamp: number, chains: Chain[] | undefined = undefined) {
+  chains = chains?.filter(i => i !== 'ethereum')
+  const [ethBlock, chainBlocks] = await Promise.all([getBlock('ethereum', timestamp), getChainBlocks(timestamp, chains)]);
+  chainBlocks['ethereum'] = ethBlock.block;
+  return {
+    ethereumBlock: ethBlock.block,
+    chainBlocks,
+  };
+}
+
+export async function getCurrentBlocks(chains: Chain[] | undefined = undefined) {
+  if (chains)
+    chains = chains.filter(i => i !== "ethereum")
+
+  const block = await getBlock('ethereum')
+  const chainBlocks = await getChainBlocks(undefined, chains);
+  chainBlocks['ethereum'] = block.block;
+  return {
+    timestamp: block.timestamp,
+    ethereumBlock: block.block,
+    chainBlocks,
+  };
+}
+
+export async function getBlock(chain: Chain, timestamp?: number): Promise<Block> {
+  if (!timestamp)
+    return getCurrentChainBlock(chain)
+
+  let error
+  for (let i = 0; i < blockRetries; i++) {
+    try {
+      let res = await lookupBlock(timestamp!, { chain, })
+      return res
+    } catch (e) {
+      error = e
+    }
+  }
+  throw error
+}
+
+const refreshInterval = 1000 * 60 * 5; // 5 minutes
+export function getCurrentChainBlock(chain: Chain = 'ethereum'): Promise<Block> {
+  const { timestamp, } = currentChainBlockCache[chain] || {}
+  const currentTimestamp = Date.now()
+  if (!timestamp || currentTimestamp - timestamp > refreshInterval) {
+    currentChainBlockCache[chain] = {
+      timestamp: currentTimestamp,
+      promise: _getCurrentChainBlock()
+    }
+  }
+  return currentChainBlockCache[chain].promise
+
+  async function _getCurrentChainBlock() {
+    try {
+      const provider = getExtraProvider(chain);
+      const { number, timestamp, } = await provider.getBlock('latest')
+      const response = { block: number, timestamp, number }
+      validateCurrentBlock(response, chain)
+      currentChainBlockCache[chain] = { timestamp: currentTimestamp, promise: response }
+      return response // we are interested only in these fields
+    } catch (e) {
+      delete currentChainBlockCache[chain]
+      if ((e as any)?.message?.includes?.("Last block of chain")) throw e
+      throw formError(e)
+    }
+  }
+}
+
+
+interface TimestampBlock {
+  number: number;
+  timestamp: number;
+}
+
+const algorandBlockProvider = {
+  getBlock: async (height: number | "latest"): Promise<TimestampBlock> => {
+    if (height !== 'latest')
+      return fetch(`https://algoindexer.algoexplorerapi.io/v2/blocks/${height}`)
+        .then((res) => res.json())
+        .then((block: any) => ({
+          number: block.round,
+          timestamp: block.timestamp
+        }))
+    return fetch('https://algoindexer.algoexplorerapi.io/health')
+      .then((res) => res.json())
+      .then((block: any) => algorandBlockProvider.getBlock(block.round))
+  }
+};
+
+async function fetchBlockFromProvider(
+  height: number | "latest",
+  chain: string | undefined
+) {
+  const provider = getExtraProvider(chain ?? "ethereum");
+  const block = await provider.getBlock(height);
+  if (block === null) {
+    throw new Error(`Can't get block of chain ${chain ?? "ethereum"}`);
+  }
+  return block;
+}
+
+function getExtraProvider(chain: string | undefined) {
+  if (chain && isCosmosChain(chain))
+    return getCosmosProvider(chain)
+  if (chain === "algorand")
+    return algorandBlockProvider;
+
+  return getProvider(chain as any);
+}
+
+export const getLatestBlock = getCurrentChainBlock
+
+const intialBlocks = {
+  terra: 4724001,
+  crab: 4969901
+} as {
+  [chain: string]: number | undefined;
+};
+
+const blockTimeCache: {
+  [chain: string]: {
+    [block: number]: TimestampBlock
+  }
+} = getTempLocalCache({ file: 'BlockCache.json', defaultData: {} })
+
+function validateCurrentBlock(block: Block, chain: Chain = 'ethereum') {
+  const provider = getExtraProvider(chain);
+  const now = Math.floor(Date.now() / 1000)
+  const minutesDiff = Math.floor((now - block.timestamp) / 60)
+  if (minutesDiff > 60)
+    throw new Error(`Last block for ${chain} is ${minutesDiff} minutes behind (${new Date(block.timestamp * 1000)}). Provider is "${(provider as any)?.connection?.url ?? ((provider as any)?.providerConfigs ?? [])[0]?.provider?.connection?.url}"`)
+}
+
+export async function lookupBlock(
+  timestamp: number,
+  extraParams?: {
+    chain?: Chain | "kava" | "algorand",
+    allowedTimeRange?: number,
+    acceptableBlockImprecision?: number,
+  }
+): Promise<Block> {
+  const { allowedTimeRange = 5 * 60, acceptableBlockImprecision = 10 } = extraParams ?? {};
+  const chain = extraParams?.chain ?? "ethereum"
+
+  if (blockscoutEndpoints[chain]) {
+    try {
+      const block = await getBlockscoutBlock(timestamp, chain)
+      addBlockToCache(block)
+      return block
+    } catch (e) { // fallback to usual way of fetching logs
+      debugLog('error fetching block from blockscout', e, chain)
+    }
+  }
+
+  if (chain === 'waves') {
+    const api = `https://nodes.wavesnodes.com/blocks/heightByTimestamp/${timestamp}`
+    const res = await fetch(api)
+    const data = await res.json()
+    return {
+      timestamp,
+      block: +data.height,
+      number: +data.height,
+    }
+  }
+
+  let low = intialBlocks[chain] ?? 100;
+  let lowBlock: TimestampBlock = getLowBlock()
+  let highBlock: TimestampBlock = getHighBlock()
+
+  let block: TimestampBlock;
+  let i = 0
+  let time = Date.now()
+  let blockImprecision: number
+  let imprecision: number
+
+  try {
+    let firstBlock, lastBlock
+
+    if (['evmos'].includes(chain)) {
+      lastBlock = await getLatestBlock(chain)
+      let firstBlockNum = lastBlock.number
+      switch (chain) {
+        default: firstBlockNum -= 2 * 1e5// evmos hold only the last 200k block data
+      }
+      firstBlock = await fetchBlockFromProvider(firstBlockNum, chain)
+    } else {
+      [lastBlock, firstBlock] = await Promise.all([
+        getLatestBlock(chain),
+        lowBlock ? lowBlock : fetchBlockFromProvider(low, chain),
+      ])
+    }
+
+    lowBlock = firstBlock
+
+    if (!highBlock)
+      highBlock = lastBlock
+
+    if (Math.abs(highBlock.timestamp - timestamp) < 60 * 30) {
+      // Short-circuit in case we are trying to get the current block
+      return {
+        block: highBlock.number,
+        number: highBlock.number,
+        timestamp: highBlock.timestamp
+      };
+    }
+
+
+    updateBlock()
+
+    while (imprecision! > allowedTimeRange && blockImprecision! > acceptableBlockImprecision) { // We lose some precision (max ~15 minutes) but reduce #calls needed 
+      ++i
+      const blockDiff = highBlock.number - lowBlock.number
+      const timeDiff = highBlock.timestamp - lowBlock.timestamp
+      const avgBlockTime = timeDiff / blockDiff
+      let closeBlock = Math.floor(lowBlock.number + (timestamp - lowBlock.timestamp) / avgBlockTime);
+      if (closeBlock > highBlock.number) closeBlock = highBlock.number
+      const midBlock = Math.floor((lowBlock.number + highBlock.number) / 2)
+      const blocks = await Promise.all([
+        fetchBlockFromProvider(closeBlock, chain),
+        fetchBlockFromProvider(midBlock, chain),
+      ])
+      updateBlock(blocks)
+    }
+
+    debugLog(`chain: ${chain} block: ${block!.number} #calls: ${i} imprecision: ${Number((imprecision!) / 60).toFixed(2)} (min) Time Taken: ${Number((Date.now() - time) / 1000).toFixed(2)} (in sec)`)
+
+
+    if (
+      chain !== "bsc" && // this check is there because bsc halted the chain for few days
+      Math.abs(block!.timestamp - timestamp) > 3600
+    ) {
+      throw new Error(
+        "Block selected is more than 1 hour away from the requested timestamp"
+      );
+    }
+
+    return {
+      number: block!.number,
+      block: block!.number,
+      timestamp: block!.timestamp
+    };
+
+  } catch (e) {
+    throw formError(e)
+  }
+
+  function updateBlock(blocks: TimestampBlock[] = []) {
+    blocks.forEach(addBlockToCache)
+    const getPrecision = (block: TimestampBlock) => block.timestamp - timestamp > 0 ? block.timestamp - timestamp : timestamp - block.timestamp
+
+    blocks.push(highBlock, lowBlock)
+    blocks.sort((a, b) => getPrecision(a) - getPrecision(b))
+    block = blocks[0]
+    // find the closest upper and lower bound between 4 points
+    lowBlock = blocks.filter(i => i.timestamp < timestamp).reduce((lowestBlock, block) => (timestamp - lowestBlock.timestamp) < (timestamp - block.timestamp) ? lowestBlock : block)
+    highBlock = blocks.filter(i => i.timestamp > timestamp).reduce((highestBlock, block) => (highestBlock.timestamp - timestamp) < (block.timestamp - timestamp) ? highestBlock : block)
+    imprecision = getPrecision(block)
+    blockImprecision = highBlock.number - lowBlock.number
+    // debugLog(`chain: ${chain} block: ${block.number} #calls: ${i} imprecision: ${Number((imprecision)/60).toFixed(2)} (min) block diff: ${blockImprecision} Time Taken: ${Number((Date.now()-time)/1000).toFixed(2)} (in sec)`)
+  }
+
+  function getChainBlockTimeCache(chain: string) {
+    if (!blockTimeCache[chain])
+      blockTimeCache[chain] = {}
+
+    return blockTimeCache[chain]
+  }
+
+  function addBlockToCache(block: TimestampBlock) {
+    const { number, timestamp } = block
+    getChainBlockTimeCache(chain)[block.number] = { number, timestamp,}
+  }
+
+  function getLowBlock() {
+    return Object.values(getChainBlockTimeCache(chain))
+      .filter(i => i.timestamp < timestamp)
+      .sort((a, b) => b.timestamp - a.timestamp)[0]
+  }
+
+  function getHighBlock() {
+    return Object.values(getChainBlockTimeCache(chain))
+      .filter(i => i.timestamp > timestamp)
+      .sort((a, b) => a.timestamp - b.timestamp)[0]
+  }
+}
+
+export async function getTimestamp(height: number, chain: Chain) {
+  const provider = getExtraProvider(chain);
+  const block = await provider.getBlock(height)
+  return block.timestamp
+}
+
+export type Block = {
+  timestamp: number
+  block: number
+  hash?: string
+  number: number // for compatibility with old code, both block and number are the same
+}
+
+const currentChainBlockCache: {
+  [chain: string]: {
+    timestamp: number
+    promise: any
+  };
+} = getTempLocalCache({ file: 'currentChainBlockCache.json', defaultData: {} })
