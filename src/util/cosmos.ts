@@ -18,7 +18,7 @@ const endPoints: {
   umee: "https://umee-api.polkachu.com",
   orai: "https://lcd.orai.io",
   juno: "https://juno.api.m.stavr.tech",
-  cronos: "https://rest.mainnet.crypto.org",
+  // cronos: "https://rest.mainnet.crypto.org", // it is also evm like kava
   chihuahua: "https://rest.cosmos.directory/chihuahua",
   stargaze: "https://rest.stargaze-apis.com",
   quicksilver: "https://rest.cosmos.directory/quicksilver",
@@ -40,7 +40,7 @@ const endPoints: {
   bostrom: "https://lcd.bostrom.cybernode.ai"
 };
 
-const ibcChains = ['ibc', 'terra', 'terra2', 'crescent', 'osmosis', 'kujira', 'stargaze', 'juno', 'injective', 'cosmos', 'comdex', 'umee', 'orai', 'persistence', 'fxcore', 'neutron', 'quasar', 'chihuahua', 'sei', 'archway', 'migaloo', 'secret', 'aura', 'xpla', 'bostrom']
+const ibcChains = ['terra', 'terra2', 'crescent', 'osmosis', 'kujira', 'stargaze', 'juno', 'injective', 'cosmos', 'comdex', 'umee', 'orai', 'persistence', 'fxcore', 'neutron', 'quasar', 'chihuahua', 'sei', 'archway', 'migaloo', 'secret', 'aura', 'xpla', 'bostrom']
 
 export const isCosmosChain = (chain: string) =>  ibcChains.includes(chain) || !!endPoints[chain]
 
