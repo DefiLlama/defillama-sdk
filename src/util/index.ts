@@ -56,8 +56,7 @@ export async function getLogs(params: {
       currentBlock = nextBlock;
     } catch (e) {
       debugLog(`Error fetching logs for chain ${params.chain} blockSpread: ${blockSpread}. ${formError(e)}`)
-      const isBlockSpreadError = (e as any)?.message?.includes?.("block range")
-      if (isBlockSpreadError && blockSpread >= 2e3) {
+      if (blockSpread >= 2e3) {
         // We got too many results
         // We could chop it up into 2K block spreads as that is guaranteed to always return but then we'll have to make a lot of queries (easily >1000), so instead we'll keep dividing the block spread by two until we make it
         blockSpread = Math.floor(blockSpread / 2);
