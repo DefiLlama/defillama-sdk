@@ -92,6 +92,11 @@ export class Balances {
     const { usdTvl } = await computeTVL(this.getBalances(), this.timestamp)
     return usdTvl
   }
+
+  async getUSDJSONs() {
+    const { usdTvl, usdTokenBalances } = await computeTVL(this.getBalances(), this.timestamp)
+    return {usdTvl, usdTokenBalances, rawTokenBalances: this.getBalances()}
+  }
 }
 
 export default Balances

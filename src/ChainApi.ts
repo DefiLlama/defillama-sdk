@@ -191,6 +191,14 @@ export class ChainApi {
 
     return this.getBalances()
   }
+
+  async getUSDValue() {
+    return this._balances.getUSDValue()
+  }
+
+  async getUSDJSONs() {
+    return this._balances.getUSDJSONs()
+  }
 }
 
 export default ChainApi

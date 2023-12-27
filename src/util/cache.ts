@@ -129,6 +129,7 @@ export function getTempLocalCache({ file, defaultData = {}, clearAfter = ONE_WEE
   let fileData = emptyFile
   const filePath = getFilePath(file)
   let saveCacheFlag = false
+  createSubPath(path.dirname(filePath)) // create folder if not exists, this is async but we don't care
   try {
     const data = _fs.readFileSync(filePath)
     fileData = JSON.parse(data.toString())
@@ -150,9 +151,7 @@ export function getTempLocalCache({ file, defaultData = {}, clearAfter = ONE_WEE
     try {
       removePromisesAndFunctions(fileData)
       _fs.writeFileSync(filePath, JSON.stringify(fileData))
-    } catch (error) {
-      debugLog('Error writing cache:', error, file)
-    }
+    } catch (error) { }
   }
 
   function removePromisesAndFunctions(data: any) {
