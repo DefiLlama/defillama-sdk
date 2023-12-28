@@ -1,8 +1,7 @@
 import { getProvider, Chain } from "../general";
 import fetch from "node-fetch";
 import type { Address } from "../types";
-import { utils, BigNumber, } from "ethers";
-import type { Log } from "@ethersproject/abstract-provider";
+import { ethers, Log } from "ethers";
 import { formError, sumSingleBalance } from "../generalUtil";
 import { debugLog } from "./debugLog";
 import runInPromisePoolOrig from "./promisePool";
@@ -36,7 +35,7 @@ export async function getLogs(params: {
   }
   const filter = {
     address: params.target,
-    topics: params.topics ?? [utils.id(params.topic)],
+    topics: params.topics ?? [ethers.id(params.topic)],
     fromBlock: params.fromBlock,
     toBlock: params.toBlock // We don't replicate Defipulse's bug because the results end up being the same anyway and hopefully they'll eventually fix it
   };
@@ -113,7 +112,7 @@ export function normalizeBalances(balances: { [address: string]: string }) {
 
   const eth = balances[ethereumAddress];
   if (eth !== undefined) {
-    balances[weth] = BigNumber.from(balances[weth] ?? 0).add(eth).toString();
+    balances[weth] = (BigInt(balances[weth] ?? 0) + BigInt(eth)).toString();
     delete balances[ethereumAddress];
   }
 

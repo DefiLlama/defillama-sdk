@@ -50,10 +50,7 @@ test("imports", async () => {
         },
         "config": {
           "ETHER_ADDRESS": "0x0000000000000000000000000000000000000000",
-          "TEN": {
-            "hex": "0x0a",
-            "type": "BigNumber",
-          },
+          "TEN": 10n,
           "getProvider": [Function],
           "handleDecimals": [Function],
           "setProvider": [Function],
@@ -128,6 +125,7 @@ test("imports", async () => {
         },
         "formError": [Function],
         "formErrorString": [Function],
+        "getProviderUrl": [Function],
         "getUniqueAddresses": [Function],
         "humanizeNumber": {
           "humanizeNumber": [Function],

@@ -1,6 +1,5 @@
 
 import fetch from "node-fetch";
-import { ParamType } from "ethers/lib/utils";
 import { ethers } from "ethers";
 import { fromHex, toHex } from 'tron-format-address'
 import { Address } from "../types";
@@ -30,11 +29,11 @@ type CallOptions = {
 export async function call(options: CallOptions) {
   let { target, abi, params, isMulticall, } = options
   target = unhexifyTarget(target)
-  const contractInterface = new ethers.utils.Interface([abi]);
-  const functionABI = ethers.utils.FunctionFragment.from(abi);
+  const contractInterface = new ethers.Interface([abi]);
+  const functionABI = ethers.FunctionFragment.from(abi);
   let inputTypes: any = (abi.inputs ?? []).map((i: any) => i.type)
   if (isMulticall)
-    inputTypes = [ParamType.fromObject({
+    inputTypes = [ethers.ParamType.from({
       components: [
         { name: "target", type: "address" },
         { name: "callData", type: "bytes" },
@@ -50,7 +49,7 @@ export async function call(options: CallOptions) {
   const body = {
     owner_address: ownerAddress,
     contract_address: target,
-    function_selector: Object.keys(contractInterface.functions).pop(),
+    function_selector: (contractInterface.fragments[0] as ethers.FunctionFragment).format(),
     parameter: callData.slice(2),
     visible: true,
   }
@@ -71,7 +70,7 @@ export async function call(options: CallOptions) {
     if (outputName && outputName.length) decodedResult[outputName] = v
   })
   return {
-    output: convertResults(decodedResult),
+    output: convertResults(decodedResult, functionABI),
   };
 }
 
@@ -136,8 +135,8 @@ async function executeCalls(
     params: any[];
   }[]
 ) {
-  const contractInterface = new ethers.utils.Interface([functionABI]);
-  let fd = Object.values(contractInterface.functions)[0];
+  const contractInterface = new ethers.Interface([functionABI]);
+  let fd = contractInterface.fragments[0] as ethers.FunctionFragment
 
   const contractCalls = calls.map((call) => {
     const data = contractInterface.encodeFunctionData(fd, call.params);
@@ -162,7 +161,7 @@ async function executeCalls(
         let outputName = functionABI.outputs[i].name
         if (outputName && outputName.length) output[outputName] = v
       })
-      return convertResults(output)
+      return convertResults(output as ethers.Result, fd)
     })
   } catch (e) {
     console.error(e)

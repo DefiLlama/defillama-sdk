@@ -1,5 +1,5 @@
 import { Address } from "../types";
-import { ethers, BigNumber } from "ethers";
+import { ethers } from "ethers";
 import { Chain, getProvider, handleDecimals } from "../general";
 
 const abi = [
@@ -20,7 +20,7 @@ export async function info(tokenAddress: Address, chain?: Chain) {
   return {
     output: {
       symbol: await tokenSymbol,
-      decimals: await tokenDecimals,
+      decimals: Number(await tokenDecimals),
     },
   };
 }
@@ -31,7 +31,7 @@ export async function symbol(tokenAddress: Address, chain?: Chain) {
 }
 export async function decimals(tokenAddress: Address, chain?: Chain) {
   return {
-    output: await getContract(tokenAddress, chain).decimals(),
+    output: Number(await getContract(tokenAddress, chain).decimals()),
   };
 }
 export async function totalSupply(params: {
@@ -41,8 +41,8 @@ export async function totalSupply(params: {
   chain?: Chain;
 }) {
   const contract = getContract(params.target, params.chain);
-  const supply: BigNumber = await contract.totalSupply({
-    blockTag: params.block ?? "latest",
+  const supply: string = await contract.totalSupply({
+    blockTag: params.block,
   });
   return {
     output: handleDecimals(supply, params.decimals),
@@ -56,11 +56,11 @@ export async function balanceOf(params: {
   decimals?: number;
   chain?: Chain;
 }) {
-  const balance: BigNumber = await getContract(
+  const balance: string = await getContract(
     params.target,
     params.chain
   ).balanceOf(params.owner, {
-    blockTag: params.block ?? "latest",
+    blockTag: params.block,
   });
   return {
     output: handleDecimals(balance, params.decimals),

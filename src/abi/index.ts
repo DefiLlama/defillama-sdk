@@ -29,8 +29,8 @@ function resolveABI(providedAbi: string | any) {
   if (typeof abi === "string") {
     const [outputType, name] = providedAbi.split(':')
     if (!knownTypes.includes(outputType) || !name) {
-      const contractInterface = new ethers.utils.Interface([providedAbi])
-      const jsonAbi = contractInterface.format(ethers.utils.FormatTypes.json)
+      const contractInterface = new ethers.Interface([providedAbi])
+      const jsonAbi = contractInterface.formatJson()
       return JSON.parse(jsonAbi as string)[0]
     }
 
@@ -122,8 +122,8 @@ export async function call(params: CallOptions): Promise<any> {
   const callParams = normalizeParams(params.params);
   if (chain === 'tron') return Tron.call({ ...params, abi, params: callParams })
 
-  const contractInterface = new ethers.utils.Interface([abi]);
-  const functionABI = ethers.utils.FunctionFragment.from(abi);
+  const contractInterface = new ethers.Interface([abi]);
+  const functionABI = ethers.FunctionFragment.from(abi);
   const callData = contractInterface.encodeFunctionData(
     functionABI,
     callParams
@@ -131,20 +131,16 @@ export async function call(params: CallOptions): Promise<any> {
 
   const provider = getProvider(chain as Chain);
   errorParams.provider = provider
-  const result = await provider.call(
-    {
+  const result = await provider.call({
       to: params.target,
       data: callData,
-    },
-    params.block ?? "latest"
-  );
+      blockTag: params.block,
+    });
   errorParams.result = result
-  const decodedResult = contractInterface.decodeFunctionResult(
-    functionABI,
-    result
-  );
+  const decodedResult = contractInterface.decodeFunctionResult(abi, result);
 
-  const output = convertResults(decodedResult)
+  const output = convertResults(decodedResult, functionABI)
+
 
   if (params.logArray && abi.name == 'balanceOf' && abi.outputs[0].type == 'uint256')
     params.logArray.push({
@@ -169,11 +165,11 @@ export async function bytecodeCall(params: ByteCodeCallOptions): Promise<any> {
   if (!bytecode) throw new Error('Missing bytecode parameter!')
   if (chain === 'tron') throw new Error('Bytecode call is not supported on Tron')
 
-  const inputData = ethers.utils.defaultAbiCoder.encode(inputTypes, inputs);
+  const inputData = ethers.AbiCoder.defaultAbiCoder().encode(inputTypes, inputs);
   const callData = '0x' + bytecode.concat(inputData.slice(2))
 
-  const result = await getProvider(chain as Chain).call({ data: callData, }, block ?? "latest");
-  const decodedResult = ethers.utils.defaultAbiCoder.decode(outputTypes, result)
+  const result = await getProvider(chain as Chain).call({ data: callData, blockTag: block });
+  const decodedResult = ethers.AbiCoder.defaultAbiCoder().decode(outputTypes, result)
 
   return {
     output: convertResults(decodedResult),

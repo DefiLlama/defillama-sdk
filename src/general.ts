@@ -1,35 +1,27 @@
-import { debugLog} from './util/debugLog'
-import { ethers, BigNumber } from "ethers"
+import { debugLog } from './util/debugLog';
+import { ethers, Provider } from "ethers";
 import providerList from './providers.json'
 
-function createProvider(name: string, rpcString: string, chainId: number = 2424242424242422) {
+function createProvider(name: string, rpcString: string, chainId: number = 2424242424242422): Provider | null {
   const rpcList = rpcString.split(',')
+  if (process.env[`${name.toUpperCase()}_RPC_CHAIN_ID`])
+    chainId = +process.env[`${name.toUpperCase()}_RPC_CHAIN_ID`]!
 
   if (process.env.HISTORICAL) {
     if (chainId === 1) {
       console.log("RPC providers set to historical, only the first RPC provider will be used")
     }
-    return new ethers.providers.StaticJsonRpcProvider(
-      rpcList[0],
-      {
-        name,
-        chainId,
-      }
-    )
-  } else {
+    return new ethers.JsonRpcProvider(rpcList[0], { name, chainId, }, { staticNetwork: true })
+  }
+  else {
     try {
-      return new ethers.providers.FallbackProvider(
+      return new ethers.FallbackProvider(
         rpcList.map((url, i) => ({
-          provider: new ethers.providers.StaticJsonRpcProvider(
-            url,
-            {
-              name,
-              chainId,
-            }
-          ),
-          priority: i
+          provider: new ethers.JsonRpcProvider(url, { name, chainId, }, { staticNetwork: true }),
+          priority: i,
+          chainId,
         })),
-        1
+        chainId,
       )
     } catch (e) {
       debugLog(`Error creating provider for ${name} with RPCs: ${rpcList.join(', ')}`)
@@ -41,7 +33,6 @@ function createProvider(name: string, rpcString: string, chainId: number = 24242
   }
 }
 
-type Provider = ethers.providers.StaticJsonRpcProvider | ethers.providers.FallbackProvider
 
 type ProviderWrapped = {
   rpcList: string;
@@ -54,7 +45,9 @@ export const providers = {} as {
 
 export type Chain = string
 export function getProvider(chain: Chain = "ethereum", getArchivalNode = false): Provider {
-  const chainArchivalpcEnv= process.env[chain.toUpperCase() + "_ARCHIVAL_RPC"]
+  if (providers[chain]) return providers[chain]._provider
+
+  const chainArchivalpcEnv = process.env[chain.toUpperCase() + "_ARCHIVAL_RPC"]
   if (getArchivalNode && typeof chainArchivalpcEnv === 'string' && chainArchivalpcEnv.length > 0) {
     let rpcList = chainArchivalpcEnv?.split(',')
     // shuffle rpcList
@@ -79,13 +72,14 @@ export function getProvider(chain: Chain = "ethereum", getArchivalNode = false):
   return providers[chain]._provider
 }
 
-export const TEN = BigNumber.from(10);
+export const TEN = BigInt(10);
 
-export function handleDecimals(num: BigNumber, decimals?: number): string {
+export function handleDecimals(num: any, decimals?: number): string {
+  if (typeof num !== 'number') num = num.toString()
   if (decimals === undefined) {
     return num.toString();
   } else {
-    return num.div(TEN.pow(decimals)).toString();
+    return Number(num / (10 ** decimals)).toString();
   }
 }
 

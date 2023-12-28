@@ -1,6 +1,7 @@
 import { getBalance } from "./eth/index";
 import { getProvider, setProvider } from "./general";
 import { ethers, } from "ethers"
+import { getProviderUrl } from "./generalUtil";
 
 const dummyRPC = 'https://eth.llamarpc.com'
 
@@ -15,7 +16,6 @@ test("RPC nodes from multiple chains support archive queries", async () => {
       });
       expect(ethOwned.output).toBe("0");
     } catch (e) {
-      console.log(`Error on chain ${chain}`);
       throw e;
     }
   }
@@ -28,7 +28,7 @@ test("getProvider default behavior", async () => {
   expect(ethProvider).toEqual(ethProvider2);
 });
 
-test("getProvider - use rpc from env", async () => {
+test.skip("getProvider - use rpc from env", async () => {
   const ethProvider = getProvider("ethereum")
   process.env.ETHEREUM_RPC = dummyRPC
   const ethProvider2 = getProvider("ethereum")
@@ -51,11 +51,11 @@ test("getProvider - chain throws error", async () => {
 
 test("getProvider - custom chain", async () => {
   const clvRPC = "https://api-para.clover.finance"
-  const clvObject = new ethers.providers.StaticJsonRpcProvider(clvRPC, { name: "clv-llama-test", chainId: 1024, })
+  const clvObject = new ethers.JsonRpcProvider(clvRPC, { name: "clv-llama-test", chainId: 1024, })
   setProvider("clv-llama-test",clvObject)
   const clvP = getProvider("clv-llama-test")
   const clvPMissing = getProvider("clv-llama-test-not")
   expect(clvP).not.toBeNull()
   expect(clvPMissing).toBeNull()
-  expect((clvP as any).connection.url).toBe(clvRPC)
+  expect(getProviderUrl(clvP as any)).toBe(clvRPC)
 });

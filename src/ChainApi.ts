@@ -1,15 +1,15 @@
 import { Block, CallOptions, MulticallOptions, FetchListOptions, ByteCodeCallOptions, Balances as BalancesV1 } from "./types";
 import Balances from "./Balances";
-import { Chain, getProvider, } from "./general";
+import { Chain, getProvider } from "./general";
 import { call, multiCall, fetchList, bytecodeCall } from './abi/abi2'
 import { getBlock } from './computeTVL/blocks'
-import { ethers, } from "ethers";
 import providerList from './providers.json'
 
 import { debugLog, debugTable, } from "./util/debugLog";
-import { sumSingleBalance, getUniqueAddresses, } from "./generalUtil";
+import { getUniqueAddresses, } from "./generalUtil";
 import { getMulticallAddress } from "./abi/multicall3";
 import { getBalances } from "./eth";
+import { Provider } from "ethers";
 
 const nullAddress = '0x0000000000000000000000000000000000000000'
 export class ChainApi {
@@ -17,7 +17,7 @@ export class ChainApi {
   chain: Chain | string;
   chainId?: number;
   timestamp?: number;
-  provider: ethers.providers.BaseProvider;
+  provider: Provider;
   _balances: Balances;
 
   constructor(params: {

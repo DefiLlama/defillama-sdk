@@ -1,12 +1,11 @@
-import { BigNumber } from "@ethersproject/bignumber";
 import { ethers } from "ethers";
 
 function isNumberOrBigNumber(value: any) {
-  return BigNumber.isBigNumber(value) || typeof value === "number"
+  return typeof value === 'bigint' || typeof value === "number"
 }
 
 function stringifyBigNumbers(result: any) {
-  let final: any = {...result}
+  let final: any = { ...result }
   if (Array.isArray(result))
     final = [...result]
   Object.keys(result).forEach((key) => {
@@ -20,7 +19,7 @@ function stringifyBigNumbers(result: any) {
   return final
 }
 
-export default function (results: ethers.utils.Result) {
+export default function (results: ethers.Result, functionABI?: ethers.FunctionFragment) {
   let response: any
   if (typeof results === "string" || typeof results === "boolean")
     return results
@@ -29,6 +28,11 @@ export default function (results: ethers.utils.Result) {
     return results.toString();
 
   response = stringifyBigNumbers(results)
+
+  if (functionABI && functionABI.outputs && functionABI.outputs.length > 1) {
+    const outputNames = functionABI.outputs.map((i) => i.name)
+    outputNames.map((name, i) => response[name] = response[i])
+  }
 
   if (response instanceof Array)
     if (response.length === 1)
