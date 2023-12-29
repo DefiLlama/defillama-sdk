@@ -66,7 +66,7 @@ export default async function makeMultiCall(
     let output: any;
     let error = undefined
     try {
-      output = convertResults(contractInterface.decodeFunctionResult(fd, values));
+      output = convertResults(contractInterface.decodeFunctionResult(fd, values), fd);
     } catch (e) {
       output = null;
       error = e
