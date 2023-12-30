@@ -2,6 +2,7 @@ import { getBalance } from "./eth/index";
 import { getProvider, setProvider } from "./general";
 import { ethers, } from "ethers"
 import { getProviderUrl } from "./generalUtil";
+import { ChainApi } from "./ChainApi";
 
 const dummyRPC = 'https://eth.llamarpc.com'
 
@@ -52,10 +53,24 @@ test("getProvider - chain throws error", async () => {
 test("getProvider - custom chain", async () => {
   const clvRPC = "https://api-para.clover.finance"
   const clvObject = new ethers.JsonRpcProvider(clvRPC, { name: "clv-llama-test", chainId: 1024, })
-  setProvider("clv-llama-test",clvObject)
+  setProvider("clv-llama-test", clvObject)
   const clvP = getProvider("clv-llama-test")
   const clvPMissing = getProvider("clv-llama-test-not")
   expect(clvP).not.toBeNull()
   expect(clvPMissing).toBeNull()
   expect(getProviderUrl(clvP as any)).toBe(clvRPC)
+});
+
+// skipped as this would keep the connection/procss live after tests are done
+test.skip("wss provider", async () => {
+  process.env.WSSTEST_RPC = 'wss://moonbeam-rpc.dwellir.com'
+  const wssapi = new ChainApi({ chain: "wsstest" })
+  const usdcDecimals = await wssapi.call({ abi: 'erc20:decimals', target: '0x931715FEE2d06333043d11F658C8CE934aC61D0c' })
+  const usdcDecimals1 = await wssapi.call({ abi: 'erc20:decimals', target: '0x931715FEE2d06333043d11F658C8CE934aC61D0c' })
+  const usdcDecimals2 = await wssapi.call({ abi: 'erc20:decimals', target: '0x931715FEE2d06333043d11F658C8CE934aC61D0c' })
+  const usdcDecimals3 = await wssapi.call({ abi: 'erc20:decimals', target: '0x931715FEE2d06333043d11F658C8CE934aC61D0c' })
+  expect(usdcDecimals).toBe('6')
+  expect(usdcDecimals1).toBe('6')
+  expect(usdcDecimals2).toBe('6')
+  expect(usdcDecimals3).toBe('6')
 });

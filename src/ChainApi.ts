@@ -115,6 +115,14 @@ export class ChainApi {
     this._balances.removeTokenBalance(token)
   }
 
+  deleteToken(token: string) {
+    this._balances.removeTokenBalance(token)
+  }
+
+  deleteTokens(tokens: string[]) {
+    tokens.forEach(i => this.deleteToken(i))
+  }
+
   async erc4626Sum({ calls, tokenAbi = 'address:token', balanceAbi = 'uint256:balance', balanceCalls, permitFailure = false }: any) {
     if (typeof tokenAbi === 'string' && (!tokenAbi.includes(':') && !tokenAbi.includes('('))) tokenAbi = `address:${tokenAbi}`
     if (typeof balanceAbi === 'string' && (!balanceAbi.includes(':') && !balanceAbi.includes('('))) balanceAbi = `uint256:${balanceAbi}`
