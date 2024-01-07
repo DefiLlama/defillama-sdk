@@ -1,6 +1,6 @@
 import { getProvider, Chain } from "../general";
 import fetch from "node-fetch";
-import { formError, } from "../generalUtil";
+import { formError, getProviderUrl, } from "../generalUtil";
 import { debugLog } from "./debugLog";
 import { isCosmosChain, getCosmosProvider } from "./cosmos";
 import { getTempLocalCache } from "./cache";
@@ -74,7 +74,7 @@ export function getCurrentChainBlock(chain: Chain = 'ethereum'): Promise<Block> 
   async function _getCurrentChainBlock() {
     try {
       const provider = getExtraProvider(chain);
-      const { number, timestamp, } = await provider.getBlock('latest')
+      const { number, timestamp, } = await provider.getBlock('latest') as any
       const response = { block: number, timestamp, number }
       validateCurrentBlock(response, chain)
       currentChainBlockCache[chain] = { timestamp: currentTimestamp, promise: response }
@@ -149,7 +149,7 @@ function validateCurrentBlock(block: Block, chain: Chain = 'ethereum') {
   const now = Math.floor(Date.now() / 1000)
   const minutesDiff = Math.floor((now - block.timestamp) / 60)
   if (minutesDiff > 60)
-    throw new Error(`Last block for ${chain} is ${minutesDiff} minutes behind (${new Date(block.timestamp * 1000)}). Provider is "${(provider as any)?.connection?.url ?? ((provider as any)?.providerConfigs ?? [])[0]?.provider?.connection?.url}"`)
+    throw new Error(`Last block for ${chain} is ${minutesDiff} minutes behind (${new Date(block.timestamp * 1000)}). Provider is "${getProviderUrl(provider)}"`)
 }
 
 export async function lookupBlock(
@@ -308,7 +308,7 @@ export async function lookupBlock(
 export async function getTimestamp(height: number, chain: Chain) {
   const provider = getExtraProvider(chain);
   const block = await provider.getBlock(height)
-  return block.timestamp
+  return block!.timestamp
 }
 
 export type Block = {

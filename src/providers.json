@@ -873,7 +873,7 @@
   },
   "alv": {
     "rpc": [
-      "https://rpc2.alvey.io/rpc"
+      "https://elves-core3.alvey.io"
     ],
     "chainId": 3797
   },
@@ -932,5 +932,11 @@
       "https://fsc-dataseed1.fonscan.io"
     ],
     "chainId": 201022
+  },
+  "zkfair": {
+    "rpc": [
+      "https://rpc.zkfair.io"
+    ],
+    "chainId": 42766
   }
 }

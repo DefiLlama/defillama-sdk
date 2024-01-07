@@ -1,5 +1,4 @@
 import { sumMultiBalanceOf, sumSingleBalance, mergeBalances, removeTokenBalance, sumChainTvls, } from "./generalUtil";
-import { BigNumber } from "ethers"
 import ChainApi from "./ChainApi";
 
 test("sumMultiBalanceOf", () => {
@@ -69,7 +68,7 @@ test("sumSingleBalance", () => {
   expect(balances).toMatchObject({ 'bsc:0x000': 10000 })
 
   balances = { 'polygon:0x000': 5000 }
-  sumSingleBalance(balances, "0x000", BigNumber.from(2000), 'polygon')
+  sumSingleBalance(balances, "0x000", BigInt(2000), 'polygon')
   expect(balances).toMatchObject({ 'polygon:0x000': 7000 })
 
   balances = { 'avax:0x000': 6999 }
@@ -150,7 +149,7 @@ test("mergeBalances", () => {
   expect(balances).toMatchObject({ 'bsc:0x000': 7000, "0x000": '3000' })
 
   balances = { 'polygon:0x000': 5000 }
-  mergeBalances(balances, { "0x000": BigNumber.from(2000) } as any)
+  mergeBalances(balances, { "0x000": BigInt(2000) } as any)
   expect(balances).toMatchObject({ 'polygon:0x000': 5000, "0x000": '2000' })
 
   balances = { 'avax:0x000': 6999 }

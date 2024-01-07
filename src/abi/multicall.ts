@@ -1,9 +1,7 @@
 import { ethers } from "ethers";
-import { ParamType } from "ethers/lib/utils";
 import { getProvider, Chain } from "../general";
 import convertResults from "./convertResults";
 import { call } from "./rpcCall";
-import { BlockTag } from "@ethersproject/providers"
 import { debugLog } from "../util/debugLog"
 import { runInPromisePool, sliceIntoChunks, } from "../util"
 import * as Tron from './tron'
@@ -48,11 +46,11 @@ export default async function makeMultiCall(
     params: any[];
   }[],
   chain: Chain,
-  block?: BlockTag,
+  block?: string | number,
 ) {
   if (chain === 'tron') return Tron.multiCall(functionABI, calls)
-  const contractInterface = new ethers.utils.Interface([functionABI]);
-  let fd = Object.values(contractInterface.functions)[0];
+  const contractInterface = new ethers.Interface([functionABI]);
+  let fd = contractInterface.fragments[0] as ethers.FunctionFragment
 
   const contractCalls = calls.map((call) => {
     const data = contractInterface.encodeFunctionData(fd, call.params);
@@ -68,9 +66,7 @@ export default async function makeMultiCall(
     let output: any;
     let error = undefined
     try {
-      output = convertResults(
-        contractInterface.decodeFunctionResult(fd, values)
-      );
+      output = convertResults(contractInterface.decodeFunctionResult(fd, values), fd);
     } catch (e) {
       output = null;
       error = e
@@ -94,13 +90,13 @@ async function executeCalls(
     data: string;
   }[],
   chain: Chain,
-  block?: BlockTag
+  block?: string | number
 ) {
-  if (networkSupportsMulticall(chain)) {
+  if (await networkSupportsMulticall(chain)) {
     try {
-      const multicallData = ethers.utils.defaultAbiCoder.encode(
+      const multicallData = ethers.AbiCoder.defaultAbiCoder().encode(
         [
-          ParamType.fromObject({
+          ethers.ParamType.from({
             components: [
               { name: "target", type: "address" },
               { name: "callData", type: "bytes" },
@@ -120,9 +116,9 @@ async function executeCalls(
         data: callData,
       };
 
-      const returnData = await call(getProvider(chain), tx, block ?? "latest", chain)
+      const returnData = await call(getProvider(chain), tx, block, chain)
 
-      const [blockNumber, returnValues] = ethers.utils.defaultAbiCoder.decode(
+      const [blockNumber, returnValues] = ethers.AbiCoder.defaultAbiCoder().decode(
         ["uint256", "bytes[]"],
         returnData
       );
@@ -145,11 +141,11 @@ async function executeCalls(
 
   return runInPromisePool({
     items: contractCalls,
-    concurrency: networkSupportsMulticall(chain) ? 2 : 10,
+    concurrency: await networkSupportsMulticall(chain) ? 2 : 10,
     processor: async ({ to, data }: any) => {
       let result = null
       try {
-        result = await call(getProvider(chain), { to, data }, block ?? "latest", chain,);
+        result = await call(getProvider(chain), { to, data }, block, chain,);
       } catch (e) {
         debugLog(e)
       }
@@ -158,7 +154,9 @@ async function executeCalls(
   })
 }
 
-async function multicallAddressOrThrow(chain: Chain) {
+export async function multicallAddressOrThrow(chain: Chain) {
+  const multicallEnv = process.env[`${chain.toUpperCase()}_RPC_MULTICALL`]
+  if (multicallEnv) return multicallEnv
   const network = await getProvider(chain).getNetwork();
   const address = multicallAddress(network?.chainId);
   if (address === null) {
@@ -169,13 +167,21 @@ async function multicallAddressOrThrow(chain: Chain) {
   return address;
 }
 
-export function networkSupportsMulticall(chain: Chain) {
-  const network = getProvider(chain)?.network;
-  const address = multicallAddress(network?.chainId);
-  return address !== null;
+const networkMulticallCache = {} as { [chain: string]: boolean };
+
+export async function networkSupportsMulticall(chain: Chain) {
+  const multicallEnv = process.env[`${chain.toUpperCase()}_RPC_MULTICALL`]
+  if (multicallEnv) networkMulticallCache[chain] = true
+  if (!networkMulticallCache.hasOwnProperty(chain)) {
+    const network = await getProvider(chain)?.getNetwork();
+    const address = multicallAddress(network?.chainId);
+    networkMulticallCache[chain] = address !== null;
+  }
+  return networkMulticallCache[chain];
 }
 
-function multicallAddress(chainId: number) {
+function multicallAddress(chainId: number | BigInt) {
+  if (typeof chainId === "bigint") chainId = Number(chainId);
   switch (chainId) {
     case 1:
     case 10001:
@@ -360,6 +366,8 @@ function multicallAddress(chainId: number) {
       return '0x952e846E505d4e4ddf579541A0d739f1681F2282';
     case 34443: // mode
       return '0xA1da7a7eB5A858da410dE8FBC5092c2079B58413';
+    case 42766: // zkfair
+      return '0x9eF6667974Fb12D07774221AAB1E90b2ec48896E';
     default:
       return null;
   }

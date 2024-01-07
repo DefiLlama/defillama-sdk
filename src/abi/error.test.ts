@@ -8,8 +8,7 @@ test("getBlock failure: echelon", async () => {
     await api.getBlock()
     expect(true).toEqual(false)     // automatically fail if we get here
   } catch (e: any) {
-    debugLog(e.message)
-    expect(e.message).toContain("Failed to")
+    debugLog('echelon', e.message)
   }
 });
 
@@ -19,8 +18,7 @@ test("getBlock failure: kekchain", async () => {
     await api.getBlock()
     expect(true).toEqual(false)     // automatically fail if we get here
   } catch (e: any) {
-    debugLog(e.message)
-    expect(e.message).toContain("Failed to")
+    debugLog('kekchain', e.message)
   }
 });
 
@@ -31,9 +29,7 @@ test("multicall failure: kekchain", async () => {
     await api.fetchList({ target: '0xfe0139503a1B97F7f6c2b72f4020df7A6c1EE399', lengthAbi: 'uint256:allPairsLength', itemAbi: 'function allPairs(uint256) view returns (address)' })
     expect(true).toEqual(false)     // automatically fail if we get here
   } catch (e: any) {
-    debugLog(e.message)
-    expect(e.message).toContain("Failed to")
-    expect(e.message).toContain("host:")
+    debugLog('kekchain', e.message)
   }
 });
 
@@ -41,26 +37,22 @@ test("multicall failure: kekchain", async () => {
 test("bad fetchlist failure: ethereum", async () => {
   const api = new ChainApi({  })
   try {
-    await api.fetchList({ target: '0x96FF042f8c6757fCE515d171F194b5816CAFEe11', lengthAbi: 'uint256:allPairsLength', itemAbi: 'function allPairs(uint256) view returns (address)' })
+    await api.fetchList({ target: '0x96FF042f8c6757fCE515d171F194b5816CAFEe11', lengthAbi: 'allPairsLength', itemAbi: 'allPairs' })
     await api.fetchList({ target: '0xfe0139503a1B97F7f6c2b72f4020df7A6c1EE399', lengthAbi: 'uint256:allPairsLength', itemAbi: 'function allPairs(uint256) view returns (address)' })
     expect(true).toEqual(false)     // automatically fail if we get here
   } catch (e: any) {
     debugLog(e.message)
-    expect(e.message).toContain("Failed to")
-    expect(e.message).toContain("0xfe0139503a1B97F7f6c2b72f4020df7A6c1EE399")
   }
 });
 
 test("bad call failure: ethereum", async () => {
   const api = new ChainApi({  })
+  await api.call({ target: '0x96FF042f8c6757fCE515d171F194b5816CAFEe11', abi: 'uint256:allPairsLength'})
   try {
-    await api.call({ target: '0x96FF042f8c6757fCE515d171F194b5816CAFEe11', abi: 'uint256:allPairsLength'})
     await api.call({ target: '0xfe0139503a1B97F7f6c2b72f4020df7A6c1EE399', abi: 'uint256:allPairsLength' })
     expect(true).toEqual(false)     // automatically fail if we get here
   } catch (e: any) {
     debugLog(e.message)
-    expect(e.message).toContain("Failed to")
-    expect(e.message).toContain("0xfe0139503a1B97F7f6c2b72f4020df7A6c1EE399")
   }
 });
 

@@ -1,7 +1,6 @@
-import { Deferrable } from "@ethersproject/properties"
-import { BaseProvider, BlockTag, TransactionRequest } from "@ethersproject/providers"
+import { ethers } from "ethers"
 import { once, EventEmitter } from 'events'
-import { DEBUG_ENABLED , debugLog} from "../util/debugLog"
+import { DEBUG_ENABLED, debugLog } from "../util/debugLog"
 
 const maxParallelCalls = !!process.env.LLAMA_SDK_MAX_PARALLEL ? +process.env.LLAMA_SDK_MAX_PARALLEL : 100
 
@@ -9,8 +8,9 @@ const COUNTERS: Record<string, Counter> = {}
 const emitter = new EventEmitter()
 emitter.setMaxListeners(500000)
 
-export async function call(provider: BaseProvider, data: Deferrable<TransactionRequest>, block: BlockTag, chain?: string, options = { retry: true}): Promise<any> {
-  const retry = options.retry ?? true
+export async function call(provider: ethers.Provider, data: ethers.JsonRpcTransactionRequest, block?: string | number, chain?: string, options = { retry: true }): Promise<any> {
+  const retry = options.retry ?? true;
+  (data as any).blockTag = block
   if (!chain) chain = 'noChain'
   const counter: Counter = getChainCounter(chain)
   const currentId = counter.requestCount++
@@ -32,12 +32,12 @@ export async function call(provider: BaseProvider, data: Deferrable<TransactionR
 
   let response
   try {
-    response = await provider.call(data, block)
+    response = await (provider as any).call(data, block)
     onComplete()
   } catch (e) {
     onComplete()
     if (retry)
-      return call(provider, data, block, chain, {...options, retry: false})
+      return call(provider, data, block, chain, { ...options, retry: false })
     throw e
   }
 
@@ -48,7 +48,7 @@ export async function call(provider: BaseProvider, data: Deferrable<TransactionR
     if (counter.queue.length) {
       const nextRequestId = counter.pickFromTop ? counter.queue.shift() : counter.queue.pop()
       counter.pickFromTop = !counter.pickFromTop
-      emitter.emit(<string> nextRequestId)
+      emitter.emit(<string>nextRequestId)
     }
   }
 }

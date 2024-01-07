@@ -1,7 +1,7 @@
-import { BigNumber } from "ethers";
 import * as blocks from "./computeTVL/blocks";
 import * as humanizeNumber from "./computeTVL/humanizeNumber";
 import type { Balances, StringNumber, Address } from "./types";
+import * as ethers from 'ethers'
 
 // We ignore `sum` as it's never used (only in some SDK wrapper code)
 
@@ -26,13 +26,11 @@ export function sumMultiBalanceOf(
       const address = transformAddress(result.input.target);
       const balance = result.output;
 
-      if (BigNumber.from(balance).lte(0)) {
+      if (BigInt(balance) <= 0) {
         return;
       }
 
-      balances[address] = BigNumber.from(balances[address] ?? 0)
-        .add(balance)
-        .toString();
+      balances[address] = (BigInt(balances[address] ?? 0) + BigInt(balance)).toString();
     } else if (allCallsMustBeSuccessful) {
       console.error(result)
       throw new Error(`balanceOf multicall failed`)
@@ -43,9 +41,10 @@ export function sumMultiBalanceOf(
 export function sumSingleBalance(
   balances: Balances,
   token: string,
-  balance: string | number | BigNumber,
+  balance: string | number | BigInt,
   chain?: string,
 ) {
+  if (typeof balance === 'bigint') balance = balance.toString()
   isValidNumber(balance)
 
   if (+balance === 0) return;
@@ -68,13 +67,14 @@ export function sumSingleBalance(
     isValidNumber(value)
     balances[token] = value
   } else {
-    const prevBalance = BigNumber.from(balances.hasOwnProperty(token) ? balances[token] : '0');
-    const value = prevBalance.add(BigNumber.from(balance)).toString();
-    isValidNumber(+value)
-    balances[token] = value
+    const prevBalance = BigInt(balances.hasOwnProperty(token) ? balances[token] : '0');
+    const value = (prevBalance + BigInt(balance))
+    isValidNumber(Number(value))
+    balances[token] = Number(value).toString()
   }
 
   function isValidNumber(value: any) {
+    if (typeof value === 'bigint') return;
     if ([null, undefined].includes(value) || isNaN(+value))
       throw new Error(`Invalid balance: ${balance}`)
   }
@@ -138,6 +138,11 @@ export function getUniqueAddresses(addresses: string[], chain?: string): string[
   return Object.keys(set)
 }
 
+export function getProviderUrl(provider: any) {
+  if (provider instanceof ethers.FallbackProvider)  provider = (provider.providerConfigs[0].provider as ethers.JsonRpcApiProvider)
+  if (provider instanceof ethers.JsonRpcProvider) return provider._getConnection().url
+  return ''
+}
 
 export function formErrorString(e: any, errorParams: any = {}) {
   if (!e) {
@@ -163,9 +168,9 @@ export function formErrorString(e: any, errorParams: any = {}) {
   let errorString = e.toString()
   if (typeof e !== 'object') return errorString
 
-  if ((e.reason || e.method) && e.code) { // ethers.js error
+  if (((e.reason || e.method) && e.code) || errorParams.result === '0x') { // ethers.js error
 
-    let method = e.method
+    let method = e.method ?? errorParams.abi
     if (e.body) {
       try {
         e.body = JSON.parse(e.body)
@@ -181,9 +186,7 @@ export function formErrorString(e: any, errorParams: any = {}) {
 
     if (!e.provider && errorParams.provider) e.provider = errorParams.provider
 
-    let providerUrl = e?.url ?? ((e.provider as any)?.providerConfigs ?? [])[0]?.provider?.connection?.url
-    if (!providerUrl) // in case of historical queries against archive nodes
-      providerUrl = (e.provider as any)?.connection?.url
+    let providerUrl = getProviderUrl(e.provider ?? errorParams.provider)
     if (e.serverError) return `host: ${providerUrl} ${e.serverError.toString()}`
 
     if (e.results) {
@@ -193,7 +196,7 @@ export function formErrorString(e: any, errorParams: any = {}) {
         return `Failed to call method: ${method} provider: ${providerUrl}
          ${eStrings.join('\n')}`
       }
-    } else if (e.code === 'CALL_EXCEPTION' && errorParams.isCallError) {
+    } else if (e.code === 'CALL_EXCEPTION' || errorParams.isCallError) {
       let extraInfo = 'target: ' + errorParams.target
       if (errorParams.params && errorParams.params.length) extraInfo += shortenString(' params: ' + errorParams.params.join(', '))
       return `Failed to call ${method} ${extraInfo} on chain: [${errorParams.chain}] rpc: ${providerUrl}  call reverted ${e.errorName ?? ''}   ${e.errorArgs ?? ''}`

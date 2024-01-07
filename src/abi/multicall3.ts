@@ -1,8 +1,6 @@
 import { ethers } from "ethers";
 import { Chain } from "../general";
 import convertResults from "./convertResults";
-import { BlockTag } from "@ethersproject/providers"
-import { debugLog } from "../util/debugLog"
 import makeMultiCallV2 from './multicall'
 import * as Tron from './tron'
 import { call } from './index'
@@ -81,6 +79,11 @@ const DEPLOYMENT_BLOCK = {
   azktn: 31317,
   lightlink_phoenix: 51289975,
   eon: 646592,
+  jfin: 13857465,
+  ethereumclassic: 18288646,
+  core: 6988931,
+  callisto: 13811517,
+  bittorrent: 31078552,
 } as {
   [key: string | Chain]: number
 }
@@ -92,15 +95,15 @@ export default async function makeMultiCall(
     params: any[];
   }[],
   chain: Chain,
-  block?: BlockTag,
+  block?: string | number,
 ): Promise<any> {
   if (chain === 'tron') return Tron.multiCall(functionABI, calls)
   if (!functionABI) throw new Error('Missing ABI parameter')
   if (calls.some(i => !i.contract)) throw new Error('Missing target, abi:' + functionABI)
   if (!isMulticallV3Supported(chain, block))
     return makeMultiCallV2(functionABI, calls, chain, block)
-  const contractInterface = new ethers.utils.Interface([functionABI])
-  let fd = Object.values(contractInterface.functions)[0];
+  const contractInterface = new ethers.Interface([functionABI])
+  let fd = contractInterface.fragments[0] as ethers.FunctionFragment
 
   const contractCalls = calls.map((call) => {
     const data = contractInterface.encodeFunctionData(fd, call.params);
@@ -118,12 +121,11 @@ export default async function makeMultiCall(
     await _call()
   }
 
-  return returnValues.map((values: any, index: number) => {
+  return returnValues.map(([success, values]: any, index: number) => {
     let output = null
-    let success = true
     let error = null
     try {
-      output = convertResults(contractInterface.decodeFunctionResult(fd, values.returnData));
+      output = convertResults(contractInterface.decodeFunctionResult(fd, values), fd);
     } catch (e) { 
       error = e
       success = false
@@ -142,12 +144,11 @@ export default async function makeMultiCall(
   async function _call() {
     const multicallAddress = getMulticallAddress(chain, block) as string
     const { output: returnData } = await call({ chain, block, target: multicallAddress, abi: 'function tryAggregate(bool requireSuccess, tuple(address target, bytes callData)[] calls) payable returns (tuple(bool success, bytes returnData)[] returnData)', params: [false, contractCalls.map((call) => [call.to, call.data])] })
-
     returnValues = returnData;
   }
 }
 
-export function isMulticallV3Supported(chain: Chain, block?: BlockTag) {
+export function isMulticallV3Supported(chain: Chain, block?: string | number) {
   const startBlock = DEPLOYMENT_BLOCK[chain]
   if (!startBlock) return false
   if (!block) return true
@@ -155,7 +156,7 @@ export function isMulticallV3Supported(chain: Chain, block?: BlockTag) {
   return block > startBlock
 }
 
-export function getMulticallAddress(chain: Chain, block?: BlockTag) {
+export function getMulticallAddress(chain: Chain, block?: string | number) {
   if (!isMulticallV3Supported(chain, block)) return null
   let multicallAddress = MULTICALL_V3_ADDRESS
   switch (chain) {
