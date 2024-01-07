@@ -67,10 +67,37 @@ export function sumSingleBalance(
     isValidNumber(value)
     balances[token] = value
   } else {
-    const prevBalance = BigInt(balances.hasOwnProperty(token) ? balances[token] : '0');
-    const value = (prevBalance + BigInt(balance))
+    const prevBalance = getBigInt(balances[token]);
+    const value = (prevBalance + getBigInt(balance))
     isValidNumber(Number(value))
     balances[token] = Number(value).toString()
+  }
+
+  function getBigInt(value: any) {
+    const balance = value
+    if (!value) return BigInt(0)
+    if (typeof value === 'bigint') return value;
+    if (typeof value === 'number') value = value.toString()
+    if (typeof value === 'string') {
+      if (value.includes('e')) {// Convert scientific notation to standard notation
+        let [base, e] = value.split('e');
+        const [lead, decimal] = base.split('.');
+        let final;
+        let exponent = +e;
+      
+        if (exponent >= 0) {
+          final = lead + (decimal || '') + '0'.repeat(exponent - (decimal || '').length);
+        } else {
+          // NOTE: unforutenately BigInt doesn't support negative exponents, so this ends up being 0
+          exponent = exponent * -1
+          final = BigInt(lead) / BigInt('1'+Array(exponent).fill(0).join(''))
+        }
+        return BigInt(final)      
+      }
+      return BigInt(value)
+    }
+    if (typeof value === 'string') return BigInt(value);
+    throw new Error(`Invalid balance: ${balance}`)
   }
 
   function isValidNumber(value: any) {

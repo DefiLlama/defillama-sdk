@@ -100,6 +100,18 @@ test("sumSingleBalance throw error on invalid input", () => {
   expect(() => sumSingleBalance({ ethereum: '1' }, 'dummy', '111a' as any, 'ethereum')).toThrowError()
 });
 
+
+test("sumSingleBalance with numbers", () => {
+  const balances: any = {}
+  const veryBigNumber = 1.731174581703269e+21
+  sumSingleBalance(balances, 'dummy', '5')
+  sumSingleBalance(balances, 'dummy', '1731174581703269000000')
+  sumSingleBalance(balances, 'dummy2', '1.7e-12')
+  sumSingleBalance(balances, 'dummy', BigInt(170))
+  sumSingleBalance(balances, 'dummy', veryBigNumber)
+  expect(balances['dummy']/veryBigNumber).toBeCloseTo(2)
+});
+
 test("sumChainTvls", async () => {
   const api = new ChainApi({})
   api.addTokens(['a', 'b', 'c'], [1, 2, 3], { skipChain: true })
