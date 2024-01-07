@@ -1,11 +1,12 @@
+import ChainApi from "../ChainApi";
 import { call, multiCall } from "./index";
 const getReservesAbi = "function getReserves() view returns (uint112 _reserve0, uint112 _reserve1, uint32 _blockTimestampLast)"
 const getReservesAbi2 = "function getReserves() view returns (uint112 _reserve0, uint112 _reserve1)"
 
 const calldata = '{"abi":{"constant":true,"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"allPairs","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},"chain":"avax", "target": "0x9Ad6C38BE94206cA50bb0d90783181662f0Cfa10", "calls": []}'
-test("large muticall", async () => {
+test("large muticall avax", async () => {
   const options = JSON.parse(calldata)
-  for (let i = 0; i < 5; i++)
+  for (let i = 0; i < 500; i++)
     options.calls.push({ params: i })
   const res = await multiCall(options)
   expect(res.output.filter((r: any) => !r.success).length).toBe(0)

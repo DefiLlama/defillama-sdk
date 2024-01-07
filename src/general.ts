@@ -72,7 +72,8 @@ function createProvider(name: string, rpcString: string, chainId: number = 24242
       *  any other value is in ms. (default: ``250``)
      */
     const batchMaxSize = 10 * (1024 * 1024) // 10Mb
-    const jsonRpcApiProviderOptions = { staticNetwork: true, batchStallTime: 42, batchMaxSize, batchMaxCount: 1000, cacheTimeout: 5 * 1000 }
+    // some rpcs throw error if batchMaxCount is set higher than 100
+    const jsonRpcApiProviderOptions = { staticNetwork: true, batchStallTime: 42, batchMaxSize, batchMaxCount: 99, cacheTimeout: 5 * 1000 }
     if (url.startsWith('wss://')) {
       delete (jsonRpcApiProviderOptions as any).batchMaxCount
       return new ethers.WebSocketProvider(url, networkish, jsonRpcApiProviderOptions)

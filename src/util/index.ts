@@ -74,6 +74,8 @@ export async function getLogs(params: {
       output: logs.map((log) => log.topics)
     };
   }
+  // ethers v5 logs had this but not ethers v6, so adding field to keep it compatible
+  logs.forEach((log: any) => log.logIndex = log.logIndex ?? log.index)
   return {
     output: logs
   };
