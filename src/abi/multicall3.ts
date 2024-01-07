@@ -79,6 +79,11 @@ const DEPLOYMENT_BLOCK = {
   azktn: 31317,
   lightlink_phoenix: 51289975,
   eon: 646592,
+  jfin: 13857465,
+  ethereumclassic: 18288646,
+  core: 6988931,
+  callisto: 13811517,
+  bittorrent: 31078552,
 } as {
   [key: string | Chain]: number
 }

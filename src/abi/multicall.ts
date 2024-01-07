@@ -154,7 +154,9 @@ async function executeCalls(
   })
 }
 
-async function multicallAddressOrThrow(chain: Chain) {
+export async function multicallAddressOrThrow(chain: Chain) {
+  const multicallEnv = process.env[`${chain.toUpperCase()}_RPC_MULTICALL`]
+  if (multicallEnv) return multicallEnv
   const network = await getProvider(chain).getNetwork();
   const address = multicallAddress(network?.chainId);
   if (address === null) {
@@ -168,6 +170,8 @@ async function multicallAddressOrThrow(chain: Chain) {
 const networkMulticallCache = {} as { [chain: string]: boolean };
 
 export async function networkSupportsMulticall(chain: Chain) {
+  const multicallEnv = process.env[`${chain.toUpperCase()}_RPC_MULTICALL`]
+  if (multicallEnv) networkMulticallCache[chain] = true
   if (!networkMulticallCache.hasOwnProperty(chain)) {
     const network = await getProvider(chain)?.getNetwork();
     const address = multicallAddress(network?.chainId);
@@ -362,6 +366,8 @@ function multicallAddress(chainId: number | BigInt) {
       return '0x952e846E505d4e4ddf579541A0d739f1681F2282';
     case 34443: // mode
       return '0xA1da7a7eB5A858da410dE8FBC5092c2079B58413';
+    case 42766: // zkfair
+      return '0x9eF6667974Fb12D07774221AAB1E90b2ec48896E';
     default:
       return null;
   }

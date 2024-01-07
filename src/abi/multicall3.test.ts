@@ -1,3 +1,4 @@
+import { multicallAddressOrThrow, networkSupportsMulticall } from "./multicall";
 import makeMultiCall from "./multicall3";
 
 const decimalsAbi = "function decimals() view returns (uint8)"
@@ -69,4 +70,19 @@ test("multicall invalid call", async () => {
   expect(output[0].success).toEqual(true);
   expect(output[1].output).toEqual(null);
   expect(output[1].success).toEqual(false);
+});
+
+test("set multicall via env", async () => {
+  const testChain = 'env_multicall_chain'
+  const fakeRPC = 'https://env_multicall_chain.org/'
+  process.env[testChain.toUpperCase() + "_RPC_MULTICALL"] = fakeRPC
+  const envMulti = await networkSupportsMulticall(testChain)
+  expect(envMulti).toEqual(true);
+});
+
+test("check zkfair multicall", async () => {
+  const testChain = 'zkfair'
+  const envMulti = await networkSupportsMulticall(testChain)
+  expect(envMulti).toEqual(true);
+  expect(await multicallAddressOrThrow(testChain)).toEqual('0x9eF6667974Fb12D07774221AAB1E90b2ec48896E');
 });
