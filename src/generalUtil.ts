@@ -227,6 +227,11 @@ export function formErrorString(e: any, errorParams: any = {}) {
       let extraInfo = 'target: ' + errorParams.target
       if (errorParams.params && errorParams.params.length) extraInfo += shortenString(' params: ' + errorParams.params.join(', '))
       return `Failed to call: ${method} ${extraInfo} on chain: [${errorParams.chain}] rpc: ${providerUrl}  call reverted, reason: ${e.errorName ?? e.shortMessage ?? ''}   ${e.errorArgs ?? ''}`
+    } else if (e.code === 'BAD_DATA') {
+
+      if (!method) method = e?.info?.payload?.method
+      let extraInfo = 'target: ' + errorParams.target
+      return `Failed method: ${method} ${extraInfo} on chain: [${errorParams.chain}] rpc: ${providerUrl}  reason: ${e.errorName ?? e.shortMessage ?? e.message ?? ''}   ${e.errorArgs ?? ''}`
     }
     if (method === 'eth_blockNumber') return `host: ${providerUrl} reason: ${e.reason} code: ${e.code}`
     if (method === 'getBlockNumber') return `Failed to call ${method} ${providerUrl} reason: ${e.reason} code: ${e.code}`

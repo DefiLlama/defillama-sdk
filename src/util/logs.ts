@@ -4,16 +4,17 @@ import { Address } from "../types";
 import { getBlock } from "./blocks";
 import { readCache, writeCache } from "./cache";
 import { debugLog } from "./debugLog";
+import pLimit from 'p-limit';
 
 const currentVersion = 'v2'
 
 export type GetLogsOptions = {
-  target: Address;
+  target?: Address;
   topic?: string;
   keys?: string[]; // This is just used to select only part of the logs
   fromBlock?: number;
   toBlock?: number;
-  topics?: string[];
+  topics?: (string|null)[];
   extraTopics?: string[];
   chain?: string;
   eventAbi?: string | any;
@@ -24,45 +25,64 @@ export type GetLogsOptions = {
   entireLog?: boolean;
   cacheInCloud?: boolean;
   onlyArgs?: boolean;
+  targets?: Address[];
+  flatten?: boolean;
 }
 
-export async function getLogs({
-  target,
-  chain = 'ethereum',
-  fromBlock,
-  toBlock,
-  fromTimestamp,
-  toTimestamp,
-  eventAbi,
-  topic,
-  topics,
-  extraTopics, // can be passed as input as extra filter arguments
-  skipCache = false,
-  skipCacheRead = false,
-  entireLog = false,
-  cacheInCloud = false,
-  onlyArgs = false,
-  keys = [], //  [Deprecated] This is just used to select only part of the logs
-}: GetLogsOptions): Promise<EventLog[]|any[]> {
-  if (!target) throw new Error('target is required')
+export async function getLogs(options: GetLogsOptions): Promise<EventLog[] | EventLog[][] | any[]> {
+  let {
+    target,
+    chain = 'ethereum',
+    fromBlock,
+    toBlock,
+    fromTimestamp,
+    toTimestamp,
+    eventAbi,
+    topic,
+    topics,
+    extraTopics, // can be passed as input as extra filter arguments
+    skipCache = false,
+    skipCacheRead = false,
+    entireLog = false,
+    cacheInCloud = false,
+    onlyArgs = false,
+    keys = [], //  [Deprecated] This is just used to select only part of the logs
+    targets,
+    flatten = true,
+  } = options
+
+  if (!target && !targets?.length) throw new Error('target|targets is required')
   if (!fromBlock && !fromTimestamp) throw new Error('fromBlock or fromTimestamp is required')
   if (!toBlock && !toTimestamp) throw new Error('toBlock or toTimestamp is required')
 
+  const limiter = getChainLimiter(chain)
+
   if (!fromBlock)
-    fromBlock = (await getBlock(chain, fromTimestamp)).block
+    fromBlock = (await limiter(() => getBlock(chain, fromTimestamp))).block
 
   if (!toBlock)
-    toBlock = (await getBlock(chain, toTimestamp)).block
+    toBlock = (await limiter(() => getBlock(chain, toTimestamp))).block
+
+  if (targets?.length) {
+    const newOptions = { ...options, fromBlock, toBlock }
+    delete newOptions.targets
+    const res = await Promise.all(targets.map(i => getLogs({ ...newOptions, target: i })))
+    if (flatten) return res.flat()
+    return res
+  }
+
 
   let iface: Interface | undefined
+  if (eventAbi)
+    iface = new Interface([eventAbi])
 
-  if ((!topics || !topics.length) && !topic) {
-    if (topic) {
+
+  if ((!topics || !topics.length)) {
+    if (topic)
       topic = toFilterTopic(topic)
-    } else if (eventAbi) {
-      iface = new Interface([eventAbi])
-      topic = toFilterTopic(iface)
-    } else {
+    else if (eventAbi)
+      topic = toFilterTopic(iface!)
+    else {
       throw new Error('eventAbi | topic | topics are required')
     }
     topics = [topic]
@@ -74,13 +94,13 @@ export async function getLogs({
   if (isFirstRun) cacheData.metadata = { version: currentVersion } as any
 
   if (isFirstRun) {
-    await addLogsToCache(fromBlock, toBlock)
+    await limiter(() => addLogsToCache(fromBlock!, toBlock!))
   } else {
     const metadata = cacheData.metadata!
-    if (fromBlock < metadata.fromBlock)
-      await addLogsToCache(fromBlock, metadata.fromBlock - 1)
-    if (toBlock > metadata.toBlock)
-      await addLogsToCache(metadata.toBlock + 1, toBlock)
+    if (fromBlock! < metadata.fromBlock)
+      await limiter(() => addLogsToCache(fromBlock!, metadata.fromBlock))
+    if (toBlock! > metadata.toBlock)
+      await limiter(() => addLogsToCache(metadata.toBlock, toBlock!))
   }
 
   const logs = cacheData.logs.filter((i: EventLog) => {
@@ -94,9 +114,9 @@ export async function getLogs({
 
   async function addLogsToCache(fromBlock: number, toBlock: number) {
     const metadata = cacheData.metadata!
-    
+
     let logs = (await getLogsV1({
-      chain, target, topic: topic as string, keys, topics, fromBlock, toBlock,
+      chain, target: target!, topic: topic as string, keys, topics, fromBlock, toBlock,
     })).output
     cacheData.logs.push(...logs)
 
@@ -142,7 +162,7 @@ export async function getLogs({
     if (!extraKey) throw new Error('extraKey is required')
     if (keys.length) extraKey += '-' + keys.join('-').toLowerCase()
 
-    return `event-logs/${chain}/${target.toLowerCase()}/${target.toLowerCase()}`
+    return `event-logs/${chain}/${target!.toLowerCase()}-${extraKey}`
   }
 
   // we need to form filter topic with indexed keyword, else it messes up generated topic string
@@ -165,5 +185,20 @@ export type logCache = {
     toBlock: number,
   }
 }
+
+
+const chainLimiters: any = {}
+
+function getChainLimiter(chain: string) {
+  if (!chainLimiters[chain]) chainLimiters[chain] = createLimiter(chain)
+  return chainLimiters[chain]
+
+  function createLimiter(chain: string) {
+    let defaultLimit = chain === 'fantom' ? 10 : 20
+    const limit = +(process.env[`${chain.toUpperCase()}_RPC_GET_LOGS_CONCURRENCY_LIMIT`] ?? defaultLimit)
+    return pLimit(limit)
+  }
+}
+
 
 export default getLogs

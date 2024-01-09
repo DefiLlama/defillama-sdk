@@ -25,7 +25,7 @@ export async function getLogs(params: {
   keys: string[]; // This is just used to select only part of the logs
   fromBlock: number;
   toBlock: number; // DefiPulse's implementation is buggy and doesn't take this into account
-  topics?: string[]; // This is an outdated part of DefiPulse's API which is still used in some old adapters
+  topics?: (string|null)[]; // This is an outdated part of DefiPulse's API which is still used in some old adapters
   chain?: Chain;
 }) : Promise<{ output: EventLog[] }> {
   if (params.toBlock === undefined || params.fromBlock === undefined) {
@@ -42,6 +42,7 @@ export async function getLogs(params: {
   let logs: EventLog[] = [];
   let blockSpread = params.toBlock - params.fromBlock;
   let currentBlock = params.fromBlock;
+  const provider = getProvider(params.chain, true);
   while (currentBlock < params.toBlock) {
     const nextBlock = Math.min(params.toBlock, currentBlock + blockSpread);
     let logParams = {
@@ -50,17 +51,17 @@ export async function getLogs(params: {
       toBlock: nextBlock
     }
     try {
-      const partLogs = await getProvider(params.chain, true).getLogs(logParams);
+      const partLogs = await provider.getLogs(logParams);
       logs = logs.concat(partLogs as EventLog[]);
       currentBlock = nextBlock;
     } catch (e) {
-      debugLog(`Error fetching logs for chain ${params.chain} blockSpread: ${blockSpread}. ${formError(e)}`)
+      debugLog(`Error fetching logs for chain ${params.chain} blockSpread: ${blockSpread}. ${formError(e, { chain: params.chain, target: params.target, provider  })}`)
       if (blockSpread >= 2e3) {
         // We got too many results
         // We could chop it up into 2K block spreads as that is guaranteed to always return but then we'll have to make a lot of queries (easily >1000), so instead we'll keep dividing the block spread by two until we make it
         blockSpread = Math.floor(blockSpread / 2);
       } else {
-        const error = formError(e)
+        const error = formError(e, { chain: params.chain, target: params.target, provider  })
         error.message = `[chain: ${params.chain}] ${(error as any)?.message} params: ${JSON.stringify(logParams)}`
         throw e;
       }
@@ -74,8 +75,11 @@ export async function getLogs(params: {
       output: logs.map((log) => log.topics) as any
     };
   }
-  // ethers v5 logs had this but not ethers v6, so adding field to keep it compatible
-  logs.forEach((log: any) => log.logIndex = log.logIndex ?? log.index)
+  // ethers v5 logs had 'logIndex' but not ethers v6, so adding field to keep it compatible
+  logs.forEach((log: any) => {
+    log.logIndex = log.index
+    delete log.provider
+  })
   return {
     output: logs
   };
