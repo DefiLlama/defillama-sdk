@@ -74,3 +74,8 @@ test.skip("wss provider", async () => {
   expect(usdcDecimals2).toBe('6')
   expect(usdcDecimals3).toBe('6')
 });
+
+test("dogechain provider (quorum issue)", async () => {
+  const api = new ChainApi({ chain: "dogechain" })
+  await api.call({  abi: 'uint256:allPairsLength', target: '0x8e5dff1c121F661971d02950698f8c5EFc3DfA78'})
+});

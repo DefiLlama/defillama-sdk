@@ -20,7 +20,7 @@ function createProvider(name: string, rpcString: string, chainId: number = 24242
       return new ethers.FallbackProvider(
         rpcList.map((url, i) => ({ provider: (getProviderObject(url) as ethers.AbstractProvider), priority: i, chainId, })),
         networkish,
-        { cacheTimeout: 5 * 1000 }
+        { cacheTimeout: 5 * 1000, quorum: 1, eventWorkers: 1, eventQuorum: 1, }
       )
     } catch (e) {
       // debugLog(`Error creating provider for ${name} with RPCs: ${rpcList.join(', ')}`)

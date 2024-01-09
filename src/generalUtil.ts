@@ -84,15 +84,15 @@ export function sumSingleBalance(
         const [lead, decimal] = base.split('.');
         let final;
         let exponent = +e;
-      
+
         if (exponent >= 0) {
           final = lead + (decimal || '') + '0'.repeat(exponent - (decimal || '').length);
         } else {
           // NOTE: unforutenately BigInt doesn't support negative exponents, so this ends up being 0
           exponent = exponent * -1
-          final = BigInt(lead) / BigInt('1'+Array(exponent).fill(0).join(''))
+          final = BigInt(lead) / BigInt('1' + Array(exponent).fill(0).join(''))
         }
-        return BigInt(final)      
+        return BigInt(final)
       }
       return BigInt(value)
     }
@@ -166,7 +166,7 @@ export function getUniqueAddresses(addresses: string[], chain?: string): string[
 }
 
 export function getProviderUrl(provider: any) {
-  if (provider instanceof ethers.FallbackProvider)  provider = (provider.providerConfigs[0].provider as ethers.JsonRpcApiProvider)
+  if (provider instanceof ethers.FallbackProvider) provider = (provider.providerConfigs[0].provider as ethers.JsonRpcApiProvider)
   if (provider instanceof ethers.JsonRpcProvider) return provider._getConnection().url
   return ''
 }
@@ -195,9 +195,9 @@ export function formErrorString(e: any, errorParams: any = {}) {
   let errorString = e.toString()
   if (typeof e !== 'object') return errorString
 
-  if (((e.reason || e.method) && e.code) || errorParams.result === '0x') { // ethers.js error
+  if (((e.reason || e.method || e.shortMessage) && e.code) || errorParams.result === '0x') { // ethers.js error
 
-    let method = e.method ?? errorParams.abi
+    let method = e.method ?? e.info?.request?.method ?? errorParams.abi
     if (e.body) {
       try {
         e.body = JSON.parse(e.body)
@@ -209,7 +209,7 @@ export function formErrorString(e: any, errorParams: any = {}) {
         e.requestBody = JSON.parse(e.requestBody)
       } catch (e) { }
       method = e.requestBody?.method
-    }
+    } else
 
     if (!e.provider && errorParams.provider) e.provider = errorParams.provider
 
@@ -226,7 +226,7 @@ export function formErrorString(e: any, errorParams: any = {}) {
     } else if (e.code === 'CALL_EXCEPTION' || errorParams.isCallError) {
       let extraInfo = 'target: ' + errorParams.target
       if (errorParams.params && errorParams.params.length) extraInfo += shortenString(' params: ' + errorParams.params.join(', '))
-      return `Failed to call ${method} ${extraInfo} on chain: [${errorParams.chain}] rpc: ${providerUrl}  call reverted ${e.errorName ?? ''}   ${e.errorArgs ?? ''}`
+      return `Failed to call: ${method} ${extraInfo} on chain: [${errorParams.chain}] rpc: ${providerUrl}  call reverted, reason: ${e.errorName ?? e.shortMessage ?? ''}   ${e.errorArgs ?? ''}`
     }
     if (method === 'eth_blockNumber') return `host: ${providerUrl} reason: ${e.reason} code: ${e.code}`
     if (method === 'getBlockNumber') return `Failed to call ${method} ${providerUrl} reason: ${e.reason} code: ${e.code}`
@@ -241,15 +241,17 @@ function shortenString(str: string, length = 150) {
 }
 
 export function formError(e: any, errorParams: any = {}): Error {
-  if (e?._isCustomError || (!Object.keys(errorParams).length && typeof e === 'object' && !Object.keys(e).length)) return e // already formatted or vannila error
-  const error: Error = new Error(formErrorString(e, errorParams));
+  const errorParamsSet = Object.keys(errorParams).length
+  if (e?._isCustomError || (!errorParamsSet && typeof e === 'object' && !Object.keys(e).length)) return e // already formatted or vannila error
+  const error: any = new Error(formErrorString(e, errorParams));
   try {
     if (errorParams.isMultiCallError)
-      (error as any)._underlyingErrors = errorParams?.failedQueries?.map((i: any) => shortenString(i.error.toString()));
+      error._underlyingErrors = errorParams?.failedQueries?.map((i: any) => shortenString(i.error.toString()));
     else
-      (error as any)._underlyingError = shortenString(e.toString())
+      error._underlyingError = shortenString(e.toString())
   } catch (e) { }
-  (error as any)._isCustomError = true;
+  error._isCustomError = true;
+  error.message = shortenString(error.message, 420)
   error.stack = ''
-  return error
+  return error as Error
 }

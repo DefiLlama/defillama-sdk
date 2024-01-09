@@ -27,7 +27,7 @@ export async function getLogs(params: {
   toBlock: number; // DefiPulse's implementation is buggy and doesn't take this into account
   topics?: string[]; // This is an outdated part of DefiPulse's API which is still used in some old adapters
   chain?: Chain;
-}) {
+}) : Promise<{ output: Log[] }> {
   if (params.toBlock === undefined || params.fromBlock === undefined) {
     throw new Error(
       "toBlock and fromBlock need to be defined in all calls to getLogs"
@@ -71,7 +71,7 @@ export async function getLogs(params: {
       throw new Error("Unsupported");
     }
     return {
-      output: logs.map((log) => log.topics)
+      output: logs.map((log) => log.topics) as any
     };
   }
   // ethers v5 logs had this but not ethers v6, so adding field to keep it compatible
