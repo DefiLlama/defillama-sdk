@@ -10,6 +10,7 @@ import { getUniqueAddresses, } from "./generalUtil";
 import { getMulticallAddress } from "./abi/multicall3";
 import { getBalances } from "./eth";
 import { Provider } from "ethers";
+import getLogs, {GetLogsOptions} from "./util/logs";
 
 const nullAddress = '0x0000000000000000000000000000000000000000'
 export class ChainApi {
@@ -206,6 +207,11 @@ export class ChainApi {
 
   async getUSDJSONs() {
     return this._balances.getUSDJSONs()
+  }
+
+  async getLogs(params: GetLogsOptions) {
+    params.chain = this.chain
+    return getLogs(params)
   }
 }
 

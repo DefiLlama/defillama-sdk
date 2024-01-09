@@ -1,7 +1,7 @@
 import { getProvider, Chain } from "../general";
 import fetch from "node-fetch";
 import type { Address } from "../types";
-import { ethers, Log } from "ethers";
+import { ethers, EventLog } from "ethers";
 import { formError, sumSingleBalance } from "../generalUtil";
 import { debugLog } from "./debugLog";
 import runInPromisePoolOrig from "./promisePool";
@@ -27,7 +27,7 @@ export async function getLogs(params: {
   toBlock: number; // DefiPulse's implementation is buggy and doesn't take this into account
   topics?: string[]; // This is an outdated part of DefiPulse's API which is still used in some old adapters
   chain?: Chain;
-}) : Promise<{ output: Log[] }> {
+}) : Promise<{ output: EventLog[] }> {
   if (params.toBlock === undefined || params.fromBlock === undefined) {
     throw new Error(
       "toBlock and fromBlock need to be defined in all calls to getLogs"
@@ -39,7 +39,7 @@ export async function getLogs(params: {
     fromBlock: params.fromBlock,
     toBlock: params.toBlock // We don't replicate Defipulse's bug because the results end up being the same anyway and hopefully they'll eventually fix it
   };
-  let logs: Log[] = [];
+  let logs: EventLog[] = [];
   let blockSpread = params.toBlock - params.fromBlock;
   let currentBlock = params.fromBlock;
   while (currentBlock < params.toBlock) {
@@ -51,7 +51,7 @@ export async function getLogs(params: {
     }
     try {
       const partLogs = await getProvider(params.chain, true).getLogs(logParams);
-      logs = logs.concat(partLogs);
+      logs = logs.concat(partLogs as EventLog[]);
       currentBlock = nextBlock;
     } catch (e) {
       debugLog(`Error fetching logs for chain ${params.chain} blockSpread: ${blockSpread}. ${formError(e)}`)
@@ -80,6 +80,7 @@ export async function getLogs(params: {
     output: logs
   };
 }
+
 export function normalizeAddress(address: string): string {
   // sol amd tezos case sensitive so no normalising
   const prefix = address.substring(0, address.indexOf(":"));

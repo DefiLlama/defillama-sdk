@@ -135,7 +135,7 @@ export function getTempLocalCache({ file, defaultData = {}, clearAfter = ONE_WEE
     fileData = JSON.parse(data.toString())
     if (now - fileData.created > clearAfter)
       fileData = emptyFile // clear cache
-  } catch (error) {}
+  } catch (error) { }
 
   // save cache on exit
   process.on('exit', saveCache);
@@ -163,4 +163,32 @@ export function getTempLocalCache({ file, defaultData = {}, clearAfter = ONE_WEE
       }
     }
   }
+}
+
+// this removes data only from the file cache, not from the R2 cache
+export async function deleteCache(file: string) {
+  const filePath = getFilePath(file)
+  await fs.unlink(filePath)
+}
+
+export async function readExpiringJsonCache(file: string): Promise<any> {
+  const options: ReadCacheOptions = { readFromR2Cache: false, skipR2Cache: true }
+  file = 'expiring/' + file
+  const data = await readCache(file, options)
+  if (!data || Object.keys(data).length === 0) return null
+  if (data.expiryTimestamp < (Date.now() / 1e3)) {
+    await deleteCache(file)
+    return null
+  }
+  return data.data
+}
+
+export async function writeExpiringJsonCache(file: string, data: any, {
+  expireAfter = 60 * 60 * 24, // cache for 1 day by default
+  expiryTimestamp,
+}: { expireAfter?: number, expiryTimestamp?: number }): Promise<void> {
+  file = 'expiring/' + file
+  if (!expiryTimestamp) expiryTimestamp = Math.floor(Date.now() / 1e3) + expireAfter
+  const options: WriteCacheOptions = { skipR2CacheWrite: true }
+  await writeCache(file, { data, expiryTimestamp }, options)
 }
