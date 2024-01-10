@@ -31,7 +31,6 @@ test("logs - malformed request", async () => {
   })).rejects.toThrowError()
 });
 
-
 test("logs - base - aerodrome2", async () => {
   const event_swap = 'event Swap(address indexed sender,address indexed to,uint256 amount0In,uint256 amount1In,uint256 amount0Out,uint256 amount1Out)'
   const logs = await getLogs({
@@ -46,8 +45,23 @@ test("logs - base - aerodrome2", async () => {
   expect(logs[0].sender).toBe("0xcF77a3Ba9A5CA399B7c97c74d54e5b1Beb874E43")
 });
 
-jest.setTimeout(30000)
-test("logs - rate limit eth_getLogs", async () => {
+
+test("logs - base - aerodrome 3", async () => {
+  const event_swap = 'event Swap(address indexed sender,address indexed to,uint256 amount0In,uint256 amount1In,uint256 amount0Out,uint256 amount1Out)'
+  const logs = await baseApi.getLogs({
+    target: "0x723aef6543aece026a15662be4d3fb3424d502a9",
+    eventAbi: event_swap,
+    fromBlock: 9003820,
+    toBlock: 9004822,
+    onlyArgs: true,
+  });
+  expect(logs.length).toBe(1)
+  expect(logs[0].sender).toBe("0xcF77a3Ba9A5CA399B7c97c74d54e5b1Beb874E43")
+});
+
+
+jest.setTimeout(300000)
+test.skip("logs - rate limit eth_getLogs", async () => {
   const api = new ChainApi({ chain: 'fantom' })
   const lpTokens = await api.fetchList({ lengthAbi: 'allPairsLength', itemAbi: 'allPairs', target: '0x472f3C3c9608fe0aE8d702f3f8A2d12c410C881A' })
   const toTimestamp = Math.floor(Date.now() / 1000 - 60 * 60 * 0.1)

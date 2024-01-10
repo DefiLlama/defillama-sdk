@@ -393,9 +393,9 @@
   },
   "moonbeam": {
     "rpc": [
+      "https://rpc.api.moonbeam.network",
       "https://moonbeam.public.blastapi.io",
-      "https://moonbeam.unitedbloc.com",
-      "https://rpc.api.moonbeam.network"
+      "https://moonbeam.unitedbloc.com"
     ],
     "chainId": 1284
   },

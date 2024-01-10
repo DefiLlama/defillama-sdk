@@ -5,6 +5,34 @@ import * as ethers from 'ethers'
 
 // We ignore `sum` as it's never used (only in some SDK wrapper code)
 
+
+export function convertToBigInt(value: any) {
+  const balance = value
+  if (!value) return BigInt(0)
+  if (typeof value === 'bigint') return value;
+  if (typeof value === 'number') value = value.toString()
+  if (typeof value === 'string') {
+    if (!value.startsWith('0x') && value.includes('e')) {// Convert scientific notation to standard notation
+      let [base, e] = value.split('e');
+      const [lead, decimal] = base.split('.');
+      let final;
+      let exponent = +e;
+
+      if (exponent >= 0) {
+        final = lead + (decimal || '') + '0'.repeat(exponent - (decimal || '').length);
+      } else {
+        // NOTE: unforutenately BigInt doesn't support negative exponents, so this ends up being 0
+        exponent = exponent * -1
+        final = BigInt(lead) / BigInt('1' + Array(exponent).fill(0).join(''))
+      }
+      return BigInt(final)
+    }
+    return BigInt(value)
+  }
+  if (typeof value === 'string') return BigInt(value);
+  throw new Error(`Invalid balance: ${balance}`)
+}
+
 export function sumMultiBalanceOf(
   balances: Balances,
   results: {
@@ -67,37 +95,10 @@ export function sumSingleBalance(
     isValidNumber(value)
     balances[token] = value
   } else {
-    const prevBalance = getBigInt(balances[token]);
-    const value = (prevBalance + getBigInt(balance))
+    const prevBalance = convertToBigInt(balances[token]);
+    const value = (prevBalance + convertToBigInt(balance))
     isValidNumber(Number(value))
     balances[token] = Number(value).toString()
-  }
-
-  function getBigInt(value: any) {
-    const balance = value
-    if (!value) return BigInt(0)
-    if (typeof value === 'bigint') return value;
-    if (typeof value === 'number') value = value.toString()
-    if (typeof value === 'string') {
-      if (value.includes('e')) {// Convert scientific notation to standard notation
-        let [base, e] = value.split('e');
-        const [lead, decimal] = base.split('.');
-        let final;
-        let exponent = +e;
-
-        if (exponent >= 0) {
-          final = lead + (decimal || '') + '0'.repeat(exponent - (decimal || '').length);
-        } else {
-          // NOTE: unforutenately BigInt doesn't support negative exponents, so this ends up being 0
-          exponent = exponent * -1
-          final = BigInt(lead) / BigInt('1' + Array(exponent).fill(0).join(''))
-        }
-        return BigInt(final)
-      }
-      return BigInt(value)
-    }
-    if (typeof value === 'string') return BigInt(value);
-    throw new Error(`Invalid balance: ${balance}`)
   }
 
   function isValidNumber(value: any) {
@@ -225,13 +226,13 @@ export function formErrorString(e: any, errorParams: any = {}) {
       }
     } else if (e.code === 'CALL_EXCEPTION' || errorParams.isCallError) {
       let extraInfo = 'target: ' + errorParams.target
-      if (errorParams.params && errorParams.params.length) extraInfo += shortenString(' params: ' + errorParams.params.join(', '))
+      if (errorParams.params && Array.isArray(errorParams.params) && errorParams.params.length) extraInfo += shortenString(' params: ' + errorParams.params.join(', '))
       return `Failed to call: ${method} ${extraInfo} on chain: [${errorParams.chain}] rpc: ${providerUrl}  call reverted, reason: ${e.errorName ?? e.shortMessage ?? ''}   ${e.errorArgs ?? ''}`
     } else if (e.code === 'BAD_DATA') {
 
       if (!method) method = e?.info?.payload?.method
       let extraInfo = 'target: ' + errorParams.target
-      return `Failed method: ${method} ${extraInfo} on chain: [${errorParams.chain}] rpc: ${providerUrl}  reason: ${e.errorName ?? e.shortMessage ?? e.message ?? ''}   ${e.errorArgs ?? ''}`
+      return `Failed method: ${method} ${shortenString(extraInfo)} on chain: [${errorParams.chain}] rpc: ${providerUrl}  reason: ${e.errorName ?? e.shortMessage ?? e.message ?? ''}   ${e.errorArgs ?? ''}`
     }
     if (method === 'eth_blockNumber') return `host: ${providerUrl} reason: ${e.reason} code: ${e.code}`
     if (method === 'getBlockNumber') return `Failed to call ${method} ${providerUrl} reason: ${e.reason} code: ${e.code}`
@@ -256,7 +257,7 @@ export function formError(e: any, errorParams: any = {}): Error {
       error._underlyingError = shortenString(e.toString())
   } catch (e) { }
   error._isCustomError = true;
-  error.message = shortenString(error.message, 420)
+  error.message = shortenString(error.message, 999)
   error.stack = ''
   return error as Error
 }

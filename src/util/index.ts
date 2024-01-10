@@ -1,11 +1,11 @@
 import { getProvider, Chain } from "../general";
-import fetch from "node-fetch";
 import type { Address } from "../types";
 import { ethers, EventLog } from "ethers";
 import { formError, sumSingleBalance } from "../generalUtil";
 import { debugLog } from "./debugLog";
 import runInPromisePoolOrig from "./promisePool";
 export { getLatestBlock, getTimestamp, lookupBlock, } from "./blocks";
+export { convertToBigInt } from "../generalUtil"
 
 export const runInPromisePool = runInPromisePoolOrig
 

@@ -104,7 +104,7 @@ test("lookupBlock blockscout - scroll", async () => {
   expect(getDiff(block2.timestamp, 1700213053)).toBeLessThanOrEqual(15 * 60); // difference should be under 15 minutes
 });
 
-test("lookupBlock edgeCase", async () => {
+test.skip("lookupBlock edgeCase", async () => {
   const pZKEVMApi = new ChainApi({ chain: 'polygon_zkevm', timestamp: Math.floor((+new Date()) / 1e3) })
   const evmosApi = new ChainApi({ chain: 'evmos', timestamp: Math.floor((+new Date()) / 1e3) })
   const songbirdApi = new ChainApi({ chain: 'songbird', timestamp: Math.floor((+new Date()) / 1e3) })

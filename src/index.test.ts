@@ -30,6 +30,7 @@ test("imports", async () => {
           "getBalances": [Function],
         },
         "util": {
+          "convertToBigInt": [Function],
           "getLatestBlock": [Function],
           "getLogs": [Function],
           "getTimestamp": [Function],
@@ -67,6 +68,7 @@ test("imports", async () => {
           "getBalances": [Function],
         },
         "util": {
+          "convertToBigInt": [Function],
           "getLatestBlock": [Function],
           "getLogs": [Function],
           "getTimestamp": [Function],
@@ -127,6 +129,7 @@ test("imports", async () => {
           "getChainBlocks": [Function],
           "getCurrentBlocks": [Function],
         },
+        "convertToBigInt": [Function],
         "formError": [Function],
         "formErrorString": [Function],
         "getProviderUrl": [Function],

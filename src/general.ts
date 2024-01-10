@@ -20,7 +20,7 @@ function createProvider(name: string, rpcString: string, chainId: number = 24242
       return new ethers.FallbackProvider(
         rpcList.map((url, i) => ({ provider: (getProviderObject(url) as ethers.AbstractProvider), priority: i, chainId, })),
         networkish,
-        { cacheTimeout: 5 * 1000, quorum: 1, eventWorkers: 1, eventQuorum: 1, }
+        { cacheTimeout: 5 * 1000, quorum: 1, eventQuorum: 1, }
       )
     } catch (e) {
       // debugLog(`Error creating provider for ${name} with RPCs: ${rpcList.join(', ')}`)
@@ -71,9 +71,9 @@ function createProvider(name: string, rpcString: string, chainId: number = 24242
       *  disable, ``0`` will only buffer within the same event loop and
       *  any other value is in ms. (default: ``250``)
      */
-    const batchMaxSize = 10 * (1024 * 1024) // 10Mb
+    // const batchMaxSize = 10 * (1024 * 1024) // 10Mb
     // some rpcs throw error if batchMaxCount is set higher than 100
-    const jsonRpcApiProviderOptions = { staticNetwork: true, batchStallTime: 42, batchMaxSize, batchMaxCount: 99, cacheTimeout: 5 * 1000 }
+    const jsonRpcApiProviderOptions = { staticNetwork: true, batchStallTime: 42, batchMaxCount: 99, cacheTimeout: 5 * 1000 }
     if (url.startsWith('wss://')) {
       delete (jsonRpcApiProviderOptions as any).batchMaxCount
       return new ethers.WebSocketProvider(url, networkish, jsonRpcApiProviderOptions)

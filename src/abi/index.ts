@@ -21,7 +21,11 @@ const knownTypes = [
 
 ([...knownTypes]).forEach(i => knownTypes.push(i + '[]')) // support array type for all known types
 
-const defaultChunkSize = !!process.env.SDK_MULTICALL_CHUNK_SIZE ? +process.env.SDK_MULTICALL_CHUNK_SIZE : 300
+function getDefaultChunkSize(chain?: Chain) {
+  if (process.env['SDK_MULTICALL_CHUNK_SIZE_' + chain?.toUpperCase()]) return +process.env['SDK_MULTICALL_CHUNK_SIZE_' + chain?.toUpperCase()]!
+  if (chain === 'cronos') return 200
+  return process.env.SDK_MULTICALL_CHUNK_SIZE ? +process.env.SDK_MULTICALL_CHUNK_SIZE : 300
+}
 
 function resolveABI(providedAbi: string | any) {
   if (!providedAbi) throw new Error('Missing ABI parameter!')
@@ -190,7 +194,7 @@ export async function multiCall(params: MulticallOptions): Promise<any> {
   let chunkSize: number = params.chunkSize as number
   if (!params.chunkSize) {
     // Only a max of around 500 calls are supported by multicall, we have to split bigger batches
-    chunkSize = defaultChunkSize
+    chunkSize = getDefaultChunkSize(chain)
   }
 
   if (!params.target && !params.permitFailure) {

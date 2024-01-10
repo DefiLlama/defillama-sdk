@@ -1,4 +1,4 @@
-import { sumMultiBalanceOf, sumSingleBalance, mergeBalances, removeTokenBalance, sumChainTvls, } from "./generalUtil";
+import { sumMultiBalanceOf, sumSingleBalance, mergeBalances, removeTokenBalance, sumChainTvls, convertToBigInt, } from "./generalUtil";
 import ChainApi from "./ChainApi";
 
 test("sumMultiBalanceOf", () => {
@@ -181,3 +181,10 @@ test("mergeBalances", () => {
   mergeBalances(balances, { "ethereum:0x000": '0' })
   expect(balances).toMatchObject({ 'ethereum:0x000': '5000', fantom: 5, avax: 10, })
 });
+
+test('convertToBigInt', () => {
+  expect(convertToBigInt('1')).toBe(BigInt(1))
+  expect(convertToBigInt(2.031945223e+22)).toBe(BigInt('20319452230000000000000'))
+  expect(convertToBigInt('2.031e+22')).toBe(BigInt('20310000000000000000000'))
+  expect(convertToBigInt('0x0000000000000000000139C5FfeE6153a7b8678f')).toBe(BigInt('1481753159505255786375055'))
+})

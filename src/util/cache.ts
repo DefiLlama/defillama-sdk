@@ -151,7 +151,8 @@ export function getTempLocalCache({ file, defaultData = {}, clearAfter = ONE_WEE
     try {
       removePromisesAndFunctions(fileData)
       _fs.writeFileSync(filePath, JSON.stringify(fileData))
-    } catch (error) { }
+    } catch (error) { debugLog('Error saving cache:', error) }
+    process.exit(0)
   }
 
   function removePromisesAndFunctions(data: any) {
