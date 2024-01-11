@@ -2,6 +2,7 @@ import { debugLog } from "./debugLog";
 import { storeR2JSONString, getR2JSONString, } from "./r2";
 import { constants, brotliCompress, brotliDecompress } from "zlib";
 import { promisify } from 'util';
+import { getEnvCacheFolder } from "./env";
 
 const brotliOptions = {
   [constants.BROTLI_PARAM_MODE]: constants.BROTLI_MODE_TEXT,
@@ -27,7 +28,8 @@ const foldersCreated: {
 export const currentVersion = 'zlib-1.0'
 
 function getCacheRootFolder() {
-  return path.join(process.env.TVL_LOCAL_CACHE_ROOT_FOLDER || path.join(__dirname, 'local_cache'), currentVersion)
+  const defaultCacheRootFolder = path.join(__dirname, 'local_cache')
+  return path.join(getEnvCacheFolder(defaultCacheRootFolder), currentVersion)
 }
 
 function getFilePath(file: string) {

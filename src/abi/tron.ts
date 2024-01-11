@@ -8,14 +8,14 @@ import { debugLog } from "../util/debugLog"
 import { runInPromisePool, sliceIntoChunks, } from "../util"
 import { handleDecimals } from "../general";
 import pLimit from 'p-limit';
+import { getEnvRPC, getEnvValue } from "../util/env";
 
-const limitRPCCalls = pLimit(+(process.env.TRON_RPC_CONCURRENCY_LIMIT ?? 5));
+const limitRPCCalls = pLimit(+getEnvValue('TRON_RPC_CONCURRENCY_LIMIT', '5')!);
 
 const ownerAddress = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t'
-const endpoint = 'https://api.trongrid.io'
 const MULTICALL_ADDRESS = 'TGXuuKAb4bnrn137u39EKbYzKNXvdCes98'
 
-const getEndpoint = () => process.env.TRON_RPC ?? endpoint
+const getEndpoint = () => getEnvRPC('tron') 
 
 type CallParams = any;
 
@@ -206,7 +206,8 @@ function hexifyTarget(address: string) {
 async function post(body = {}, endpoint = '/wallet/triggerconstantcontract') {
   const host = getEndpoint()
   const headers: any = { 'Content-Type': 'application/json' }
-  if (process.env.TRON_PRO_API_KEY) headers['TRON-PRO-API-KEY'] = process.env.TRON_PRO_API_KEY
+  const apiKey = getEnvValue('TRON_PRO_API_KEY')
+  if (apiKey) headers['TRON-PRO-API-KEY'] = apiKey
   const response = await fetch(host + endpoint, {
     method: 'post',
     body: JSON.stringify(body),

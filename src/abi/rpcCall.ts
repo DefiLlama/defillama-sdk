@@ -1,8 +1,7 @@
 import { ethers } from "ethers"
 import { once, EventEmitter } from 'events'
 import { DEBUG_ENABLED, debugLog } from "../util/debugLog"
-
-const maxParallelCalls = !!process.env.LLAMA_SDK_MAX_PARALLEL ? +process.env.LLAMA_SDK_MAX_PARALLEL : 100
+import { getMaxParallelRequests } from "../util/env"
 
 const COUNTERS: Record<string, Counter> = {}
 const emitter = new EventEmitter()
@@ -15,8 +14,7 @@ export async function call(provider: ethers.Provider, data: ethers.JsonRpcTransa
   const counter: Counter = getChainCounter(chain)
   const currentId = counter.requestCount++
   const eventId = `${chain}-${currentId}`
-  let chainMaxParallelCalls = maxParallelCalls
-  if (['avax', 'harmony'].includes(chain)) chainMaxParallelCalls = 20
+  let chainMaxParallelCalls = getMaxParallelRequests(chain)
 
   if (counter.activeWorkers > chainMaxParallelCalls) {
     counter.queue.push(eventId)

@@ -373,3 +373,8 @@ test("ChainApi - erc4626Sum - 2", async () => {
   await api.erc4626Sum({ calls: balancerPools, tokenAbi: 'stakingToken', balanceAbi: 'totalDeposits' })
   expect(Object.keys(api.getBalances()).length).toBeGreaterThan(0)
 })
+
+test("ChainApi - erc4626Sum - 3", async () => {
+  const api = new ChainApi({ chain: 'mantle'})
+  await api.erc4626Sum({ calls: ['0x0DB2BA00bCcf4F5e20b950bF954CAdF768D158Aa'], isOG4626: true })
+})

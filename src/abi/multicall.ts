@@ -5,6 +5,7 @@ import { call } from "./rpcCall";
 import { debugLog } from "../util/debugLog"
 import { runInPromisePool, sliceIntoChunks, } from "../util"
 import * as Tron from './tron'
+import { getEnvMulticallAddress } from "../util/env";
 
 export const MULTICALL_ADDRESS_MAINNET =
   "0xeefba1e63905ef1d7acba5a8513c70307c1ce441";
@@ -155,7 +156,7 @@ async function executeCalls(
 }
 
 export async function multicallAddressOrThrow(chain: Chain) {
-  const multicallEnv = process.env[`${chain.toUpperCase()}_RPC_MULTICALL`]
+  const multicallEnv = getEnvMulticallAddress(chain)
   if (multicallEnv) return multicallEnv
   const network = await getProvider(chain).getNetwork();
   const address = multicallAddress(network?.chainId);
@@ -170,7 +171,7 @@ export async function multicallAddressOrThrow(chain: Chain) {
 const networkMulticallCache = {} as { [chain: string]: boolean };
 
 export async function networkSupportsMulticall(chain: Chain) {
-  const multicallEnv = process.env[`${chain.toUpperCase()}_RPC_MULTICALL`]
+  const multicallEnv = getEnvMulticallAddress(chain)
   if (multicallEnv) networkMulticallCache[chain] = true
   if (!networkMulticallCache.hasOwnProperty(chain)) {
     const network = await getProvider(chain)?.getNetwork();

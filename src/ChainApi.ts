@@ -124,7 +124,11 @@ export class ChainApi {
     tokens.forEach(i => this.deleteToken(i))
   }
 
-  async erc4626Sum({ calls, tokenAbi = 'address:token', balanceAbi = 'uint256:balance', balanceCalls, permitFailure = false }: any) {
+  async erc4626Sum({ calls, tokenAbi = 'address:token', balanceAbi = 'uint256:balance', balanceCalls, permitFailure = false, isOG4626 = false }: { calls: string[], tokenAbi?: string, balanceAbi?: string, balanceCalls?: any[], permitFailure?: boolean, isOG4626?: boolean}) {
+    if (isOG4626) {
+      tokenAbi = 'asset'
+      balanceAbi = 'totalAssets'
+    }
     if (typeof tokenAbi === 'string' && (!tokenAbi.includes(':') && !tokenAbi.includes('('))) tokenAbi = `address:${tokenAbi}`
     if (typeof balanceAbi === 'string' && (!balanceAbi.includes(':') && !balanceAbi.includes('('))) balanceAbi = `uint256:${balanceAbi}`
     
@@ -135,6 +139,7 @@ export class ChainApi {
       tokens.forEach((i: any, j: number) => {
         if (i && balances[j]) this.addToken(i, balances[j])
       })
+    return this.getBalances()
   }
 
   async sumTokens({

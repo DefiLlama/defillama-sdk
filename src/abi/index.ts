@@ -9,6 +9,7 @@ import { getCache, setCache, CacheOptions, } from "../util/internal-cache";
 import { runInPromisePool, sliceIntoChunks, } from "../util";
 import * as Tron from './tron'
 import { formError } from "../generalUtil";
+import { getDefaultChunkSize } from "../util/env";
 
 const nullAddress = '0x0000000000000000000000000000000000000000'
 
@@ -21,11 +22,6 @@ const knownTypes = [
 
 ([...knownTypes]).forEach(i => knownTypes.push(i + '[]')) // support array type for all known types
 
-function getDefaultChunkSize(chain?: Chain) {
-  if (process.env['SDK_MULTICALL_CHUNK_SIZE_' + chain?.toUpperCase()]) return +process.env['SDK_MULTICALL_CHUNK_SIZE_' + chain?.toUpperCase()]!
-  if (chain === 'cronos') return 200
-  return process.env.SDK_MULTICALL_CHUNK_SIZE ? +process.env.SDK_MULTICALL_CHUNK_SIZE : 300
-}
 
 function resolveABI(providedAbi: string | any) {
   if (!providedAbi) throw new Error('Missing ABI parameter!')

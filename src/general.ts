@@ -1,24 +1,24 @@
 import { debugLog } from './util/debugLog';
 import { ethers, Provider } from "ethers";
 import providerList from './providers.json'
+import { getArchivalRPCs, getBatchMaxCount, getChainId, getChainRPCs, getEnvValue } from './util/env';
 
 
-function createProvider(name: string, rpcString: string, chainId: number = 2424242424242422): Provider | null {
+function createProvider(name: string, rpcString: string, chainId?: number): Provider | null {
+  chainId = getChainId(name, chainId)
   const networkish = { name, chainId }
   const rpcList = rpcString.split(',')
-  if (process.env[`${name.toUpperCase()}_RPC_CHAIN_ID`])
-    chainId = +process.env[`${name.toUpperCase()}_RPC_CHAIN_ID`]!
 
-  if (process.env.HISTORICAL) {
+  if (getEnvValue('HISTORICAL')) {
     if (chainId === 1) {
-      console.log("RPC providers set to historical, only the first RPC provider will be used")
+      debugLog("RPC providers set to historical, only the first RPC provider will be used")
     }
-    return getProviderObject(rpcList[0])
+    return getProviderObject(rpcList[0], name)
   }
   else {
     try {
       return new ethers.FallbackProvider(
-        rpcList.map((url, i) => ({ provider: (getProviderObject(url) as ethers.AbstractProvider), priority: i, chainId, })),
+        rpcList.map((url, i) => ({ provider: (getProviderObject(url, name) as ethers.AbstractProvider), priority: i, chainId, })),
         networkish,
         { cacheTimeout: 5 * 1000, quorum: 1, eventQuorum: 1, }
       )
@@ -32,7 +32,7 @@ function createProvider(name: string, rpcString: string, chainId: number = 24242
   }
 
 
-  function getProviderObject(url: string): ethers.Provider {
+  function getProviderObject(url: string, chain: string): ethers.Provider {
 
     /**
      *  Options for configuring a [[JsonRpcApiProvider]]. Much of this
@@ -73,7 +73,8 @@ function createProvider(name: string, rpcString: string, chainId: number = 24242
      */
     // const batchMaxSize = 10 * (1024 * 1024) // 10Mb
     // some rpcs throw error if batchMaxCount is set higher than 100
-    const jsonRpcApiProviderOptions = { staticNetwork: true, batchStallTime: 42, batchMaxCount: 99, cacheTimeout: 5 * 1000 }
+    const batchMaxCount = getBatchMaxCount(chain)
+    const jsonRpcApiProviderOptions = { staticNetwork: true, batchStallTime: 42, batchMaxCount, cacheTimeout: 5 * 1000 }
     if (url.startsWith('wss://')) {
       delete (jsonRpcApiProviderOptions as any).batchMaxCount
       return new ethers.WebSocketProvider(url, networkish, jsonRpcApiProviderOptions)
@@ -91,21 +92,29 @@ type ProviderWrapped = {
 export const providers = {} as {
   [chain: string]: ProviderWrapped;
 };
+const archivalProviders = {} as {
+  [chain: string]: ProviderWrapped;
+};
 
 export type Chain = string
 export function getProvider(chain: Chain = "ethereum", getArchivalNode = false): Provider {
+
+  if (getArchivalNode) {
+    if (archivalProviders[chain]) return archivalProviders[chain]._provider
+    let rpcList = getArchivalRPCs(chain)
+    if (rpcList.length) {
+      // shuffle rpcList
+      rpcList = rpcList!.sort(() => Math.random() - 0.5)
+      const provider = (createProvider(chain, rpcList.join(','), (providerList as any)[chain]?.chainId) as Provider)
+      if (rpcList.length === 1) archivalProviders[chain] = { rpcList: rpcList[0], _provider: provider }
+      return provider
+    }
+  }
+
   if (providers[chain] && !getArchivalNode) return providers[chain]._provider
 
-  const chainArchivalpcEnv = process.env[chain.toUpperCase() + "_ARCHIVAL_RPC"]
-  if (getArchivalNode && typeof chainArchivalpcEnv === 'string' && chainArchivalpcEnv.length > 0) {
-    let rpcList = chainArchivalpcEnv?.split(',')
-    // shuffle rpcList
-    rpcList = rpcList!.sort(() => Math.random() - 0.5)
-    return (createProvider(chain, rpcList.join(','), (providerList as any)[chain]?.chainId) as Provider)
-  }
   // use RPC from env variable if set else use RPC from providers.json
-  let rpcList: (string | undefined) = process.env[chain.toUpperCase() + "_RPC"]
-  if (!rpcList) rpcList = (providerList as any)[chain]?.rpc.join(',')
+  let rpcList: (string | undefined) = getChainRPCs(chain, (providerList as any)[chain]?.rpc)
   if (!rpcList) {
     // in case provider was set using `setProvider` function
     if (providers[chain]) return providers[chain]._provider

@@ -1,5 +1,7 @@
+import { ENV_CONSTANTS } from "./env";
+
 const { S3Client, PutObjectCommand, GetObjectCommand, } = require("@aws-sdk/client-s3");
-const { R2_ENDPOINT, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY } = process.env
+const { R2_ENDPOINT, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY } = ENV_CONSTANTS
 
 const datasetBucket = "defillama-datasets";
 const publicBucketUrl = "https://defillama-datasets.llama.fi";
