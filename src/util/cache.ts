@@ -89,22 +89,26 @@ interface ReadCacheOptions {
 
 export async function writeCache(file: string, data: any, options: WriteCacheOptions = {}): Promise<string | undefined> {
 
-  const fileData = options.alreadyCompressed ? data : await compressCache(data)
+  try {
+    const fileData = options.alreadyCompressed ? data : await compressCache(data)
 
-  if (!data || (typeof data === 'string' && data.length < 20) || fileData.length < 20) {
-    debugLog('Data too small to cache: ', file);
-    return;
+    if (!data || (typeof data === 'string' && data.length < 20) || fileData.length < 20) {
+      debugLog('Data too small to cache: ', file);
+      return;
+    }
+    if (isSameData(data, await readCache(file, { skipR2Cache: true }))) return;
+
+    const filePath = getFilePath(file)
+    await createSubPath(path.dirname(filePath))
+    await fs.writeFile(filePath, fileData)
+    if (!options.skipR2CacheWrite) {
+      await storeR2JSONString(currentVersion + '/' + file, fileData)
+    }
+
+    return fileData
+  } catch (error) {
+    debugLog('Error writing cache:', error)
   }
-  if (isSameData(data, await readCache(file, { skipR2Cache: true }))) return;
-
-  const filePath = getFilePath(file)
-  await createSubPath(path.dirname(filePath))
-  await fs.writeFile(filePath, fileData)
-  if (!options.skipR2CacheWrite) {
-    await storeR2JSONString(currentVersion + '/' + file, fileData)
-  }
-
-  return fileData
 }
 
 export async function parseCache(dataString: string | Buffer) {
