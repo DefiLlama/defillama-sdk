@@ -12,11 +12,21 @@ function getDiff(a: number, b: number): number {
   return (a > b) ? a - b : b - a;
 }
 
+
+
+test("zkfair - get token", async () => {
+  const api = new ChainApi({ chain: 'zkfair' })
+  const res = await api.call({ abi: 'address:token0', target: '0x1ED4b941ea37ad767FDd552f5A7115E83d3976AA' })
+  expect(res).toBe('0x1cD3E2A23C45A690a18Ed93FD1412543f464158F')
+  const res1 = await api.multiCall({ abi: 'address:token0', calls: ['0x1ED4b941ea37ad767FDd552f5A7115E83d3976AA'] })
+  expect(res1.length).toBe(1)
+  expect(res1[0]).toBe('0x1cD3E2A23C45A690a18Ed93FD1412543f464158F')
+})
+
 test("kava - get block", async () => {
   await getLatestBlock('kava')
   await lookupBlock(1669037786, { chain: 'kava' })
 });
-
 test("ChainApi - ethereum", async () => {
   const ethApi = new ChainApi({ chain: 'ethereum', timestamp: 1669037786 })
   const ethApi2 = new ChainApi({ chain: 'ethereum', timestamp: 1594112416 })

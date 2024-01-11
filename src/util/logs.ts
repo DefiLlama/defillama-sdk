@@ -5,6 +5,7 @@ import { getBlock } from "./blocks";
 import { readCache, writeCache } from "./cache";
 import { debugLog } from "./debugLog";
 import pLimit from 'p-limit';
+import { getParallelGetLogsLimit } from "./env";
 
 const currentVersion = 'v2'
 
@@ -194,9 +195,7 @@ function getChainLimiter(chain: string) {
   return chainLimiters[chain]
 
   function createLimiter(chain: string) {
-    let defaultLimit = chain === 'fantom' ? 10 : 20
-    const limit = +(process.env[`${chain.toUpperCase()}_RPC_GET_LOGS_CONCURRENCY_LIMIT`] ?? defaultLimit)
-    return pLimit(limit)
+    return pLimit(getParallelGetLogsLimit(chain))
   }
 }
 

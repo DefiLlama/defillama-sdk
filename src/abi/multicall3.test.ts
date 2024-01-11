@@ -77,6 +77,7 @@ test("set multicall via env", async () => {
   const fakeRPC = 'https://env_multicall_chain.org/'
   process.env[testChain.toUpperCase() + "_RPC_MULTICALL"] = fakeRPC
   const envMulti = await networkSupportsMulticall(testChain)
+  delete process.env[testChain.toUpperCase() + "_RPC_MULTICALL"]
   expect(envMulti).toEqual(true);
 });
 

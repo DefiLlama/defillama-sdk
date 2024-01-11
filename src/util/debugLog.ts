@@ -1,6 +1,6 @@
+import { ENV_CONSTANTS } from "./env";
 
-
-export const DEBUG_ENABLED = process.env.SDK_DEBUG === "true"  || process.env.LLAMA_DEBUG_MODE
+export const DEBUG_ENABLED = ENV_CONSTANTS.SDK_DEBUG === "true"
 
 export function debugLog(...args: any) {
   if (!DEBUG_ENABLED) return;

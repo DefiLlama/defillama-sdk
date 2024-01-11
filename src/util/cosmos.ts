@@ -1,5 +1,6 @@
 
 import fetch from "node-fetch";
+import { getEnvRPC } from "./env";
 
 // where to find chain info
 // https://proxy.atomscan.com/chains.json
@@ -45,7 +46,7 @@ const ibcChains = ['terra', 'terra2', 'crescent', 'osmosis', 'kujira', 'stargaze
 export const isCosmosChain = (chain: string) =>  ibcChains.includes(chain) || !!endPoints[chain]
 
 export async function getCosmosBlock(block: number | string = 'latest', chain = 'cosmos') {
-  const endPoint = process.env[chain.toUpperCase() + '_RPC'] || endPoints[chain] || 'https://rest.cosmos.directory/' + chain
+  const endPoint = getEnvRPC(chain) || endPoints[chain] || 'https://rest.cosmos.directory/' + chain
   try {
     const data = await fetch(`${endPoint}/blocks/${block}`)
     const { block: { header: { height, time } } } = await data.json()
