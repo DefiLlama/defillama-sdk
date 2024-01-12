@@ -64,11 +64,14 @@ export function getDefaultChunkSize(chain: string) {
   return +(getEnvValue('MULTICALL_CHUNK_SIZE', '300')!)
 }
 
-export function getBatchMaxCount(chain: string) {
-  const key = chain + 'BATCH_MAX_COUNT'
+export function getBatchMaxCount(chain: string): number {
+  const key = chain + '_BATCH_MAX_COUNT'
   if (getEnvValue(key)) return +getEnvValue(key)!
-  if (chain === 'cronos') return 10
-  return +(getEnvValue('BATCH_MAX_COUNT', '99')!)
+  switch (chain) {
+    case 'cronos': return 5
+    case 'zkfair': return 1
+    default: return +getEnvValue('BATCH_MAX_COUNT', '99')!
+  }
 }
 
 export function getArchivalRPCs(chain: string): string[] {

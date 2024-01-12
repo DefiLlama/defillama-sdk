@@ -1,6 +1,6 @@
 import { ENV_CONSTANTS } from "./env";
 
-export const DEBUG_ENABLED = ENV_CONSTANTS.SDK_DEBUG === "true"
+export const DEBUG_ENABLED = ENV_CONSTANTS.DEBUG_ENABLED === "true"
 
 export function debugLog(...args: any) {
   if (!DEBUG_ENABLED) return;

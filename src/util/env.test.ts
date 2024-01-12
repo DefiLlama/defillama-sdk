@@ -1,5 +1,18 @@
 import { getArchivalRPCs, getBatchMaxCount, getChainId, getChainRPCs, getDefaultChunkSize, getEnvMulticallAddress, getEnvCacheFolder, getEnvRPC, getEnvValue, getMaxParallelRequests, getParallelGetLogsLimit, } from './env'
 
+import { ChainApi } from '../ChainApi'
+
+
+test("cronos calls over batch limit", async () => {
+  const limit = getBatchMaxCount("cronos") + 10
+  const call = '0x66e428c3f67a68878562e79a0234c1f83c208770'
+  const calls = [] as any
+  for (let i = 0; i < limit + 1; i++)
+    calls.push(call)
+
+  const cronosApi = new ChainApi({ chain: 'cronos' })
+  await Promise.all(calls.map((call: any) => cronosApi.call({ target: call, abi: 'string:name' })))
+});
 
 test("getArchivalRPCs", async () => {
   const llamaP = getArchivalRPCs("llama-chain")
@@ -50,10 +63,10 @@ test("getDefaultChunkSize", async () => {
 });
 
 test("getBatchMaxCount", async () => {
-  process.env['TESTCHAINBATCH_MAX_COUNT'] = '10';
+  process.env['TESTCHAIN_BATCH_MAX_COUNT'] = '10';
   const batchMaxCount = getBatchMaxCount("testchain")
   expect(batchMaxCount).toBe(10) // value from process.env
-  delete process.env['TESTCHAINBATCH_MAX_COUNT'];
+  delete process.env['TESTCHAIN_BATCH_MAX_COUNT'];
 });
 
 test("getArchivalRPCs", async () => {
@@ -131,10 +144,10 @@ test("getBatchMaxCount", async () => {
   const batchMaxCount = getBatchMaxCount("testchain")
   expect(batchMaxCount).toBe(99) // default value
 
-  process.env['TESTCHAINBATCH_MAX_COUNT'] = '10';
+  process.env['TESTCHAIN_BATCH_MAX_COUNT'] = '10';
   const batchMaxCountAfter = getBatchMaxCount("testchain")
   expect(batchMaxCountAfter).toBe(10) // value from process.env
-  delete process.env['TESTCHAINBATCH_MAX_COUNT'];
+  delete process.env['TESTCHAIN_BATCH_MAX_COUNT'];
 });
 
 test("getArchivalRPCs", async () => {

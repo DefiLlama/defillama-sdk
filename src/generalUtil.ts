@@ -198,6 +198,7 @@ export function formErrorString(e: any, errorParams: any = {}) {
 
   if (((e.reason || e.method || e.shortMessage) && e.code) || errorParams.result === '0x') { // ethers.js error
 
+    const errorMessage = e.info?.error?.message ?? e.message ?? e.shortMessage ?? e.errorName ?? e.reason ?? ''
     let method = e.method ?? e.info?.request?.method ?? errorParams.abi
     if (e.body) {
       try {
@@ -227,12 +228,12 @@ export function formErrorString(e: any, errorParams: any = {}) {
     } else if (e.code === 'CALL_EXCEPTION' || errorParams.isCallError) {
       let extraInfo = 'target: ' + errorParams.target
       if (errorParams.params && Array.isArray(errorParams.params) && errorParams.params.length) extraInfo += shortenString(' params: ' + errorParams.params.join(', '))
-      return `Failed to call: ${method} ${extraInfo} on chain: [${errorParams.chain}] rpc: ${providerUrl}  call reverted, reason: ${e.errorName ?? e.shortMessage ?? ''}   ${e.errorArgs ?? ''}`
+      return `Failed to call: ${method} ${extraInfo} on chain: [${errorParams.chain}] rpc: ${providerUrl}  call reverted, reason: ${errorMessage}   ${e.errorArgs ?? ''}`
     } else if (e.code === 'BAD_DATA') {
 
       if (!method) method = e?.info?.payload?.method
       let extraInfo = 'target: ' + errorParams.target
-      return `Failed method: ${method} ${shortenString(extraInfo)} on chain: [${errorParams.chain}] rpc: ${providerUrl}  reason: ${e.errorName ?? e.shortMessage ?? e.message ?? ''}   ${e.errorArgs ?? ''}`
+      return `Failed method: ${method} ${shortenString(extraInfo)} on chain: [${errorParams.chain}] rpc: ${providerUrl}  reason: ${errorMessage}   ${e.errorArgs ?? ''}`
     }
     if (method === 'eth_blockNumber') return `host: ${providerUrl} reason: ${e.reason} code: ${e.code}`
     if (method === 'getBlockNumber') return `Failed to call ${method} ${providerUrl} reason: ${e.reason} code: ${e.code}`

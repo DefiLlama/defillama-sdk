@@ -273,6 +273,7 @@
   "cronos": {
     "rpc": [
       "https://evm.cronos.org",
+      "https://cronos-mainnet-rpcaas.blockdaemon.tech/eth_rpc",
       "https://1rpc.io/cro",
       "https://cronos.rpc.thirdweb.com",
       "https://cronos.blockpi.network/v1/rpc/public",
