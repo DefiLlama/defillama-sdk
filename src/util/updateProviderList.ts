@@ -1,14 +1,10 @@
 
 import providerList from '../providers.json'
 import fs from 'fs'
-import fetch from "node-fetch";
-
-function fetchJson(url: string) {
-  return fetch(url).then((res) => res.json());
-}
+import axios from "axios";
 
 async function main() {
-  let chainData = await fetchJson('https://chainid.network/chains.json')
+  let { data: chainData} = await axios('https://chainid.network/chains.json')
   const existingChainIds = new Set(Object.values(providerList).map(i => i.chainId))
   const existingChainNames = new Set(Object.keys(providerList).map(i => i.toLowerCase()))
   chainData = chainData

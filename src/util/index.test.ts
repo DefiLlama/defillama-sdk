@@ -6,7 +6,6 @@ import {
 
 import ChainApi from "../ChainApi";
 
-jest.setTimeout(20000);
 
 function getDiff(a: number, b: number): number {
   return (a > b) ? a - b : b - a;

@@ -6,7 +6,6 @@ import { ChainApi } from "./ChainApi";
 
 const dummyRPC = 'https://eth.llamarpc.com'
 
-jest.setTimeout(10000);
 test("RPC nodes from multiple chains support archive queries", async () => {
   for (const chain of ["ethereum", "fantom", "rsk", "avax"]) {
     try {

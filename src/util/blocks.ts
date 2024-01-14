@@ -1,5 +1,5 @@
 import { getProvider, Chain } from "../general";
-import fetch from "node-fetch";
+import axios from "axios";
 import { formError, getProviderUrl, } from "../generalUtil";
 import { debugLog } from "./debugLog";
 import { isCosmosChain, getCosmosProvider } from "./cosmos";
@@ -96,14 +96,14 @@ interface TimestampBlock {
 const algorandBlockProvider = {
   getBlock: async (height: number | "latest"): Promise<TimestampBlock> => {
     if (height !== 'latest')
-      return fetch(`https://algoindexer.algoexplorerapi.io/v2/blocks/${height}`)
-        .then((res) => res.json())
+      return axios(`https://algoindexer.algoexplorerapi.io/v2/blocks/${height}`)
+        .then((res) => res.data)
         .then((block: any) => ({
           number: block.round,
           timestamp: block.timestamp
         }))
-    return fetch('https://algoindexer.algoexplorerapi.io/health')
-      .then((res) => res.json())
+    return axios('https://algoindexer.algoexplorerapi.io/health')
+      .then((res) => res.data)
       .then((block: any) => algorandBlockProvider.getBlock(block.round))
   }
 };
@@ -175,8 +175,7 @@ export async function lookupBlock(
 
   if (chain === 'waves') {
     const api = `https://nodes.wavesnodes.com/blocks/heightByTimestamp/${timestamp}`
-    const res = await fetch(api)
-    const data = await res.json()
+    const { data } = await axios(api)
     return {
       timestamp,
       block: +data.height,

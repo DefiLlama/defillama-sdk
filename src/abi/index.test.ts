@@ -471,7 +471,6 @@ test("multiCall with parameters and cached ABI", async () => {
   });
 });
 
-jest.setTimeout(20000);
 test("multiCall with 2000 calls to verify that splitting works", async () => {
   // 500 is the limit for a single multicall
   const calls = [] as any;
@@ -655,7 +654,6 @@ test("bsc multicall", async () => {
 });
 
 import largeMulticall from './largeMulticall'
-jest.setTimeout(60 * 1000)
 test("order is maintained in multicall", async () => {
   const result = await multiCall(largeMulticall as any);
   for (let i = 0; i < largeMulticall.calls.length; i++) {

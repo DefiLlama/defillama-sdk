@@ -60,7 +60,6 @@ test("logs - base - aerodrome 3", async () => {
 });
 
 
-jest.setTimeout(300000)
 test.skip("logs - rate limit eth_getLogs", async () => {
   const api = new ChainApi({ chain: 'fantom' })
   const lpTokens = await api.fetchList({ lengthAbi: 'allPairsLength', itemAbi: 'allPairs', target: '0x472f3C3c9608fe0aE8d702f3f8A2d12c410C881A' })

@@ -23,9 +23,9 @@ Object.keys(defaultEnvValues).forEach(key => _ENV_CONSTANTS[key] = getEnvValue(k
 // doing this as I am paranoid that that empty object when first declared might be exported before values are set
 export const ENV_CONSTANTS = { ..._ENV_CONSTANTS }
 
-export function getChainId(chain: string, chainId: number | undefined): number | undefined {
+export function getChainId(chain: string, chainId: number): number {
   const value = getEnvValue(`${chain}_RPC_CHAIN_ID`) ?? chainId
-  if (value) return +value
+  return +value
 }
 
 export function getMaxParallelRequests(chain: string): number {
@@ -46,7 +46,7 @@ export function getEnvRPC(chain: string): string | undefined {
 
 export function getEnvValue(key: string, defaultValue?: string) {
   key = key.toUpperCase()
-  return process.env[key] ?? process.env['SDK_' + key] ?? process.env['LLAMA_SDK_' + key] ?? defaultValue
+  return process.env['LLAMA_SDK_' + key] ?? process.env['SDK_' + key] ??  process.env[key] ?? defaultValue
 }
 
 export function getEnvCacheFolder(defaultCacheFolder: string): string {

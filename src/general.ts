@@ -4,7 +4,7 @@ import providerList from './providers.json'
 import { getArchivalRPCs, getBatchMaxCount, getChainId, getChainRPCs, getEnvValue } from './util/env';
 
 
-function createProvider(name: string, rpcString: string, chainId?: number): Provider | null {
+function createProvider(name: string, rpcString: string, chainId = 400069): Provider | null {
   chainId = getChainId(name, chainId)
   const networkish = { name, chainId }
   const rpcList = rpcString.split(',')
@@ -17,11 +17,8 @@ function createProvider(name: string, rpcString: string, chainId?: number): Prov
   }
   else {
     try {
-      return new ethers.FallbackProvider(
-        rpcList.map((url, i) => ({ provider: (getProviderObject(url, name) as ethers.AbstractProvider), priority: i, chainId, })),
-        networkish,
-        { cacheTimeout: 5 * 1000, quorum: 1, eventQuorum: 1, }
-      )
+      const providerList = rpcList.map((url, i) => ({ provider: (getProviderObject(url, name) as ethers.AbstractProvider), chainId, }))
+      return new ethers.FallbackProvider(providerList, networkish, { cacheTimeout: 5 * 1000, quorum: 1, eventQuorum: 1, })
     } catch (e) {
       // debugLog(`Error creating provider for ${name} with RPCs: ${rpcList.join(', ')}`)
       // we dont throw errors for chains not present in providers.json, these can be non-evm chains like solana
@@ -74,7 +71,7 @@ function createProvider(name: string, rpcString: string, chainId?: number): Prov
     // const batchMaxSize = 10 * (1024 * 1024) // 10Mb
     // some rpcs throw error if batchMaxCount is set higher than 100
     const batchMaxCount = getBatchMaxCount(chain)
-    const jsonRpcApiProviderOptions = { staticNetwork: true, batchStallTime: 42, batchMaxCount, cacheTimeout: 5 * 1000 }
+    const jsonRpcApiProviderOptions = { staticNetwork: true, batchStallTime: 42, batchMaxCount, }
     if (url.startsWith('wss://')) {
       delete (jsonRpcApiProviderOptions as any).batchMaxCount
       return new ethers.WebSocketProvider(url, networkish, jsonRpcApiProviderOptions)

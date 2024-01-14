@@ -1,5 +1,5 @@
 
-import fetch from "node-fetch";
+import axios from "axios";
 import { ethers } from "ethers";
 import { fromHex, toHex } from 'tron-format-address'
 import { Address } from "../types";
@@ -208,12 +208,10 @@ async function post(body = {}, endpoint = '/wallet/triggerconstantcontract') {
   const headers: any = { 'Content-Type': 'application/json' }
   const apiKey = getEnvValue('TRON_PRO_API_KEY')
   if (apiKey) headers['TRON-PRO-API-KEY'] = apiKey
-  const response = await fetch(host + endpoint, {
-    method: 'post',
-    body: JSON.stringify(body),
+  const { data } = await axios.post(host + endpoint, body, {
     headers,
   });
-  return response.json()
+  return data
 }
 
 // this is needed else correct function identifier wont be picked up while calling

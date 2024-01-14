@@ -1,15 +1,15 @@
-import fetch from "node-fetch";
+import axios from "axios";
 
 function fetchJson(url: string) {
-  return fetch(url).then((res) => res.json());
+  return axios(url).then((res) => res.data);
 }
 
 export interface TokenPrices {
   [token: string]:
-    | {
-        usd: number;
-      }
-    | undefined;
+  | {
+    usd: number;
+  }
+  | undefined;
 }
 
 export type GetCoingeckoLog = () => Promise<any>;
@@ -78,8 +78,7 @@ export async function getHistoricalTokenPrices(
   const tokenPrices = {} as TokenPrices;
   for (const id of ids) {
     const range: any = await makeCoingeckoCall(
-      `${url}/${id.toLowerCase()}/market_chart/range?vs_currency=usd&from=${
-        timestamp - secondsPerHalfDay
+      `${url}/${id.toLowerCase()}/market_chart/range?vs_currency=usd&from=${timestamp - secondsPerHalfDay
       }&to=${timestamp + secondsPerHalfDay}`,
       coingeckoMaxRetries,
       getCoingeckoLock

@@ -1,7 +1,6 @@
 import { ChainApi } from "../ChainApi";
 import { getBalance, getBalances } from "../eth/index";
 
-jest.setTimeout(20000);
 
 const intercroneFactory = 'TPvaMEL5oY2gWsJv7MDjNQh2dohwvwwVwx'
 const tronPair = 'TW1gkyFAHstM33MJVk6tmKdcaPKkD2G4MG'

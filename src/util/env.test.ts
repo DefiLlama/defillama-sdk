@@ -22,7 +22,7 @@ test("getArchivalRPCs", async () => {
 
 test("getChainId", async () => {
   process.env['SDK_TESTCHAIN_RPC_CHAIN_ID'] = '1234';
-  const chainId = getChainId("testchain", undefined)
+  const chainId = getChainId("testchain", 12345)
   expect(chainId).toBe(1234) // value from process.env
   delete process.env['SDK_TESTCHAIN_RPC_CHAIN_ID'];
 });
@@ -84,11 +84,11 @@ test("getChainRPCs", async () => {
 });
 
 test("getChainId", async () => {
-  const chainId = getChainId("testchain", undefined)
-  expect(chainId).toBeUndefined()
+  const chainId = getChainId("testchain", 12345)
+  expect(chainId).toBe(12345)
 
   process.env['TESTCHAIN_RPC_CHAIN_ID'] = '1234';
-  const chainIdAfter = getChainId("testchain", undefined)
+  const chainIdAfter = getChainId("testchain", 12345)
   expect(chainIdAfter).toBe(1234) // value from process.env
   delete process.env['TESTCHAIN_RPC_CHAIN_ID'];
 });
