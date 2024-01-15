@@ -7,7 +7,7 @@ import { debugLog } from "./debugLog";
 import pLimit from 'p-limit';
 import { getParallelGetLogsLimit } from "./env";
 
-const currentVersion = 'v2'
+const currentVersion = 'v3'
 
 export type GetLogsOptions = {
   target?: Address;
@@ -15,7 +15,7 @@ export type GetLogsOptions = {
   keys?: string[]; // This is just used to select only part of the logs
   fromBlock?: number;
   toBlock?: number;
-  topics?: (string|null)[];
+  topics?: (string | null)[];
   extraTopics?: string[];
   chain?: string;
   eventAbi?: string | any;
@@ -64,6 +64,8 @@ export async function getLogs(options: GetLogsOptions): Promise<EventLog[] | Eve
   if (!toBlock)
     toBlock = (await limiter(() => getBlock(chain, toTimestamp))).block
 
+  if (!fromBlock || !toBlock) throw new Error('fromBlock and toBlock must be > 0')
+
   if (targets?.length) {
     const newOptions = { ...options, fromBlock, toBlock }
     delete newOptions.targets
@@ -90,72 +92,99 @@ export async function getLogs(options: GetLogsOptions): Promise<EventLog[] | Eve
     if (extraTopics) topics.push(...extraTopics)
   }
 
-  const cacheData = (await _getCache() as logCache)
-  const isFirstRun = !cacheData.metadata
-  if (isFirstRun) cacheData.metadata = { version: currentVersion } as any
+  let caches = (await _getCache() as logCache[])
 
-  if (isFirstRun) {
+  const isFirstRun = !caches.length
+
+  if (isFirstRun || skipCacheRead) {
     await limiter(() => addLogsToCache(fromBlock!, toBlock!))
   } else {
-    const metadata = cacheData.metadata!
-    if (fromBlock! < metadata.fromBlock)
-      await limiter(() => addLogsToCache(fromBlock!, metadata.fromBlock))
-    if (toBlock! > metadata.toBlock)
-      await limiter(() => addLogsToCache(metadata.toBlock, toBlock!))
+    let _fromBlock = fromBlock // we need to keep a copy of fromBlock as it will be modified
+    let _toBlock = toBlock // we need to keep a copy of toBlock as it will be modified
+    const firstCache = caches[0]
+    const lastCache = caches[caches.length - 1]
+    for (const cacheData of caches) {
+      const { fromBlock: cFirstBlock, toBlock: cToBlock } = cacheData.metadata
+      if (_toBlock < firstCache.metadata.fromBlock || _fromBlock > lastCache.metadata.toBlock) {  // no intersection with any cache
+        await limiter(() => addLogsToCache(_fromBlock, _toBlock))
+        break;
+      }
+
+      if (_fromBlock >= cToBlock) continue; // request is after cache end
+      if (_fromBlock <= cFirstBlock) { // request is before cache start
+        await limiter(() => addLogsToCache(_fromBlock, Math.min(_toBlock, cFirstBlock - 1)))
+      }
+      if (_toBlock <= cToBlock) break; // request ends before cache end
+      _fromBlock = cToBlock
+    }
   }
 
-  const logs = cacheData.logs.filter((i: EventLog) => {
-    if (i.blockNumber < fromBlock!) return false
-    if (i.blockNumber > toBlock!) return false
-    return true
-  })
+  const logs = []
+  for (const cacheData of caches) {
+    const { fromBlock: cFirstBlock, toBlock: cToBlock } = cacheData.metadata
+    if (fromBlock! > cToBlock || toBlock! < cFirstBlock) continue; // no intersection with cache
+    logs.push(...cacheData.logs.filter((i: EventLog) => i.blockNumber >= fromBlock! && i.blockNumber <= toBlock!))
+  }
 
   if (!eventAbi || entireLog) return logs
-  return logs.map(i => iface!.parseLog(i as any)).map((i: any) => onlyArgs ? i.args : i)
+  return logs.map((i: any) => iface!.parseLog(i)).map((i: any) => onlyArgs ? i.args : i)
 
   async function addLogsToCache(fromBlock: number, toBlock: number) {
-    const metadata = cacheData.metadata!
+    debugLog('adding logs to cache: ', fromBlock, toBlock, target, topic)
+    if (fromBlock > toBlock) return; // no data to add
+    fromBlock = fromBlock - 10
+    toBlock = toBlock + 10
 
-    let logs = (await getLogsV1({
+    let { output: logs } = await getLogsV1({
       chain, target: target!, topic: topic as string, keys, topics, fromBlock, toBlock,
-    })).output
-    cacheData.logs.push(...logs)
+    })
+    caches.push({
+      logs,
+      metadata: { fromBlock, toBlock, }
+    })
+    caches.sort((a, b) => a.metadata.fromBlock - b.metadata.fromBlock)
+    const mergedCaches = [caches[0]] as logCache[]
+    caches.slice(1).forEach(i => {
+      const last = mergedCaches[mergedCaches.length - 1]
+      if (last.metadata.toBlock + 1 > i.metadata.fromBlock) {
+        last.metadata.toBlock = i.metadata.toBlock
+        last.logs = dedupLogs(last.logs, i.logs)
+      } else {
+        mergedCaches.push(i)
+      }
+    })
+    caches = mergedCaches
 
+    if (!skipCache)
+      await writeCache(getFile(), { caches, version: currentVersion }, { skipR2CacheWrite: !cacheInCloud })
+  }
 
+  function dedupLogs(...logs: EventLog[][]) {
     const logIndices = new Set()
-
-    cacheData.logs = cacheData.logs.filter((i: EventLog) => {
+    return logs.flat().filter((i: EventLog) => {
       let key = i.transactionHash + ((i as any).logIndex ?? i.index) // ethers v5 had logIndex, ethers v6 has index
       if (!(i.hasOwnProperty('logIndex') || i.hasOwnProperty('index')) || !i.hasOwnProperty('transactionHash')) {
         debugLog(i, (i as any).logIndex, i.index, i.transactionHash)
-        throw new Error('Missing crucial field')
+        throw new Error('Missing crucial field: logIndex/index')
       }
       if (logIndices.has(key)) return false
       logIndices.add(key)
       return true
     })
-
-    if (!metadata.fromBlock || fromBlock < metadata.fromBlock) metadata.fromBlock = fromBlock
-    if (!metadata.toBlock || toBlock > metadata.toBlock) metadata.toBlock = toBlock
-
-    if (!skipCache)
-      await writeCache(getFile(), cacheData, { skipR2CacheWrite: !cacheInCloud })
   }
 
-  async function _getCache() {
+  async function _getCache(): Promise<logCache[]> {
     const key = getFile()
-    const defaultRes = {
-      logs: [],
-    }
+    const defaultRes = [] as logCache[]
 
-    if (skipCache || skipCacheRead) return defaultRes
+    if (skipCache) return defaultRes
 
     let cache = await readCache(key, { skipR2Cache: !cacheInCloud })
 
-    if (!cache.metadata || cache.metadata.version !== currentVersion)
+    if (!cache.caches || !cache.caches.length || cache.version !== currentVersion)
       return defaultRes
 
-    return cache
+    return cache.caches
   }
 
   function getFile() {
@@ -180,8 +209,7 @@ export async function getLogs(options: GetLogsOptions): Promise<EventLog[] | Eve
 
 export type logCache = {
   logs: EventLog[],
-  metadata?: {
-    version: string,
+  metadata: {
     fromBlock: number,
     toBlock: number,
   }
