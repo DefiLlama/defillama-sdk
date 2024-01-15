@@ -218,6 +218,10 @@ export class ChainApi {
     params.chain = this.chain
     return getLogs(params)
   }
+
+  getBalancesV2() {
+    return this._balances
+  }
 }
 
 export default ChainApi

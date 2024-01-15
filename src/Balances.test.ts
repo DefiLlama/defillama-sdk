@@ -89,3 +89,16 @@ test("Balances - bad input", async () => {
 
   expect(() => balances.add('', '123')).toThrowError()
 })
+
+
+test("Balances - static - getUSDValue", async () => {
+  expect(await Balances.getUSDValue({ tether: 500 })).toBeCloseTo(500)
+  expect(await Balances.getUSDValue({ 'coingecko:usd-coin': 50000 })).toBeCloseTo(50000, -3)
+})
+
+
+test("Balances - static - getBalanceObjects", async () => {
+  const res = await Balances.getBalanceObjects({ ethereum: 5 })
+  expect(res.usdTvl).toBeGreaterThan(3000)
+  expect(res.usdTokenBalances).toBeDefined()
+})

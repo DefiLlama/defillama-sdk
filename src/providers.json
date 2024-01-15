@@ -939,5 +939,13 @@
       "https://rpc.zkfair.io"
     ],
     "chainId": 42766
+  },
+  "acala": {
+    "rpc": [
+      "https://rpc.evm.acala.network",
+      "https://eth-rpc-acala.aca-api.network",
+      "https://eth-rpc-acala.aca-staging.network"
+    ],
+    "chainId": 787
   }
 }

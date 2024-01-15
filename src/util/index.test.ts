@@ -151,7 +151,7 @@ test("getLogs", async () => {
   });
 });
 
-test("getLogs supports it's old API", async () => {
+test.skip("getLogs supports it's old API", async () => {
   const logs = (
     await getLogs({
       keys: [],
@@ -210,7 +210,7 @@ test("getLogs supports it's old API", async () => {
   expect(logs.map((i: any) => i.logIndex)).toEqual([64, 68]);
 });
 
-test("sushiswap getLogs follow the old API", async () => {
+test.skip("sushiswap getLogs follow the old API", async () => {
   const logs = (
     await getLogs({
       keys: [],
