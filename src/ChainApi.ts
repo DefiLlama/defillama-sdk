@@ -2,7 +2,7 @@ import { Block, CallOptions, MulticallOptions, FetchListOptions, ByteCodeCallOpt
 import Balances from "./Balances";
 import { Chain, getProvider } from "./general";
 import { call, multiCall, fetchList, bytecodeCall } from './abi/abi2'
-import { getBlock } from './computeTVL/blocks'
+import { getBlockNumber } from './computeTVL/blocks'
 import providerList from './providers.json'
 
 import { debugLog, debugTable, } from "./util/debugLog";
@@ -72,7 +72,7 @@ export class ChainApi {
   }
 
   async getBlock(): Promise<number> {
-    if (!this.block) this.block = (await getBlock(this.chain as Chain, this.timestamp)).block
+    if (!this.block) this.block = await getBlockNumber(this.chain as Chain, this.timestamp)
     return this.block as number
   }
 

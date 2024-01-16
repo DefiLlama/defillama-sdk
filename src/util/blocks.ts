@@ -5,6 +5,8 @@ import { debugLog } from "./debugLog";
 import { isCosmosChain, getCosmosProvider } from "./cosmos";
 import { getTempLocalCache } from "./cache";
 import { blockscoutEndpoints, getBlockscoutBlock } from "./blockscout";
+import pLimit from 'p-limit';
+import { getParallelGetBlocksLimit } from "./env";
 
 const defaultChains = ["avax", "bsc", "polygon", "arbitrum"] as Chain[]
 export const chainsForBlocks = defaultChains;
@@ -14,17 +16,17 @@ export async function getChainBlocks(timestamp: number | undefined, chains: Chai
   const chainBlocks = {} as {
     [chain: string]: number;
   };
-  const setBlock = async (chain: Chain) => chainBlocks[chain] = (await getBlock(chain, timestamp)).block
+  const setBlock = async (chain: Chain) => chainBlocks[chain] = await getBlockNumber(chain, timestamp)
   await Promise.all(chains.map(setBlock));
   return chainBlocks;
 }
 
 export async function getBlocks(timestamp: number, chains: Chain[] | undefined = undefined) {
   chains = chains?.filter(i => i !== 'ethereum')
-  const [ethBlock, chainBlocks] = await Promise.all([getBlock('ethereum', timestamp), getChainBlocks(timestamp, chains)]);
-  chainBlocks['ethereum'] = ethBlock.block;
+  const [ethBlock, chainBlocks] = await Promise.all([getBlockNumber('ethereum', timestamp), getChainBlocks(timestamp, chains)]);
+  chainBlocks['ethereum'] = ethBlock;
   return {
-    ethereumBlock: ethBlock.block,
+    ethereumBlock: ethBlock,
     chainBlocks,
   };
 }
@@ -59,7 +61,11 @@ export async function getBlock(chain: Chain, timestamp?: number): Promise<Block>
   throw error
 }
 
-const refreshInterval = 1000 * 60 * 5; // 5 minutes
+export async function getBlockNumber(chain: Chain, timestamp?: number): Promise<number> {
+  return (await getBlock(chain, timestamp)).block
+}
+
+const refreshInterval = 1000 * 60 * 1; // 5 minutes
 export function getCurrentChainBlock(chain: Chain = 'ethereum'): Promise<Block> {
   const { timestamp, } = currentChainBlockCache[chain] || {}
   const currentTimestamp = Date.now()
@@ -152,13 +158,32 @@ function validateCurrentBlock(block: Block, chain: Chain = 'ethereum') {
     throw new Error(`Last block for ${chain} is ${minutesDiff} minutes behind (${new Date(block.timestamp * 1000)}). Provider is "${getProviderUrl(provider)}"`)
 }
 
-export async function lookupBlock(
-  timestamp: number,
-  extraParams?: {
-    chain?: Chain | "kava" | "algorand",
-    allowedTimeRange?: number,
-    acceptableBlockImprecision?: number,
+type LookupBlockOptionalParams = {
+  chain?: Chain | "kava" | "algorand",
+  allowedTimeRange?: number,
+  acceptableBlockImprecision?: number,
+}
+
+const chainLimiters: any = {}
+
+function getChainLimiter(chain: string) {
+  if (!chainLimiters[chain]) chainLimiters[chain] = createLimiter(chain)
+  return chainLimiters[chain]
+
+  function createLimiter(chain: string) {
+    return pLimit(getParallelGetBlocksLimit(chain))
   }
+}
+
+export async function lookupBlock(timestamp: number, extraParams?: LookupBlockOptionalParams): Promise<Block> {
+  const { chain = "ethereum" } = extraParams ?? {};
+  const limiter = getChainLimiter(chain)
+  return limiter(() => _lookupBlock(timestamp, extraParams))
+}
+
+async function _lookupBlock(
+  timestamp: number,
+  extraParams?: LookupBlockOptionalParams
 ): Promise<Block> {
   const { allowedTimeRange = 5 * 60, acceptableBlockImprecision = 10 } = extraParams ?? {};
   const chain = extraParams?.chain ?? "ethereum"

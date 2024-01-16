@@ -105,7 +105,7 @@ test("getMaxParallelRequests", async () => {
 
 test("getParallelGetLogsLimit", async () => {
   const parallelGetLogsLimit = getParallelGetLogsLimit("testchain")
-  expect(parallelGetLogsLimit).toBe(42) // default value
+  expect(parallelGetLogsLimit).toBe(5) // default value
 
   process.env['TESTCHAIN_RPC_GET_LOGS_CONCURRENCY_LIMIT'] = '10';
   const parallelGetLogsLimitAfter = getParallelGetLogsLimit("testchain")

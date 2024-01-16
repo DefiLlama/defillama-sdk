@@ -1,1 +1,1 @@
-export { getChainBlocks, getBlocks, getBlock, getCurrentBlocks, chainsForBlocks, } from "../util/blocks";
+export { getChainBlocks, getBlocks, getBlock, getCurrentBlocks, chainsForBlocks, getBlockNumber, } from "../util/blocks";

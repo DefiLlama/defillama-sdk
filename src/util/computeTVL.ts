@@ -2,6 +2,7 @@ import { sliceIntoChunks } from ".";
 import { sumSingleBalance } from "../generalUtil";
 import { Balances } from "../types";
 import axios from "axios";
+import { ENV_CONSTANTS } from "./env";
 
 type PricesObject = {
   // NOTE: the tokens queried might be case sensitive and can be in mixed case, but while storing them in the cache, we convert them to lowercase
@@ -81,12 +82,13 @@ async function updatePriceCache(keys: string[], timestamp?: number) {
 
   async function getPrices(keys: string[]) {
     if (!timestamp) {
-      const { coins } = await axios(`https://coins.llama.fi/prices/current/${keys.join(',')}`).then((res) => res.data)
+      const { coins } = await axios.get(`https://coins.llama.fi/prices/current/${keys.join(',')}`).then((res) => res.data)
       return coins
     }
 
     // fetch post with timestamp in body
-    const { coins } = await axios.post("https://coins.llama.fi/prices?source=internal",{ coins: keys, timestamp }).then((res) => res.data)
+    const coinsApiKey = ENV_CONSTANTS['COINS_API_KEY']
+    const { coins } = await axios.post("https://coins.llama.fi/prices?source=internal&apikey="+coinsApiKey,{ coins: keys, timestamp }).then((res) => res.data)
     return coins
   }
 

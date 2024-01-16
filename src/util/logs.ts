@@ -1,11 +1,9 @@
 import { getLogs as getLogsV1 } from ".";
 import { EventLog, Interface, id } from "ethers";
 import { Address } from "../types";
-import { getBlock } from "./blocks";
+import { getBlockNumber } from "./blocks";
 import { readCache, writeCache } from "./cache";
 import { debugLog } from "./debugLog";
-import pLimit from 'p-limit';
-import { getParallelGetLogsLimit } from "./env";
 
 const currentVersion = 'v3'
 
@@ -56,13 +54,11 @@ export async function getLogs(options: GetLogsOptions): Promise<EventLog[] | Eve
   if (!fromBlock && !fromTimestamp) throw new Error('fromBlock or fromTimestamp is required')
   if (!toBlock && !toTimestamp) throw new Error('toBlock or toTimestamp is required')
 
-  const limiter = getChainLimiter(chain)
-
   if (!fromBlock)
-    fromBlock = (await limiter(() => getBlock(chain, fromTimestamp))).block
+    fromBlock = await getBlockNumber(chain, fromTimestamp)
 
   if (!toBlock)
-    toBlock = (await limiter(() => getBlock(chain, toTimestamp))).block
+    toBlock = await getBlockNumber(chain, toTimestamp)
 
   if (!fromBlock || !toBlock) throw new Error('fromBlock and toBlock must be > 0')
 
@@ -97,7 +93,7 @@ export async function getLogs(options: GetLogsOptions): Promise<EventLog[] | Eve
   const isFirstRun = !caches.length
 
   if (isFirstRun || skipCacheRead) {
-    await limiter(() => addLogsToCache(fromBlock!, toBlock!))
+    await addLogsToCache(fromBlock!, toBlock!)
   } else {
     let _fromBlock = fromBlock // we need to keep a copy of fromBlock as it will be modified
     let _toBlock = toBlock // we need to keep a copy of toBlock as it will be modified
@@ -106,13 +102,13 @@ export async function getLogs(options: GetLogsOptions): Promise<EventLog[] | Eve
     for (const cacheData of caches) {
       const { fromBlock: cFirstBlock, toBlock: cToBlock } = cacheData.metadata
       if (_toBlock < firstCache.metadata.fromBlock || _fromBlock > lastCache.metadata.toBlock) {  // no intersection with any cache
-        await limiter(() => addLogsToCache(_fromBlock, _toBlock))
+        await addLogsToCache(_fromBlock, _toBlock)
         break;
       }
 
       if (_fromBlock >= cToBlock) continue; // request is after cache end
       if (_fromBlock <= cFirstBlock) { // request is before cache start
-        await limiter(() => addLogsToCache(_fromBlock, Math.min(_toBlock, cFirstBlock - 1)))
+        await addLogsToCache(_fromBlock, Math.min(_toBlock, cFirstBlock - 1))
       }
       if (_toBlock <= cToBlock) break; // request ends before cache end
       _fromBlock = cToBlock
@@ -214,18 +210,5 @@ export type logCache = {
     toBlock: number,
   }
 }
-
-
-const chainLimiters: any = {}
-
-function getChainLimiter(chain: string) {
-  if (!chainLimiters[chain]) chainLimiters[chain] = createLimiter(chain)
-  return chainLimiters[chain]
-
-  function createLimiter(chain: string) {
-    return pLimit(getParallelGetLogsLimit(chain))
-  }
-}
-
 
 export default getLogs

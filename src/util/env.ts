@@ -6,7 +6,7 @@ const _ENV_CONSTANTS = {
 }
 
 const whitelistedEnvConstants = [
-  'R2_ENDPOINT', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'TRON_PRO_API_KEY',
+  'R2_ENDPOINT', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'TRON_PRO_API_KEY', 'COINS_API_KEY'
 ]
 
 const defaultEnvValues = {
@@ -35,9 +35,16 @@ export function getMaxParallelRequests(chain: string): number {
   return +getEnvValue('MAX_PARALLEL', '100')!
 }
 
-export function getParallelGetLogsLimit(chain: string) {
-  let defaultLimit = chain === 'fantom' ? '10' : '42'
+export function getParallelGetLogsLimit(chain: string, providerUrl?: string) {
+  const defaultLimit = getEnvValue('GET_LOGS_CONCURRENCY_LIMIT', '5')
+  const defaultAlchemyLimit = getEnvValue('ALCHEMY_GET_LOGS_CONCURRENCY_LIMIT', '4')
+  if (providerUrl && providerUrl.includes('alchemy.com')) return +(defaultAlchemyLimit!)
   return +(getEnvValue(`${chain}_RPC_GET_LOGS_CONCURRENCY_LIMIT`, defaultLimit)!)
+}
+
+export function getParallelGetBlocksLimit(chain: string) {
+  const defaultLimit = getEnvValue('GET_BLOCKS_CONCURRENCY_LIMIT', '5')
+  return +(getEnvValue(`${chain}_RPC_GET_BLOCKS_CONCURRENCY_LIMIT`, defaultLimit)!)
 }
 
 export function getEnvRPC(chain: string): string | undefined {

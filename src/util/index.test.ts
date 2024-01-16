@@ -113,13 +113,13 @@ test("lookupBlock blockscout - scroll", async () => {
   expect(getDiff(block2.timestamp, 1700213053)).toBeLessThanOrEqual(15 * 60); // difference should be under 15 minutes
 });
 
-test.skip("lookupBlock edgeCase", async () => {
+test("lookupBlock edgeCase", async () => {
   const pZKEVMApi = new ChainApi({ chain: 'polygon_zkevm', timestamp: Math.floor((+new Date()) / 1e3) })
   const evmosApi = new ChainApi({ chain: 'evmos', timestamp: Math.floor((+new Date()) / 1e3) })
   const songbirdApi = new ChainApi({ chain: 'songbird', timestamp: Math.floor((+new Date()) / 1e3) })
-  // await pZKEVMApi.getBlock()
+  await pZKEVMApi.getBlock()
   await songbirdApi.getBlock()
-  await evmosApi.getBlock()
+  // await evmosApi.getBlock()
 });
 
 test("getLogs", async () => {
@@ -151,7 +151,7 @@ test("getLogs", async () => {
   });
 });
 
-test.skip("getLogs supports it's old API", async () => {
+test("getLogs supports it's old API", async () => {
   const logs = (
     await getLogs({
       keys: [],
@@ -210,7 +210,7 @@ test.skip("getLogs supports it's old API", async () => {
   expect(logs.map((i: any) => i.logIndex)).toEqual([64, 68]);
 });
 
-test.skip("sushiswap getLogs follow the old API", async () => {
+test("sushiswap getLogs follow the old API", async () => {
   const logs = (
     await getLogs({
       keys: [],
