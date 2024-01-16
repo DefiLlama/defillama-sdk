@@ -89,7 +89,7 @@ export function getArchivalRPCs(chain: string): string[] {
 
 export function getChainRPCs(chain: string, defaultList: string[] = []): string | undefined {
   const key = chain + '_RPC'
-  if (getEnvValue(key)) return getEnvValue(key)!.split(',').concat(defaultList).join(',')
+  if (getEnvValue(key)) return getEnvValue(key)!
   if (defaultList.length === 0) return undefined
   return defaultList.join(',')
 }
