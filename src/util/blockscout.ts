@@ -6,6 +6,7 @@ export const blockscoutEndpoints: any = {
   onus: 'https://explorer.onuschain.io',
   base: 'https://base.blockscout.com',
   scroll: 'https://blockscout.scroll.io',
+  canto: 'https://explorer.plexnode.wtf',
 }
 
 export async function getBlockscoutBlock(timestamp: number, chain: string) {
