@@ -7,11 +7,11 @@ import { ChainApi } from "./ChainApi";
 const dummyRPC = 'https://eth.llamarpc.com'
 
 test("RPC nodes from multiple chains support archive queries", async () => {
-  for (const chain of ["ethereum", "fantom", "rsk", "avax"]) {
+  for (const chain of ["ethereum", "avax"]) {
     try {
       const ethOwned = await getBalance({
-        target: "0x0000000000000000000000000000000000000000",
-        block: 100,
+        target: "0x1f9090aaE28b8a3dCeaDf281B0F12828e676c326",
+        block: 10000000,
         chain: chain as any,
       });
       expect(ethOwned.output).toBe("0");

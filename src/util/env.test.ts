@@ -105,11 +105,11 @@ test("getMaxParallelRequests", async () => {
 
 test("getParallelGetLogsLimit", async () => {
   const parallelGetLogsLimit = getParallelGetLogsLimit("testchain")
-  expect(parallelGetLogsLimit).toBe(5) // default value
+  expect(parallelGetLogsLimit).toBe(25) // default value
 
-  process.env['TESTCHAIN_RPC_GET_LOGS_CONCURRENCY_LIMIT'] = '10';
+  process.env['TESTCHAIN_RPC_GET_LOGS_CONCURRENCY_LIMIT'] = '452';
   const parallelGetLogsLimitAfter = getParallelGetLogsLimit("testchain")
-  expect(parallelGetLogsLimitAfter).toBe(10) // value from process.env
+  expect(parallelGetLogsLimitAfter).toBe(452) // value from process.env
   delete process.env['TESTCHAIN_RPC_GET_LOGS_CONCURRENCY_LIMIT'];
 });
 
@@ -142,7 +142,7 @@ test("getDefaultChunkSize", async () => {
 
 test("getBatchMaxCount", async () => {
   const batchMaxCount = getBatchMaxCount("testchain")
-  expect(batchMaxCount).toBe(99) // default value
+  expect(batchMaxCount).toBe(5) // default value
 
   process.env['TESTCHAIN_BATCH_MAX_COUNT'] = '10';
   const batchMaxCountAfter = getBatchMaxCount("testchain")

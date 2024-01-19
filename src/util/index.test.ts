@@ -163,9 +163,10 @@ test("getLogs supports it's old API", async () => {
       ],
     } as any)
   ).output.slice(0, 2)
+  logs.forEach((log: any) => log.address = log.address.toLowerCase())
   expect(logs).toEqual([
     {
-      address: "0x35D1b3F3D7966A1DFe207aa4514C12a259A0492B",
+      address: "0x35d1b3f3d7966a1dfe207aa4514c12a259a0492b",
       blockHash:
         "0x4e0c6d0ceaade9476d0798a44452117c42300389f43ad8397e91092827019fed",
       blockNumber: 8928152,
@@ -186,7 +187,7 @@ test("getLogs supports it's old API", async () => {
       //id: 'log_4301d412' // SHOULD BE SUPPORTED BUT HEH
     },
     {
-      address: "0x35D1b3F3D7966A1DFe207aa4514C12a259A0492B",
+      address: "0x35d1b3f3d7966a1dfe207aa4514c12a259a0492b",
       blockHash:
         "0x4e0c6d0ceaade9476d0798a44452117c42300389f43ad8397e91092827019fed",
       blockNumber: 8928152,
@@ -220,9 +221,10 @@ test("sushiswap getLogs follow the old API", async () => {
       topic: "PairCreated(address,address,address,uint256)",
     })
   ).output.slice(0, 2)
+  logs.forEach((log: any) => log.address = log.address.toLowerCase())
   expect(logs).toEqual([
     {
-      address: "0xC0AEe478e3658e2610c5F7A4A2E1777cE9e4f2Ac",
+      address: "0xc0aee478e3658e2610c5f7a4a2e1777ce9e4f2ac",
       blockHash:
         "0xf59ff7fcf1443e7e61582224359a030bb7178871182cc543acb16627e81ec1a8",
       blockNumber: 10794352,
@@ -242,7 +244,7 @@ test("sushiswap getLogs follow the old API", async () => {
       //id: 'log_20f0cd7e'
     },
     {
-      address: "0xC0AEe478e3658e2610c5F7A4A2E1777cE9e4f2Ac",
+      address: "0xc0aee478e3658e2610c5f7a4a2e1777ce9e4f2ac",
       blockHash:
         "0x25c6da25c999e1c668d60a5068128eb521ef121e4b46fb24575ed6fb037ede67",
       blockNumber: 10822038,

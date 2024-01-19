@@ -7,7 +7,8 @@ const COUNTERS: Record<string, Counter> = {}
 const emitter = new EventEmitter()
 emitter.setMaxListeners(500000)
 
-export async function call(provider: ethers.Provider, data: ethers.JsonRpcTransactionRequest, block?: string | number, chain?: string, options = { retry: true }): Promise<any> {
+export async function call(provider: ethers.AbstractProvider, data: ethers.JsonRpcTransactionRequest, block?: string | number, chain?: string, options = { retry: true }): Promise<any> {
+
   const retry = options.retry ?? true;
   (data as any).blockTag = block
   if (!chain) chain = 'noChain'
@@ -30,7 +31,7 @@ export async function call(provider: ethers.Provider, data: ethers.JsonRpcTransa
 
   let response
   try {
-    response = await (provider as any).call(data, block)
+    response = await provider.call(data as any)
     onComplete()
   } catch (e) {
     onComplete()

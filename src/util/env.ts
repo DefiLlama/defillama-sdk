@@ -36,8 +36,9 @@ export function getMaxParallelRequests(chain: string): number {
 }
 
 export function getParallelGetLogsLimit(chain: string, providerUrl?: string) {
-  const defaultLimit = getEnvValue('GET_LOGS_CONCURRENCY_LIMIT', '5')
-  const defaultAlchemyLimit = getEnvValue('ALCHEMY_GET_LOGS_CONCURRENCY_LIMIT', '4')
+  let defaultLimit = getEnvValue('GET_LOGS_CONCURRENCY_LIMIT', '25')
+  if (chain === 'fantom') defaultLimit = '10'
+  const defaultAlchemyLimit = getEnvValue('ALCHEMY_GET_LOGS_CONCURRENCY_LIMIT', '25')
   if (providerUrl && providerUrl.includes('alchemy.com')) return +(defaultAlchemyLimit!)
   return +(getEnvValue(`${chain}_RPC_GET_LOGS_CONCURRENCY_LIMIT`, defaultLimit)!)
 }
@@ -75,9 +76,8 @@ export function getBatchMaxCount(chain: string): number {
   const key = chain + '_BATCH_MAX_COUNT'
   if (getEnvValue(key)) return +getEnvValue(key)!
   switch (chain) {
-    case 'cronos': return 5
     case 'zkfair': return 1
-    default: return +getEnvValue('BATCH_MAX_COUNT', '99')!
+    default: return +getEnvValue('BATCH_MAX_COUNT', '5')!
   }
 }
 
@@ -89,7 +89,11 @@ export function getArchivalRPCs(chain: string): string[] {
 
 export function getChainRPCs(chain: string, defaultList: string[] = []): string | undefined {
   const key = chain + '_RPC'
-  if (getEnvValue(key)) return getEnvValue(key)!
-  if (defaultList.length === 0) return undefined
-  return defaultList.join(',')
+  const envValue = getEnvValue(key)
+  if (defaultList.length) {
+    const listString = defaultList.join(',')
+    if (envValue) return envValue + ',' + listString
+    return listString
+  }
+  return envValue || undefined
 }

@@ -167,6 +167,7 @@ export function getUniqueAddresses(addresses: string[], chain?: string): string[
 }
 
 export function getProviderUrl(provider: any) {
+  if (provider?.isCustomLlamaProvider) return provider.rpcs.map((i: any) => i.url).join(', ')
   if (provider instanceof ethers.FallbackProvider) provider = (provider.providerConfigs[0].provider as ethers.JsonRpcApiProvider)
   if (provider instanceof ethers.JsonRpcProvider) return provider._getConnection().url
   return ''
@@ -191,6 +192,12 @@ export function formErrorString(e: any, errorParams: any = {}) {
       return errorString.length > 310 ? errorString.slice(0, 310).concat('...') : errorString
     }
     return ''
+  }
+
+  if (e.llamaRPCError) {
+    const errorString = `Llama RPC error!`
+    const errors = e.errors.map((i: any) => `- host: ${e.host} error: ${e.toString()}` )
+    return errorString + '\n' + errors.join('\n')
   }
 
   let errorString = e.toString()
@@ -258,7 +265,7 @@ export function formError(e: any, errorParams: any = {}): Error {
       error._underlyingError = shortenString(e.toString())
   } catch (e) { }
   error._isCustomError = true;
-  error.message = shortenString(error.message, 999)
+  error.message = shortenString(error.message, 2999)
   error.stack = ''
   return error as Error
 }

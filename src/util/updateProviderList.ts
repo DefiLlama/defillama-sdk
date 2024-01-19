@@ -1,29 +1,79 @@
 
-import providerList from '../providers.json'
+import _providerList from '../providers.json'
 import fs from 'fs'
 import axios from "axios";
 
+const providerList = _providerList as {
+  [key: string]: {
+    rpc: string[]
+    chainId: number
+  }
+}
+
 async function main() {
-  let { data: chainData} = await axios('https://chainid.network/chains.json')
-  const existingChainIds = new Set(Object.values(providerList).map(i => i.chainId))
-  const existingChainNames = new Set(Object.keys(providerList).map(i => i.toLowerCase()))
+  let { data: chainData } = await axios('https://chainlist.org/rpcs.json')
+  const providerIDMap = {} as {
+    [key: string]: string[]
+  }
+  Object.values(providerList).forEach((i: any) => providerIDMap[i.chainId] = i.rpc)
   chainData = chainData
     .filter((i: any) => i.rpc.length)
     .filter((i: any) => !i.status || i.status === 'active')
     .filter((i: any) => i.shortName)
-    .filter((i: any) => !existingChainIds.has(i.chainId))
-    .filter((i: any) => !existingChainNames.has(i.shortName.toLowerCase()))
-  chainData.forEach((i: any) => {
-    i.rpc = i.rpc.filter((j: any) => !/wss:/.test(j))
-  })
-  const newList = {...providerList} as any
-  chainData.forEach((i: any) => {
-    newList[i.shortName.toLowerCase()] = {
-      rpc: i.rpc,
-      chainId: i.chainId
+  for (const i of chainData) {
+    i.rpc = await filterForWorkingRPCs(i.rpc.map((j: any) => j.url), i.name, i.chainId)
+    if (!i.rpc.length) continue;
+    if (providerIDMap[i.chainId]) {
+      providerIDMap[i.chainId].push(...i.rpc)
+    } else if (providerList[i.shortName]) {
+      providerList[i.shortName].rpc.push(...i.rpc)
+    } else {
+      providerList[i.shortName.toLowerCase()] = {
+        rpc: i.rpc,
+        chainId: i.chainId
+      }
     }
+  }
+
+  Object.values(providerList).forEach((i: any) => {
+    i.rpc = Array.from(new Set(filterRPCs(i.rpc)));
+  });
+  fs.writeFileSync(__dirname + '/../providers.json', JSON.stringify(providerList));
+}
+
+function filterRPCs(rpc: string[]): string[] {
+  return rpc.filter((i: string) => {
+    if (i.endsWith('/demo')) return false // remove demo rpc
+    if (i.includes('$')) return false // remove anything where api key is injected
+    if (i.startsWith('wss://') || i.startsWith('ws://')) return false // remove websocket rpcs
+    return true
+  }).map((i: string) => {
+    if (i.endsWith('/')) return i.slice(0, -1)
+    return i
   })
-  fs.writeFileSync(__dirname+'/../providers.json', JSON.stringify(newList))
+}
+
+async function filterForWorkingRPCs(rpc: string[], chain: string, chainId: number): Promise<string[]> {
+  if (rpc.length < 6) return rpc
+  rpc = filterRPCs(rpc)
+
+  const promises = await Promise.all(rpc.map(async (i: string) => {
+    try {
+      const { data } = await axios.post(i, {
+        jsonrpc: '2.0',
+        method: 'eth_blockNumber',
+        params: [],
+        id: 1
+      }, {
+        timeout: 3000
+      })
+      if (data.result) return i
+    } catch (e) {
+      // console.log((e as any).message, i, chain)
+    }
+  }))
+
+  return rpc.filter((_i: string, index: number) => promises[index])
 }
 
 main()

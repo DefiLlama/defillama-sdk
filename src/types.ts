@@ -26,6 +26,7 @@ export type CallOptions = {
   skipCache?: boolean;
   logArray?: LogArray
 }
+export type Chain = string
 
 export type MulticallOptions = {
   abi: string | any;
