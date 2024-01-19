@@ -144,7 +144,7 @@ test("ChainApi - multiCall", async () => {
   ]);
 })
 
-test("bad paramters throw error", async () => {
+test("bad parameters throw error", async () => {
   const nullAddress = '0x0000000000000000000000000000000000000000'
   const testAbi = uniswapAbis.allPairsLength
   const apiBsc = new ChainApi({ chain: 'bsc' })
@@ -157,7 +157,7 @@ test("bad paramters throw error", async () => {
 });
 
 const nullAddress = '0x0000000000000000000000000000000000000000'
-test("bad paramters does not throw error with permitFailure Flag", async () => {
+test("bad parameters does not throw error with permitFailure Flag", async () => {
   const testAbi = uniswapAbis.allPairsLength
   const apiBsc = new ChainApi({ chain: 'bsc' })
   const apiEth = new ChainApi({})
