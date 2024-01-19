@@ -1,6 +1,4 @@
 
-import { Chain } from "./general";
-
 export type Address = string;
 export type StringNumber = string;
 export type Block = number | string;
