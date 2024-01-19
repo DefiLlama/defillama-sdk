@@ -49,12 +49,13 @@ export class LlamaProvider extends FallbackProvider {
       await Promise.all(this.archivalRPCs.map(checkRPCWorks))
     }
 
-    const highestBlock = Object.values(currentBlocks).reduce((highest, current) => Math.max(highest, current), 0)
+    // we are doing this because I noticed that one of the rpcs can go rouge and return very high block number
+    const medianBlockValue = getMedianBlockValue(Object.values(currentBlocks))
 
 
     Object.entries(currentBlocks).forEach(([url, block]) => {
-      if (highestBlock - block > outOfSyncLimit) {
-        debugLog(`RPC ${url} is out of sync by ${highestBlock - block} blocks`)
+      if (medianBlockValue - block > outOfSyncLimit) {
+        debugLog(`RPC ${url} is out of sync by ${medianBlockValue - block} blocks`)
         _this.rpcs = _this.rpcs.filter(i => i.url !== url)
         _this.archivalRPCs = _this.archivalRPCs.filter(i => i.url !== url)
       }
@@ -93,8 +94,10 @@ export class LlamaProvider extends FallbackProvider {
     if (method === 'getLogs') {
       runners = [...this.archivalRPCs]
       this.rpcs.filter(i => !runners.map(i => i.url).includes(i.url)).forEach(i => runners.push(i)) // ensure that there are no duplicates
+      runners = runners.filter(i => !i.url.includes('llamarpc.com'));
     }
     let primaryRunner = runners[0]
+    if (!primaryRunner) throw new Error('No RPCs available for ' + this.chainName)
     let errors = []
     runners = runners.slice(1).sort(() => Math.random() - 0.5) // randomize order of runners
     const isArchivalRequest = ['call', 'getBalance'].includes(method) && params[1] !== 'latest'
@@ -299,4 +302,10 @@ const httpRPC = {
     })
     return result;
   },
+}
+
+function getMedianBlockValue(blocks: number[]) {
+  blocks.sort((a, b) => a - b)
+  const mid = Math.floor(blocks.length / 3)
+  return blocks.length % 2 !== 0 ? blocks[mid] : (blocks[mid - 1] + blocks[mid]) / 2
 }

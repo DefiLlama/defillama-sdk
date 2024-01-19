@@ -2,6 +2,7 @@
 import _providerList from '../providers.json'
 import fs from 'fs'
 import axios from "axios";
+import { debugLog } from './debugLog';
 
 const providerList = _providerList as {
   [key: string]: {
@@ -25,8 +26,8 @@ async function main() {
     if (!i.rpc.length) continue;
     if (providerIDMap[i.chainId]) {
       providerIDMap[i.chainId].push(...i.rpc)
-    } else if (providerList[i.shortName]) {
-      providerList[i.shortName].rpc.push(...i.rpc)
+    } else if (providerList[i.shortName.toLowerCase()]) {
+      debugLog(`Duplicate short name ${i.chainId} for ${i.shortName}, doing nothing`)
     } else {
       providerList[i.shortName.toLowerCase()] = {
         rpc: i.rpc,
@@ -54,7 +55,7 @@ function filterRPCs(rpc: string[]): string[] {
 }
 
 async function filterForWorkingRPCs(rpc: string[], chain: string, chainId: number): Promise<string[]> {
-  if (rpc.length < 6) return rpc
+  if (rpc.length < 10) return rpc
   rpc = filterRPCs(rpc)
 
   const promises = await Promise.all(rpc.map(async (i: string) => {
