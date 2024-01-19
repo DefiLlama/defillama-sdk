@@ -33,7 +33,7 @@ function createProvider(name: string, rpcString: string, chainId = 400069): Prov
 
     /**
      *  Options for configuring a [[JsonRpcApiProvider]]. Much of this
-     *  is targetted towards sub-classes, which often will not expose
+     *  is targeted towards sub-classes, which often will not expose
      *  any of these options to their consumers.
      *
      *  **``polling``** - use the polling strategy is used immediately
