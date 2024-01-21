@@ -101,7 +101,7 @@ export class LlamaProvider extends FallbackProvider {
     let errors = []
     runners = runners.slice(1).sort(() => Math.random() - 0.5) // randomize order of runners
     const isArchivalRequest = ['call', 'getBalance'].includes(method) && params[1] !== 'latest'
-    let noPlayingAround = primaryRunner.url.includes('llama.fi') || method === 'getLogs' || isArchivalRequest
+    let noPlayingAround = getEnvValue('RPC_NO_PLAYING_AROUND') === 'true' || primaryRunner.url.includes('llama.fi') || method === 'getLogs' || isArchivalRequest
 
     if (noPlayingAround) {
       // if primary runner is llama.fi or alchemy, then try it first
@@ -158,50 +158,8 @@ function createProvider(name: string, rpcString: string, chainId = 400069, archi
   }
 
   function getProviderObject(url: string, chain: string): AbstractProvider {
-
-    /**
-     *  Options for configuring a [[JsonRpcApiProvider]]. Much of this
-     *  is targetted towards sub-classes, which often will not expose
-     *  any of these options to their consumers.
-     *
-     *  **``polling``** - use the polling strategy is used immediately
-     *  for events; otherwise, attempt to use filters and fall back onto
-     *  polling (default: ``false``)
-     *
-     *  **``staticNetwork``** - do not request chain ID on requests to
-     *  validate the underlying chain has not changed (default: ``null``)
-     *
-     *  This should **ONLY** be used if it is **certain** that the network
-     *  cannot change, such as when using INFURA (since the URL dictates the
-     *  network). If the network is assumed static and it does change, this
-     *  can have tragic consequences. For example, this **CANNOT** be used
-     *  with MetaMask, since the used can select a new network from the
-     *  drop-down at any time.
-     *
-     *  **``batchStallTime``** - how long (ms) to aggregate requests into a
-     *  single batch. ``0`` indicates batching will only encompass the current
-     *  event loop. If ``batchMaxCount = 1``, this is ignored. (default: ``10``)
-     *
-     *  **``batchMaxSize``** - target maximum size (bytes) to allow per batch
-     *  request (default: 1Mb)
-     *
-     *  **``batchMaxCount``** - maximum number of requests to allow in a batch.
-     *  If ``batchMaxCount = 1``, then batching is disabled. (default: ``100``)
-     *
-     *  **``cacheTimeout``** - passed as [[AbstractProviderOptions]].
-      *  **``cacheTimeout``** - how long to cache a low-level ``_perform``
-      *  for, based on input parameters. This reduces the number of calls
-      *  to getChainId and getBlockNumber, but may break test chains which
-      *  can perform operations (internally) synchronously. Use ``-1`` to
-      *  disable, ``0`` will only buffer within the same event loop and
-      *  any other value is in ms. (default: ``250``)
-     */
-    // const batchMaxSize = 10 * (1024 * 1024) // 10Mb
-    // some rpcs throw error if batchMaxCount is set higher than 100
-    const batchMaxCount = getBatchMaxCount(chain)
     const jsonRpcApiProviderOptions = { staticNetwork: true, batchMaxCount: 1, }
     if (url.startsWith('wss://')) {
-      delete (jsonRpcApiProviderOptions as any).batchMaxCount
       return new WebSocketProvider(url, networkish, jsonRpcApiProviderOptions)
     }
     return new JsonRpcProvider(url, networkish, jsonRpcApiProviderOptions)
