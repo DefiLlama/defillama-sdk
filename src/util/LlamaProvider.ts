@@ -132,29 +132,28 @@ export class LlamaProvider extends FallbackProvider {
 function createProvider(name: string, rpcString: string, chainId = 400069, archivalRPCList: string[] = []): AbstractProvider | null {
   chainId = getChainId(name, chainId)
   const networkish = { name, chainId }
-  const rpcList = rpcString.split(',')
+  let rpcList = rpcString.split(',')
 
   if (getEnvValue('HISTORICAL')) {
     if (chainId === 1) {
       debugLog("RPC providers set to historical, only the first RPC provider will be used")
     }
-    return getProviderObject(rpcList[0], name)
+    // return getProviderObject(rpcList[0], name)
+    rpcList = [rpcList[0]]
   }
-  else {
-    try {
-      const fallbackConfig = { cacheTimeout: 5 * 1000, quorum: 1, eventQuorum: 1, }
-      const getProviderWithURL = (url: string) => ({ url, provider: getProviderObject(url, name) })
-      const providers = rpcList.map(getProviderWithURL)
-      const archivalRPCs = archivalRPCList.map(getProviderWithURL)
-      return new LlamaProvider({ providers, archivalRPCs, chainId, chainName: name, }, fallbackConfig)
-      // return new FallbackProvider(providers, networkish, fallbackConfig)
-    } catch (e) {
-      // debugLog(`Error creating provider for ${name} with RPCs: ${rpcList.join(', ')}`)
-      // we dont throw errors for chains not present in providers.json, these can be non-evm chains like solana
-      if ((providerList as any)[name])
-        throw e
-      return null
-    }
+  try {
+    const fallbackConfig = { cacheTimeout: 5 * 1000, quorum: 1, eventQuorum: 1, }
+    const getProviderWithURL = (url: string) => ({ url, provider: getProviderObject(url, name) })
+    const providers = rpcList.map(getProviderWithURL)
+    const archivalRPCs = archivalRPCList.map(getProviderWithURL)
+    return new LlamaProvider({ providers, archivalRPCs, chainId, chainName: name, }, fallbackConfig)
+    // return new FallbackProvider(providers, networkish, fallbackConfig)
+  } catch (e) {
+    // debugLog(`Error creating provider for ${name} with RPCs: ${rpcList.join(', ')}`)
+    // we dont throw errors for chains not present in providers.json, these can be non-evm chains like solana
+    if ((providerList as any)[name])
+      throw e
+    return null
   }
 
   function getProviderObject(url: string, chain: string): AbstractProvider {
@@ -200,14 +199,24 @@ function toHex(n: number | string) {
 
 const httpRPC = {
   getBlockNumber: async (rpc: string): Promise<number> => {
-    const { data } = await axios.post(rpc, {
-      jsonrpc: '2.0', id: 1, params: [],
-      method: 'eth_blockNumber',
-    }, {
-      timeout: 3000
-    })
-    if (data.error) throw data.error
-    return parseInt(data.result)
+    const getData = async () => {
+      const data = (await axios.post(rpc, {
+        jsonrpc: '2.0', id: 1, params: [],
+        method: 'eth_blockNumber',
+      }, {
+        timeout: 3000
+      })).data
+      if (data.error) throw data.error
+      return data.result
+    }
+    let data
+    try {
+      data = await getData()
+    } catch (e) {
+      // try again
+      data = await getData()
+    }
+    return parseInt(data)
   },
   getBlock: async (rpc: string, params: any): Promise<any> => {
     params[0] = toHex(params[0])
