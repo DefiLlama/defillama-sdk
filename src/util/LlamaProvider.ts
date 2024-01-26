@@ -88,6 +88,14 @@ export class LlamaProvider extends FallbackProvider {
     return this._performAction('getLogs', [_filter], 3)
   }
 
+  async getTransaction(_hash: string): Promise<any> {
+    return this._performAction('getTransaction', [_hash])
+  }
+
+  async getTransactionReceipt(_hash: string): Promise<any> {
+    return this._performAction('getTransactionReceipt', [_hash])
+  }
+
   async _performAction(method: string, params: any, attempts = 7): Promise<any> {
     await this._isReady
     let runners = [...this.rpcs]
@@ -269,6 +277,28 @@ const httpRPC = {
     })
     return result;
   },
+  getTransaction: async (rpc: string, params: any): Promise<any> => {
+    const { data: { result, error } } = await axios.post(rpc, {
+      jsonrpc: '2.0', id: 1, params,
+      method: 'eth_getTransactionByHash',
+    })
+    if (error) throw error
+    if (!result) return null
+    result.blockNumber = parseInt(result.blockNumber)
+    result.transactionIndex = parseInt(result.transactionIndex)
+    return result;
+  },
+  getTransactionReceipt: async (rpc: string, params: any): Promise<any> => {
+    const { data: { result, error } } = await axios.post(rpc, {
+      jsonrpc: '2.0', id: 1, params,
+      method: 'eth_getTransactionReceipt',
+    })
+    if (error) throw error
+    if (!result) return null
+    result.blockNumber = parseInt(result.blockNumber)
+    result.transactionIndex = parseInt(result.transactionIndex)
+    return result;
+  }
 }
 
 function getMedianBlockValue(blocks: number[]) {
