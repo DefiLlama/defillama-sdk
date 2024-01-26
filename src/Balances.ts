@@ -93,6 +93,10 @@ export class Balances {
     return usdTvl
   }
 
+  async getUSDString() {
+    return Number(this.getUSDValue()).toFixed(0)
+  }
+
   async getUSDJSONs() {
     const { usdTvl, usdTokenBalances } = await computeTVL(this.getBalances(), this.timestamp)
     return { usdTvl, usdTokenBalances, rawTokenBalances: this.getBalances() }
@@ -100,6 +104,10 @@ export class Balances {
 
   static async getUSDValue(balances: BalancesV1, timestamp?: number) {
     return (await computeTVL(balances, timestamp)).usdTvl
+  }
+
+  static async getUSDString(balances: BalancesV1, timestamp?: number) {
+    return Number(await Balances.getUSDValue(balances, timestamp)).toFixed(0)
   }
 
   static async getBalanceObjects(balances: BalancesV1, timestamp?: number) {

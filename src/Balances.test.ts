@@ -97,6 +97,11 @@ test("Balances - static - getUSDValue", async () => {
 })
 
 
+test("Balances - static - getUSDString", async () => {
+  expect(await Balances.getUSDString({ tether: 500 })).toBe("500")
+  expect(await Balances.getUSDString({ 'coingecko:usd-coin': 5 })).toBe("5")
+})
+
 test("Balances - static - getBalanceObjects", async () => {
   const res = await Balances.getBalanceObjects({ ethereum: 5 })
   expect(res.usdTvl).toBeGreaterThan(3000)

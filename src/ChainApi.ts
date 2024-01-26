@@ -210,6 +210,10 @@ export class ChainApi {
     return this._balances.getUSDValue()
   }
 
+  async getUSDString() {
+    return this._balances.getUSDString()
+  }
+
   async getUSDJSONs() {
     return this._balances.getUSDJSONs()
   }
