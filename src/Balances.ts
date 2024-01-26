@@ -94,7 +94,7 @@ export class Balances {
   }
 
   async getUSDString() {
-    return Number(this.getUSDValue()).toFixed(0)
+    return Number(await this.getUSDValue()).toFixed(0)
   }
 
   async getUSDJSONs() {
