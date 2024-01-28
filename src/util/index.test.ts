@@ -1,88 +1,66 @@
 import {
   lookupBlock,
-  tokenList,
-  kyberTokens,
-  toSymbols,
   getLogs,
 } from "./index";
 
+import ChainApi from "../ChainApi";
+
+jest.setTimeout(20000);
+
+function getDiff(a: number, b: number): number {
+  return (a > b) ? a - b : b - a;
+}
+
+test("ChainApi - ethereum", async () => {
+  const ethApi = new ChainApi({chain: 'ethereum', timestamp: 1669037786 })
+  const ethApi2 = new ChainApi({chain: 'ethereum', timestamp: 1594112416 })
+  const ethApi3 = new ChainApi({chain: 'ethereum', block: 42})
+
+  expect(getDiff(await ethApi.getBlock(), 16018720)).toBeLessThanOrEqual(100); // 50 blocks appromiates to 10 minute difference
+  expect(getDiff(await ethApi2.getBlock(), 10411348)).toBeLessThanOrEqual(100); // 50 blocks appromiates to 10 minute difference
+  expect(getDiff(await ethApi3.getBlock(), 42)).toBeLessThanOrEqual(0);
+});
+
+test("ChainApi - other chains", async () => {
+  const bscApi = new ChainApi({chain: 'bsc', timestamp: 1638821718 })
+  const celoApi = new ChainApi({chain: 'celo', timestamp: 1638821718 })
+
+  expect(getDiff(await bscApi.getBlock(), 13252691)).toBeLessThanOrEqual(500);
+  expect(getDiff(await celoApi.getBlock(), 10248755)).toBeLessThanOrEqual(500);
+});
+
 test("lookupBlock", async () => {
-  expect(await lookupBlock(1594115200)).toEqual({
-    timestamp: 1594115200,
-    block: 10411538,
-  }); // Approximation, DP's sdk returns { timestamp: 1594112400, block: 10411348 }
+  const block = await lookupBlock(1669037786);
+  // Approximation, DP's sdk returns { timestamp: 1669037786, block: 16018720 }
+  expect(getDiff(block.block, 16018720)).toBeLessThanOrEqual(100); // 50 blocks appromiates to 10 minute difference
+  expect(getDiff(block.timestamp, 1669037786)).toBeLessThanOrEqual(15 * 60); // difference should be under 15 minutes
+
+  const block2 = await lookupBlock(1594112416);
+  // Approximation, DP's sdk returns { timestamp: 1594112416, block: 10411348 }
+  expect(getDiff(block2.block, 10411348)).toBeLessThanOrEqual(100); // 50 blocks appromiates to 10 minute difference
+  expect(getDiff(block2.timestamp, 1594112416)).toBeLessThanOrEqual(15 * 60); // difference should be under 15 minutes
 });
 
-test("tokenList", async () => {
-  expect((await tokenList()).length).toMatchInlineSnapshot(`811`);
+test("lookupBlock bsc", async () => {
+  const block = await lookupBlock(1669051521, {chain: 'bsc'});
+  // Approximation, DP's sdk returns { timestamp: 1669051521, block: 23252691 }
+  expect(getDiff(block.block, 23252691)).toBeLessThanOrEqual(500); // 200 blocks appromiates to 10 minute difference
+  expect(getDiff(block.timestamp, 1669051521)).toBeLessThanOrEqual(15 * 60); // difference should be under 15 minutes
+  
+  const block2 = await lookupBlock(1638821718, {chain: 'bsc'});
+  // Approximation, DP's sdk returns { timestamp: 1638821718, block: 13252691 }
+  expect(getDiff(block2.block, 13252691)).toBeLessThanOrEqual(500); // 200 blocks appromiates to 10 minute difference
+  expect(getDiff(block2.timestamp, 1638821718)).toBeLessThanOrEqual(15 * 60); // difference should be under 15 minutes
 });
 
-test("kyberTokens", async () => {
-  const tokens = await kyberTokens();
-  const keys = Object.keys(tokens.output);
-  for (let i = 0; i < keys.length; i++) {
-    const key = keys[i];
-    if (i < 3) {
-      tokens.output[key].ethPrice = 0.002; // To avoid constant changes that break the snapshot
-    } else {
-      delete tokens.output[key];
-    }
-  }
-  expect(tokens).toEqual({
-    output: {
-      "0x111111111117dc0aa78b770fa6a738034120c302": {
-        symbol: "1INCH",
-        decimals: 18,
-        ethPrice: 0.002,
-      },
-      "0xe48972fcd82a274411c01834e2f031d4377fa2c0": {
-        symbol: "2KEY",
-        decimals: 18,
-        ethPrice: 0.002,
-      },
-      "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9": {
-        symbol: "AAVE",
-        decimals: 18,
-        ethPrice: 0.002,
-      },
-    },
-  });
-});
-
-const sortSymbols = (a: any, b: any) => (a.address > b.address ? 1 : -1);
-
-test("toSymbols", async () => {
-  expect(
-    (
-      await toSymbols({
-        "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE": "2.363644408933851e+23", // Curve's ETH address
-        "0x6B175474E89094C44Da98b954EedeAC495271d0F": "2.3462351944349785e+26",
-        "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48": "370186290673080",
-        "0xdAC17F958D2ee523a2206206994597C13D831ec7": "411511818650054",
-        "0xC2cB1040220768554cf699b0d863A3cd4324ce32": "1.232581672477717e+25",
-      })
-    ).output.sort(sortSymbols)
-  ).toEqual(
-    JSON.parse(
-      '[{"symbol":"ETH","address":"0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee","balance":"236364.440893"},{"symbol":"DAI","address":"0x6b175474e89094c44da98b954eedeac495271d0f","balance":"234623519.443498"},{"symbol":"USDC","address":"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48","balance":"370186290.673080"},{"symbol":"USDT","address":"0xdac17f958d2ee523a2206206994597c13d831ec7","balance":"411511818.650054"},{"symbol":"yDAI","address":"0xc2cb1040220768554cf699b0d863a3cd4324ce32","balance":"12325816.724777"}]'
-    ).sort(sortSymbols)
-  );
-});
-
-test("toSymbols works well with 0x0 as an ETH address", async () => {
-  expect(
-    await toSymbols({
-      "0x0000000000000000000000000000000000000000": "2100000000000000000", // ETH
-    })
-  ).toEqual({
-    output: [
-      {
-        symbol: "ETH",
-        address: "0x0000000000000000000000000000000000000000",
-        balance: "2.100000",
-      },
-    ],
-  });
+test("lookupBlock celo", async () => {
+  const block = await lookupBlock(1654822801, {chain: 'celo'});
+  expect(getDiff(block.block, 13448723)).toBeLessThanOrEqual(500); // 200 blocks appromiates to 10 minute difference
+  expect(getDiff(block.timestamp, 1654822801)).toBeLessThanOrEqual(15 * 60); // difference should be under 15 minutes
+  
+  const block2 = await lookupBlock(1638821718, {chain: 'celo'});
+  expect(getDiff(block2.block, 10248755)).toBeLessThanOrEqual(500); // 200 blocks appromiates to 10 minute difference
+  expect(getDiff(block2.timestamp, 1638821718)).toBeLessThanOrEqual(15 * 60); // difference should be under 15 minutes
 });
 
 test("getLogs", async () => {

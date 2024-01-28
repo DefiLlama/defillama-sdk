@@ -25,10 +25,10 @@ test("totalSupply", async () => {
   expect(
     await totalSupply({
       target: "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
-      block: 9424366,
+      block: 15997547,
     })
   ).toEqual({
-    output: "62681748267",
+    output: "23627251738981",
   });
 });
 
