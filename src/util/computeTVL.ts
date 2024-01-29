@@ -47,10 +47,11 @@ function tokenToKey(token: string) {
 
 
 async function updatePriceCache(keys: string[], timestamp?: number) {
-  if (isNearlyNow(timestamp)) timestamp = undefined
-
   keys = getUnique(keys)
   const pricesCache = getPriceCache(timestamp)
+
+  if (isNearlyNow(timestamp)) timestamp = undefined // if timestamp is close to now, pull current token prices
+
   if (!timestamp && lastPriceUpdate && +Date.now() > lastPriceUpdate + priceUpdateTime) {
     lastPriceUpdate = +Date.now()
     Object.keys(pricesCache).forEach(key => delete pricesCache[key]) // clear cache   
