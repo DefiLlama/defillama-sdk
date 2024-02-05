@@ -69,6 +69,22 @@ test("Balances - getUSDValue", async () => {
   expect(await balances.getUSDValue()).toEqual(300)
 })
 
+test("Balances - addCGToken", async () => {
+  const balances = new Balances({ chain: 'bsc' })
+
+  balances.add('0001', [100, 200])
+  expect(await balances.getUSDValue()).toEqual(0)
+
+  balances.addCGToken('tether', 100)
+  balances.addCGToken('tether', 100)
+  balances.addCGToken('tether', 100)
+  balances.addCGToken('tether', 100)
+  balances.addTokenVannila('tether', 200)
+  balances.addTokenVannila('tether', 200)
+  balances.addTokenVannila('tether', 200)
+  expect(await balances.getUSDValue()).toEqual(1000)
+})
+
 test("Balances - balance is missing", async () => {
   const balances = new Balances({ chain: 'bsc' })
 

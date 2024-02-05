@@ -55,6 +55,13 @@ test("ChainApi - addToken", async () => {
   expect(api.getBalances()).toEqual({ 'ethereum:eth': 10, 'bitcoin': 10 });
 })
 
+test("ChainApi - addCGToken", async () => {
+  const api = new ChainApi({})
+  api.addCGToken('eth', 5)
+  api.addTokenVannila('bitcoin', 10)
+  expect(api.getBalances()).toEqual({ 'coingecko:eth': 5, 'bitcoin': 10 });
+})
+
 test("ChainApi - addTokens", async () => {
   const api = new ChainApi({})
   api.add('eth', 5)

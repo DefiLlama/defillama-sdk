@@ -60,6 +60,14 @@ export class Balances {
     this._add(nullAddress, balance)
   }
 
+  addCGToken(token: string, balance: any) {
+    this.addTokenVannila('coingecko:'+token, balance)
+  }
+
+  addTokenVannila(token: string, balance: any) {
+    this._add(token, balance, { skipChain: true })
+  }
+
   addTokens(tokens: string[], balances: any[], { skipChain = false } = {}) {
     if (!Array.isArray(tokens)) throw new Error('tokens must be an array')
     if (!Array.isArray(balances)) throw new Error('balances must be an array')

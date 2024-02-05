@@ -104,6 +104,14 @@ export class ChainApi {
     this._balances.addBalances(balances)
   }
 
+  addCGToken(token: string, balance: any) {
+    this._balances.addCGToken(token, balance)
+  }
+
+  addTokenVannila(token: string, balance: any) {
+    this._balances.addTokenVannila(token, balance)
+  }
+
   getBalances(): BalancesV1 {
     return this._balances.getBalances()
   }

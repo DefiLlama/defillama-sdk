@@ -1,6 +1,6 @@
 git checkout master
 git pull
-npm run update-providers
+# npm run update-providers
 # npm run test
 # if [[ $? -ne 0 ]] ; then
 #   echo "Unit test failed, fix it before publishing new version"
