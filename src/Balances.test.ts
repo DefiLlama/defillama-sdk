@@ -123,3 +123,20 @@ test("Balances - static - getBalanceObjects", async () => {
   expect(res.usdTvl).toBeGreaterThan(3000)
   expect(res.usdTokenBalances).toBeDefined()
 })
+
+test("Balances - resizeBy", async () => {
+  const balances = new Balances({ chain: 'bsc' })
+
+  balances.add('0001', [100, 200])
+  balances.resizeBy(2)
+  expect(balances.getBalances()).toEqual({ 'bsc:0001': 600, })
+})
+
+test("Balances - resizeBy", async () => {
+  const balances = new Balances({ chain: 'bsc' })
+
+  balances.add('0001', [100, 200])
+  balances.add('tether', [100, 200], { skipChain: true })
+  balances.resizeBy(0.5)
+  expect(await balances.getUSDValue()).toEqual(150)
+})

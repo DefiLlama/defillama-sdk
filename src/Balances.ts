@@ -110,6 +110,12 @@ export class Balances {
     return { usdTvl, usdTokenBalances, rawTokenBalances: this.getBalances() }
   }
 
+  resizeBy(ratio: number) {
+    Object.keys(this._balances).forEach((token) => {
+      this._balances[token] = Number(this._balances[token]) * ratio
+    })
+  }
+
   static async getUSDValue(balances: BalancesV1, timestamp?: number) {
     return (await computeTVL(balances, timestamp)).usdTvl
   }
