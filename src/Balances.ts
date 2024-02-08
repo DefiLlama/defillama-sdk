@@ -61,7 +61,7 @@ export class Balances {
   }
 
   addCGToken(token: string, balance: any) {
-    this.addTokenVannila('coingecko:'+token, balance)
+    this.addTokenVannila('coingecko:' + token, balance)
   }
 
   addTokenVannila(token: string, balance: any) {
@@ -131,6 +131,32 @@ export class Balances {
   static async getUSDJSONs(balances: BalancesV1, timestamp?: number) {
     const { usdTvl, usdTokenBalances } = await computeTVL(balances, timestamp)
     return { usdTvl, usdTokenBalances, rawTokenBalances: balances }
+  }
+
+  clone() {
+    const newBalances = new Balances({ chain: this.chain, timestamp: this.timestamp })
+    newBalances.addBalances(this)
+    return newBalances
+  }
+
+  subtract(balances: BalancesV1 | Balances) {
+    if (balances instanceof Balances) {
+      if (balances === this) return;
+      balances = balances.getBalances()
+    }
+    Object.entries(balances).forEach(([token, balance]) => {
+      this._add(token, Number(balance) * -1, { skipChain: true })
+    })
+  }
+
+  subtractToken(token: string, balance: any, { skipChain = false } = {}) {
+    this._add(token, Number(balance) * -1, { skipChain })
+  }
+
+  removeNegativeBalances() {
+    Object.keys(this._balances).forEach((token) => {
+      if (Number(this._balances[token]) <= 0) delete this._balances[token]
+    })
   }
 }
 
