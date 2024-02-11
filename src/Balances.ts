@@ -133,9 +133,10 @@ export class Balances {
     return { usdTvl, usdTokenBalances, rawTokenBalances: balances }
   }
 
-  clone() {
+  clone(ratio = 1) {
     const newBalances = new Balances({ chain: this.chain, timestamp: this.timestamp })
     newBalances.addBalances(this)
+    if (ratio !== 1) newBalances.resizeBy(ratio)
     return newBalances
   }
 

@@ -110,9 +110,14 @@ export async function getLogs(options: GetLogsOptions): Promise<EventLog[] | Eve
       if (_fromBlock <= cFirstBlock) { // request is before cache start
         await addLogsToCache(_fromBlock, Math.min(_toBlock, cFirstBlock - 1))
       }
-      if (_toBlock <= cToBlock) break; // request ends before cache end
+      if (_toBlock <= cToBlock) { // request ends before cache end
+        _fromBlock = cToBlock;
+        break;
+      }
       _fromBlock = cToBlock
     }
+    if (_fromBlock < _toBlock)
+      await addLogsToCache(_fromBlock, _toBlock);
   }
 
   const logs = []

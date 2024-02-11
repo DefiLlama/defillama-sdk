@@ -147,6 +147,7 @@ test("Balances - clone", async () => {
   balances.add('0001', [100, 200])
   balances.add('tether', [100, 200], { skipChain: true })
   expect(balances.clone().getBalances()).toEqual({ 'bsc:0001': 300, 'tether': 300 })
+  expect(balances.clone(0.5).getBalances()).toEqual({ 'bsc:0001': 150, 'tether': 150 })
 })
 
 test("Balances - subtract", async () => {
