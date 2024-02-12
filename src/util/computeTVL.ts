@@ -23,11 +23,15 @@ export default async function computeTVL(balances: Balances, timestamp?: number)
   const usdTokenBalances: Balances = {}
 
   let usdTvl = 0;
-  const keys = Object.keys(balances).filter(i => +balances[i] > 0).map(tokenToKey)
+  const keys = Object.keys(balances)
+    // .filter(i => +balances[i] > 0)
+    .filter(i => +balances[i] !== 0)
+    .map(tokenToKey)
   await updatePriceCache(keys, timestamp)
   const priceCache = getPriceCache(timestamp)
   Object.entries(balances).forEach(([token, balance]) => {
-    if (+balance <= 0) return;
+    // if (+balance <= 0) return;
+    if (+balance === 0) return;
     const key = tokenToKey(token).toLowerCase()
     let { price, confidence, decimals = 0, symbol = token } = priceCache[key] ?? {}
     if (!price || confidence < confidenceThreshold) return
@@ -89,7 +93,7 @@ async function updatePriceCache(keys: string[], timestamp?: number) {
 
     // fetch post with timestamp in body
     const coinsApiKey = ENV_CONSTANTS['COINS_API_KEY']
-    const { coins } = await axios.post("https://coins.llama.fi/prices?source=internal&apikey="+coinsApiKey,{ coins: keys, timestamp }).then((res) => res.data)
+    const { coins } = await axios.post("https://coins.llama.fi/prices?source=internal&apikey=" + coinsApiKey, { coins: keys, timestamp }).then((res) => res.data)
     return coins
   }
 

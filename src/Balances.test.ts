@@ -39,7 +39,6 @@ test("Balances - add tokens", async () => {
     'bsc:0002': 200,
   })
 })
-
 test("Balances - removeTokenBalance", async () => {
   const balances = new Balances({ chain: 'bsc' })
 
@@ -141,6 +140,16 @@ test("Balances - resizeBy", async () => {
   expect(await balances.getUSDValue()).toEqual(150)
 })
 
+
+test("Balances - clone - resizeBy", async () => {
+  const balances = new Balances({ chain: 'bsc' })
+
+  balances.add('0001', [100, 200])
+  balances.add('tether', [100, 200], { skipChain: true })
+  const balances2 = balances.clone().resizeBy(0.5)
+  expect(await balances2.getUSDValue()).toEqual(150)
+})
+
 test("Balances - clone", async () => {
   const balances = new Balances({ chain: 'bsc' })
 
@@ -181,4 +190,11 @@ test("Balances - subtractTokens", async () => {
   balances.subtractToken('tether', 100, { skipChain: true })
   balances.subtractToken('tether', 100, { skipChain: true })
   expect(balances.getBalances()).toEqual({ 'bsc:0001': 100, 'tether': 100 })
+})
+
+test("Balances - negative balances", async () => {
+  const balances = new Balances({ chain: 'bsc' })
+
+  balances.add('tether', [100, -200], { skipChain: true })
+  expect(await balances.getUSDValue()).toEqual(-100)
 })
