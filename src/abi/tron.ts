@@ -112,7 +112,7 @@ export async function getBalance(params: {
   const balance = ((data.balance ?? 0) + (data.frozen?.reduce((t: any, { frozen_balance }: any) => t + frozen_balance, 0) ?? 0)).toString()
 
   return {
-    output: handleDecimals(balance, params.decimals),
+    output: handleDecimals(balance, params.decimals ?? -12),
   };
 }
 
