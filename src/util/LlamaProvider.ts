@@ -286,6 +286,7 @@ const httpRPC = {
     if (!result) return null
     result.blockNumber = parseInt(result.blockNumber)
     result.transactionIndex = parseInt(result.transactionIndex)
+    result.data = result.input
     return result;
   },
   getTransactionReceipt: async (rpc: string, params: any): Promise<any> => {

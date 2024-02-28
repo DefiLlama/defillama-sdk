@@ -84,6 +84,15 @@ const DEPLOYMENT_BLOCK = {
   core: 6988931,
   callisto: 13811517,
   bittorrent: 31078552,
+  zeta: 1632781,
+  area: 353286,
+  zkfair: 6090959,
+  mode: 2465882,
+  xai: 222549,
+  dos: 161908,
+  xdc: 71542788,
+  fraxtal: 100,
+  lyra: 1935198,
 } as {
   [key: string | Chain]: number
 }
@@ -126,11 +135,11 @@ export default async function makeMultiCall(
     let error = null
     try {
       output = convertResults(contractInterface.decodeFunctionResult(fd, values), fd);
-    } catch (e) { 
+    } catch (e) {
       error = e
       success = false
-     }
-     const res: any = {
+    }
+    const res: any = {
       input: {
         params: calls[index].params,
         target: calls[index].contract,
