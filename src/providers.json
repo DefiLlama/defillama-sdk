@@ -953,11 +953,5 @@
       "https://xai-chain.net/rpc"
     ],
     "chainId": 660279
-  },
-  "fraxtal": {
-    "rpc": [
-      "https://rpc.frax.com"
-    ],
-    "chainId": 252
-  },
+  }
 }
