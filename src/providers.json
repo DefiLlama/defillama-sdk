@@ -959,5 +959,12 @@
       "https://rpc.frax.com"
     ],
     "chainId": 252
+  },
+  "blast": {
+    "rpc": [
+      "https://blast.blockpi.network/v1/rpc/public",
+      "https://rpc.ankr.com/blast"
+    ],
+    "chainId": 81457
   }
 }

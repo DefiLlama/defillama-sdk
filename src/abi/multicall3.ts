@@ -93,6 +93,8 @@ const DEPLOYMENT_BLOCK = {
   xdc: 71542788,
   fraxtal: 100,
   lyra: 1935198,
+  blast: 88189,
+  omax: 4750251,
 } as {
   [key: string | Chain]: number
 }
