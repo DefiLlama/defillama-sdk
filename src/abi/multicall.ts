@@ -369,6 +369,8 @@ function multicallAddress(chainId: number | BigInt) {
       return '0xA1da7a7eB5A858da410dE8FBC5092c2079B58413';
     case 42766: // zkfair
       return '0x9eF6667974Fb12D07774221AAB1E90b2ec48896E';
+    case 4200: // merlin
+      return '0x9eF6667974Fb12D07774221AAB1E90b2ec48896E';
     default:
       return null;
   }

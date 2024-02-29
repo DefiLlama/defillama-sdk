@@ -966,5 +966,11 @@
       "https://rpc.ankr.com/blast"
     ],
     "chainId": 81457
+  },
+  "merlin": {
+    "rpc": [
+      "https://rpc.merlinchain.io"
+    ],
+    "chainId": 4200
   }
 }
