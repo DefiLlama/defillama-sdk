@@ -371,6 +371,8 @@ function multicallAddress(chainId: number | BigInt) {
       return '0x9eF6667974Fb12D07774221AAB1E90b2ec48896E';
     case 4200: // merlin
       return '0x9eF6667974Fb12D07774221AAB1E90b2ec48896E';
+    case 7171: // bitrock
+      return '0x40DD0342A46Ab0893251211F6626E82c09A75345';
     default:
       return null;
   }

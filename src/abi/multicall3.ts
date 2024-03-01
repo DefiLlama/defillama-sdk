@@ -90,7 +90,7 @@ const DEPLOYMENT_BLOCK = {
   mode: 2465882,
   xai: 222549,
   dos: 161908,
-  xdc: 71542788,
+  // xdc: 71542788, // not working for some reason
   fraxtal: 100,
   lyra: 1935198,
   blast: 88189,
