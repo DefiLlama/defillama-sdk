@@ -972,5 +972,11 @@
       "https://rpc.merlinchain.io"
     ],
     "chainId": 4200
+  },
+  "hubblenet": {
+    "rpc": [
+      "https://rpc.hubble.exchange"
+    ],
+    "chainId": 1992
   }
 }
