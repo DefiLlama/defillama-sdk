@@ -973,7 +973,7 @@
     ],
     "chainId": 4200
   },
-  "glq": {
+  "graphlinq": {
     "rpc": [
       "https://glq-dataseed.graphlinq.io"
     ],
