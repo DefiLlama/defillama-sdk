@@ -95,6 +95,9 @@ const DEPLOYMENT_BLOCK = {
   lyra: 1935198,
   blast: 88189,
   omax: 4750251,
+  astrzk: 183817,
+  shibarium: 3485946,
+  imx: 3680945,
 } as {
   [key: string | Chain]: number
 }
