@@ -13,6 +13,14 @@ const defaultEnvValues = {
   INTERNAL_SDK_CACHE_FILE: './cache.json',
   TRON_RPC_CONCURRENCY_LIMIT: '5',
   TRON_RPC: 'https://api.trongrid.io',
+  NAKA_RPC: 'https://node.nakachain.xyz',
+  ETHF_RPC: 'https://rpc.dischain.xyz/',
+  CORE_RPC: "https://rpc.coredao.org,https://rpc.ankr.com/core,https://1rpc.io/core,https://rpc-core.icecreamswap.com",
+  BITGERT_RPC: "https://flux-rpc2.brisescan.com,https://mainnet-rpc.brisescan.com,https://chainrpc.com,https://serverrpc.com,https://flux-rpc.brisescan.com",
+  BITCHAIN_RPC: "https://rpc.bitchain.biz/",
+  OZONE_RPC: "https://node1.ozonechain.io",
+  ZETA_RPC: "https://zetachain-evm.blockpi.network/v1/rpc/public,https://zetachain-mainnet-archive.allthatnode.com:8545",
+  DEFIVERSE_RPC: "https://rpc.defi-verse.org/",
 } as {
   [key: string]: string
 }
@@ -49,7 +57,8 @@ export function getParallelGetBlocksLimit(chain: string) {
 }
 
 export function getEnvRPC(chain: string): string | undefined {
-  return getEnvValue(`${chain}_RPC`)
+  const key = `${chain}_RPC`.toUpperCase()
+  return getEnvValue(key, defaultEnvValues[key])
 }
 
 export function getEnvValue(key: string, defaultValue?: string) {
