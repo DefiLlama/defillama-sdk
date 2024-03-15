@@ -234,6 +234,14 @@ export class ChainApi {
   getBalancesV2() {
     return this._balances
   }
+
+  async getTransaction(tx: string) {
+    return this.provider.getTransaction(tx)
+  }
+
+  async getTransactionReceipt(tx: string) {
+    return this.provider.getTransactionReceipt(tx)
+  }
 }
 
 export default ChainApi
