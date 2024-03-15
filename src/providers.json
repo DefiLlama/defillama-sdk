@@ -978,5 +978,11 @@
       "https://rpc.hubble.exchange"
     ],
     "chainId": 1992
+  },
+  "graphlinq": {
+    "rpc": [
+      "https://glq-dataseed.graphlinq.io"
+    ],
+    "chainId": 614
   }
 }
