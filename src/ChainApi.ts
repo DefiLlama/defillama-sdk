@@ -20,10 +20,13 @@ export class ChainApi {
   timestamp?: number;
   provider: Provider;
   _balances: Balances;
+  storedKey?: string;
+  api: ChainApi
 
   constructor(params: {
     block?: Block;
     chain?: Chain | string;
+    storedKey?: string;
     timestamp?: number;
   }) {
     this.block = params.block
@@ -33,6 +36,8 @@ export class ChainApi {
     this._balances = new Balances({ chain: this.chain, timestamp: this.timestamp })
     // @ts-ignore
     this.chainId = providerList[this.chain]?.chainId
+    this.storedKey = params.storedKey
+    this.api = this
   }
 
   call(params: CallOptions) {
