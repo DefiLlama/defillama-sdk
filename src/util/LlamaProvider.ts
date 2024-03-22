@@ -66,7 +66,7 @@ export class LlamaProvider extends FallbackProvider {
         const block = await httpRPC.getBlockNumber(url)
         currentBlocks[url] = block
       } catch (e) {
-        // debugLog(`${_this.chainName} skipping RPC ${url} is not working, error: ${(e as any).message}`)
+        debugLog(`${_this.chainName} skipping RPC ${url} is not working, error: ${(e as any).message}`)
         _this._removeProvider(url)
       }
     }
@@ -104,8 +104,8 @@ export class LlamaProvider extends FallbackProvider {
       this.rpcs.filter(i => !runners.map(i => i.url).includes(i.url)).forEach(i => runners.push(i)) // ensure that there are no duplicates
       runners = runners.filter(i => !i.url.includes('llamarpc.com'));
     }
+    if (!runners.length) throw new Error('No RPCs available for ' + this.chainName)
     let primaryRunner = runners[0]
-    if (!primaryRunner) throw new Error('No RPCs available for ' + this.chainName)
     let errors = []
     runners = runners.slice(1).sort(() => Math.random() - 0.5) // randomize order of runners
     const isArchivalRequest = ['call', 'getBalance'].includes(method) && params[1] !== 'latest'
@@ -212,7 +212,7 @@ const httpRPC = {
         jsonrpc: '2.0', id: 1, params: [],
         method: 'eth_blockNumber',
       }, {
-        timeout: 3000
+        timeout: 30000
       })).data
       if (data.error) throw data.error
       return data.result
