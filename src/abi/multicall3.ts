@@ -99,6 +99,8 @@ const DEPLOYMENT_BLOCK = {
   shibarium: 3485946,
   imx: 3680945,
   sapphire: 734531,
+  jbc: 2919675,
+  rss3_vsl: 14193,
 } as {
   [key: string | Chain]: number
 }
