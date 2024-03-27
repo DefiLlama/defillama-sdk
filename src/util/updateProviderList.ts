@@ -11,6 +11,8 @@ const providerList = _providerList as {
   }
 }
 
+const duplicateChainIds: number[] = [2020]
+
 async function main() {
   let { data: chainData } = await axios('https://chainlist.org/rpcs.json')
   const providerIDMap = {} as {
@@ -22,6 +24,7 @@ async function main() {
     .filter((i: any) => !i.status || i.status === 'active')
     .filter((i: any) => i.shortName)
   for (const i of chainData) {
+    if (duplicateChainIds.includes(i.chainId)) continue    
     i.rpc = await filterForWorkingRPCs(i.rpc.map((j: any) => j.url), i.name, i.chainId)
     if (!i.rpc.length) continue;
     if (providerIDMap[i.chainId]) {
