@@ -759,7 +759,10 @@
   },
   "era": {
     "rpc": [
-      "https://mainnet.era.zksync.io"
+      "https://mainnet.era.zksync.io",
+      "https://zksync-era.blockpi.network/v1/rpc/public",
+      "https://1rpc.io/zksync2-era",
+      "https://zksync.drpc.org"
     ],
     "chainId": 324
   },
@@ -807,7 +810,9 @@
   },
   "linea": {
     "rpc": [
-      "https://rpc.linea.build"
+      "https://rpc.linea.build",
+      "https://linea.blockpi.network/v1/rpc/public",
+      "https://1rpc.io/linea"
     ],
     "chainId": 59144
   },
@@ -963,7 +968,10 @@
   "blast": {
     "rpc": [
       "https://blast.blockpi.network/v1/rpc/public",
-      "https://rpc.ankr.com/blast"
+      "https://rpc.ankr.com/blast",
+      "https://blastl2-mainnet.public.blastapi.io",
+      "https://rpc.blast.io",
+      "https://blast.din.dev/rpc"
     ],
     "chainId": 81457
   },
@@ -978,5 +986,13 @@
       "https://glq-dataseed.graphlinq.io"
     ],
     "chainId": 614
+  },
+  "manta": {
+    "rpc": [
+      "https://manta-pacific.drpc.org",
+      "https://1rpc.io/manta",
+      "https://pacific-rpc.manta.network/http"
+    ],
+    "chainId": 169
   }
 }
