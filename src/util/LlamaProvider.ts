@@ -212,7 +212,7 @@ const httpRPC = {
         jsonrpc: '2.0', id: 1, params: [],
         method: 'eth_blockNumber',
       }, {
-        timeout: 30000
+        timeout: +(getEnvValue('LLAMA_PROVIDER_RPC_GET_BLOCKNUMBER_TIMEOUT', '30000') as any)
       })).data
       if (data.error) throw data.error
       return data.result
@@ -232,7 +232,7 @@ const httpRPC = {
       jsonrpc: '2.0', id: 1, params,
       method: 'eth_getBlockByNumber',
     }, {
-      timeout: 3000
+      timeout: +(getEnvValue('LLAMA_PROVIDER_RPC_GET_BLOCK_TIMEOUT', '60000') as any)
     })
     if (error) throw error
     result.number = parseInt(result.number)
@@ -245,7 +245,7 @@ const httpRPC = {
       jsonrpc: '2.0', id: 1, params,
       method: 'eth_getBalance',
     }, {
-      timeout: 5000
+      timeout: +(getEnvValue('LLAMA_PROVIDER_RPC_GET_BALANCE_TIMEOUT', '30000') as any)
     })
     if (error) throw error
     return BigInt(result).toString();
@@ -256,7 +256,7 @@ const httpRPC = {
       jsonrpc: '2.0', id: 1, params,
       method: 'eth_call',
     }, {
-      timeout: 5000
+      timeout: +(getEnvValue('LLAMA_PROVIDER_RPC_CALL_TIMEOUT', '30000') as any)
     })
     if (data.error) throw data.error
     return data.result;
@@ -267,6 +267,8 @@ const httpRPC = {
     const { data: { result, error } } = await axios.post(rpc, {
       jsonrpc: '2.0', id: 1, params,
       method: 'eth_getLogs',
+    }, {
+      timeout: +(getEnvValue('LLAMA_PROVIDER_RPC_GET_LOGS_TIMEOUT', '180000') as any)
     })
     if (error) throw error
     result.forEach((i: any) => {
@@ -281,6 +283,8 @@ const httpRPC = {
     const { data: { result, error } } = await axios.post(rpc, {
       jsonrpc: '2.0', id: 1, params,
       method: 'eth_getTransactionByHash',
+    }, {
+      timeout: +(getEnvValue('LLAMA_PROVIDER_RPC_GET_TRANSACTION_TIMEOUT', '180000') as any)
     })
     if (error) throw error
     if (!result) return null
@@ -293,6 +297,8 @@ const httpRPC = {
     const { data: { result, error } } = await axios.post(rpc, {
       jsonrpc: '2.0', id: 1, params,
       method: 'eth_getTransactionReceipt',
+    }, {
+      timeout: +(getEnvValue('LLAMA_PROVIDER_RPC_GET_TXN_RECEIPT_TIMEOUT', '180000') as any)
     })
     if (error) throw error
     if (!result) return null
