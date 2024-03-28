@@ -66,7 +66,7 @@ async function filterForWorkingRPCs(rpc: string[], chain: string, chainId: numbe
         params: [],
         id: 1
       }, {
-        timeout: 3000
+        timeout: 30000
       })
       if (data.result) return i
     } catch (e) {
