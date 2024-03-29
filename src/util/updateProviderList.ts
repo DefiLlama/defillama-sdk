@@ -3,6 +3,7 @@ import _providerList from '../providers.json'
 import fs from 'fs'
 import axios from "axios";
 import { debugLog } from './debugLog';
+import PromisePool from '@supercharge/promise-pool';
 
 const providerList = _providerList as {
   [key: string]: {
@@ -21,9 +22,14 @@ async function main() {
     .filter((i: any) => i.rpc.length)
     .filter((i: any) => !i.status || i.status === 'active')
     .filter((i: any) => i.shortName)
-  for (const i of chainData) {
+  
+
+  await PromisePool
+  .withConcurrency(7)
+  .for(chainData)
+  .process(async (i: any) => {
     i.rpc = await filterForWorkingRPCs(i.rpc.map((j: any) => j.url), i.name, i.chainId)
-    if (!i.rpc.length) continue;
+    if (!i.rpc.length) return;
     if (providerIDMap[i.chainId]) {
       providerIDMap[i.chainId].push(...i.rpc)
     } else if (providerList[i.shortName.toLowerCase()]) {
@@ -34,8 +40,8 @@ async function main() {
         chainId: i.chainId
       }
     }
-  }
-
+  })
+  
   Object.values(providerList).forEach((i: any) => {
     i.rpc = Array.from(new Set(filterRPCs(i.rpc)));
   });
