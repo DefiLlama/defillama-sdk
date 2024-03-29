@@ -70,7 +70,7 @@ async function filterForWorkingRPCs(rpc: string[], chain: string, chainId: numbe
       })
       if (data.result) return i
     } catch (e) {
-      // console.log((e as any).message, i, chain)
+      console.log((e as any)?.message, i, chain)
     }
   }))
 
