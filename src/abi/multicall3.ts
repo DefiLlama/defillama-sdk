@@ -104,6 +104,7 @@ const DEPLOYMENT_BLOCK = {
   islm: 10515193,
   're-al': 695,
   svm: 400460,
+  degen: 414273,
 } as {
   [key: string | Chain]: number
 }
@@ -190,6 +191,7 @@ export function getMulticallAddress(chain: Chain, block?: string | number) {
     case 'lightlink_phoenix': multicallAddress = '0xb9a543d7B7dF05C8845AeA6627dE4a6622Ac863C'; break;
     case 'eon': multicallAddress = '0x4ea6779581bDAcd376724A52070bE89FfB74eC39'; break;
     case 'svm': multicallAddress = '0x40a3a97ac5d9acadF9F96cB8283a912dDFd05dc8'; break;
+    case 'degen': multicallAddress = '0xFBF562a98aB8584178efDcFd09755FF9A1e7E3a2'; break;
   }
   return multicallAddress
 }
