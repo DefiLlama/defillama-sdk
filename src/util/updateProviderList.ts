@@ -20,31 +20,41 @@ async function main() {
   Object.values(providerList).forEach((i: any) => providerIDMap[i.chainId] = i.rpc)
   chainData = chainData
     .filter((i: any) => i.rpc.length)
-    .filter((i: any) => !i.status || i.status === 'active')
+    // .filter((i: any) => !i.status || (i.status === 'active' || i.status === 'incubating'))
     .filter((i: any) => i.shortName)
-  
+
+  // shuffle the array
+  chainData.sort(() => Math.random() - 0.5)
+
 
   await PromisePool
-  .withConcurrency(7)
-  .for(chainData)
-  .process(async (i: any) => {
-    i.rpc = await filterForWorkingRPCs(i.rpc.map((j: any) => j.url), i.name, i.chainId)
-    if (!i.rpc.length) return;
-    if (providerIDMap[i.chainId]) {
-      providerIDMap[i.chainId].push(...i.rpc)
-    } else if (providerList[i.shortName.toLowerCase()]) {
-      debugLog(`Duplicate short name ${i.chainId} for ${i.shortName}, doing nothing`)
-    } else {
-      providerList[i.shortName.toLowerCase()] = {
-        rpc: i.rpc,
-        chainId: i.chainId
+    .withConcurrency(7)
+    .for(chainData)
+    .process(async (i: any) => {
+      i.rpc = await filterForWorkingRPCs(i.rpc.map((j: any) => j.url), i.name, i.chainId)
+      if (!i.rpc.length) return;
+      if (providerIDMap[i.chainId]) {
+        providerIDMap[i.chainId].push(...i.rpc)
+      } else if (providerList[i.shortName.toLowerCase()]) {
+        debugLog(`Duplicate short name ${i.chainId} for ${i.shortName}, doing nothing`)
+      } else {
+        providerList[i.shortName.toLowerCase()] = {
+          rpc: i.rpc,
+          chainId: i.chainId
+        }
       }
+    })
+
+  Object.entries(providerList).forEach(([key, i]: any) => {
+    if (key.includes('testnet')) {
+      delete providerList[key]
+      return;
     }
-  })
-  
-  Object.values(providerList).forEach((i: any) => {
     i.rpc = Array.from(new Set(filterRPCs(i.rpc)));
   });
+  Object.keys(providerList).forEach((i: any) => {
+    if (!providerList[i].rpc.length) delete providerList[i]
+  })
   fs.writeFileSync(__dirname + '/../providers.json', JSON.stringify(providerList));
 }
 
@@ -52,7 +62,7 @@ function filterRPCs(rpc: string[]): string[] {
   return rpc.filter((i: string) => {
     if (i.endsWith('/demo')) return false // remove demo rpc
     if (i.includes('$')) return false // remove anything where api key is injected
-    if (i.startsWith('wss://') || i.startsWith('ws://')) return false // remove websocket rpcs
+    if (i.startsWith('wss://') || i.startsWith('ws://') || i.includes('testnet') || i.includes('devnet')) return false // remove websocket rpcs
     return true
   }).map((i: string) => {
     if (i.endsWith('/')) return i.slice(0, -1)

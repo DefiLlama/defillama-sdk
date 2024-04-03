@@ -577,7 +577,11 @@
   },
   "bitgert": {
     "rpc": [
-      "https://rpc.icecreamswap.com"
+      "https://flux-rpc2.brisescan.com",
+      "https://mainnet-rpc.brisescan.com",
+      "https://chainrpc.com",
+      "https://serverrpc.com",
+      "https://flux-rpc.brisescan.com"
     ],
     "chainId": 32520
   },
@@ -972,6 +976,78 @@
       "https://rpc.merlinchain.io"
     ],
     "chainId": 4200
+  },
+  "naka": {
+    "rpc": [
+      "https://node.nakachain.xyz"
+    ],
+    "chainId": 98464351684354384354
+  },
+  "ethf": {
+    "rpc": [
+      "https://rpc.dischain.xyz"
+    ],
+    "chainId": 513100
+  },
+  "core": {
+    "rpc": [
+      "https://rpc.coredao.org","https://rpc.ankr.com/core","https://1rpc.io/core","https://rpc-core.icecreamswap.com"
+    ],
+    "chainId": 1116
+  },
+  "bitchain": {
+    "rpc": [
+      "https://rpc.bitchain.biz"
+    ],
+    "chainId": 198
+  },
+  "ozone": {
+    "rpc": [
+      "https://node1.ozonechain.io"
+    ],
+    "chainId": 4000
+  },
+  "zeta": {
+    "rpc": [
+      "https://zetachain-evm.blockpi.network/v1/rpc/public","https://zetachain-mainnet-archive.allthatnode.com:8545"
+    ],
+    "chainId": 7000
+  },
+  "defiverse": {
+    "rpc": [
+      "https://rpc.defi-verse.org/"
+    ],
+    "chainId": 16116
+  },
+  "zklink": {
+    "rpc": [
+      "https://rpc.zklink.io"
+    ],
+    "chainId": 810180
+  },
+  "kinto": {
+    "rpc": [
+      "https://rpc.kinto-rpc.com"
+    ],
+    "chainId": 7887
+  },
+  "defichain_evm": {
+    "rpc": [
+      "https://dmc.mydefichain.com/mainnet","https://dmc01.mydefichain.com/mainnet"
+    ],
+    "chainId": 1130
+  },
+  "rss3_vsl": {
+    "rpc": [
+      "https://rpc.rss3.io"
+    ],
+    "chainId": 12553
+  },
+  "degen": {
+    "rpc": [
+      "https://rpc.degen.tips"
+    ],
+    "chainId": 666666666
   },
   "graphlinq": {
     "rpc": [
