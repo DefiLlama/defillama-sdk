@@ -48,6 +48,8 @@ async function createSubPath(folderPath: string) {
   foldersCreated[folderPath] = true;
 }
 
+const ONE_DAY_IN_MS = 1000 * 60 * 60 * 24
+
 export async function readCache(file: string, options: ReadCacheOptions = {}): Promise<any> {
   try {
     const data = await readFile(file, options)
@@ -61,6 +63,11 @@ export async function readCache(file: string, options: ReadCacheOptions = {}): P
   async function readFile(file: string, options: ReadCacheOptions = {}) {
     const filePath = getFilePath(file)
     try {
+      if (options.checkIfRecent) {
+        const stats = await fs.stat(filePath)
+        if (Date.now() - stats.mtimeMs > ONE_DAY_IN_MS)
+          throw new Error('File too old, read from R2 isntead')
+      }
       if (options.readFromR2Cache) throw new Error('Read from R2 cache')
       const data = await fs.readFile(filePath)
       return data
@@ -83,6 +90,7 @@ interface WriteCacheOptions {
 }
 
 interface ReadCacheOptions {
+  checkIfRecent?: boolean, // if the file is older than a day, read from R2 cache
   readFromR2Cache?: boolean,
   skipR2Cache?: boolean
 }
@@ -113,7 +121,14 @@ export async function writeCache(file: string, data: any, options: WriteCacheOpt
 
 export async function parseCache(dataString: string | Buffer) {
   if (typeof dataString === 'string') dataString = Buffer.from(dataString, 'base64')
-  const decompressed = await unzipAsync(dataString)
+  let decompressed: any
+  try {
+    decompressed = await unzipAsync(dataString)
+  } catch (e) {
+    dataString = dataString.toString('utf8')
+    dataString = Buffer.from(dataString, 'base64')
+    decompressed = await unzipAsync(dataString)
+  }
   return JSON.parse(decompressed).llamaWrapped
 }
 
