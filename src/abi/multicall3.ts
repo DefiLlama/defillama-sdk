@@ -105,6 +105,7 @@ const DEPLOYMENT_BLOCK = {
   're-al': 695,
   svm: 400460,
   degen: 414273,
+  karak: 4475345,
 } as {
   [key: string | Chain]: number
 }
@@ -192,6 +193,7 @@ export function getMulticallAddress(chain: Chain, block?: string | number) {
     case 'eon': multicallAddress = '0x4ea6779581bDAcd376724A52070bE89FfB74eC39'; break;
     case 'svm': multicallAddress = '0x40a3a97ac5d9acadF9F96cB8283a912dDFd05dc8'; break;
     case 'degen': multicallAddress = '0xFBF562a98aB8584178efDcFd09755FF9A1e7E3a2'; break;
+    case 'karak': multicallAddress = '0x73331e33f1552E706D56aa453ce19BCE314B4F59'; break;
   }
   return multicallAddress
 }

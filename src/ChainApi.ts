@@ -156,6 +156,7 @@ export class ChainApi {
   }
 
   async sumTokens({
+    token,
     tokens = [],
     owners = [],
     owner,
@@ -165,6 +166,7 @@ export class ChainApi {
     blacklistedOwners = [],
     ownerTokens = [],
   }: {
+    token?: string,
     tokens?: string[],
     owner?: string,
     owners?: string[],
@@ -177,6 +179,8 @@ export class ChainApi {
 
     if (tokensAndOwners2.length)
       tokensAndOwners.push(...tokensAndOwners2[0].map((i: string, j: number) => [i, tokensAndOwners2[1][j]]))
+
+    if (token) tokens.push(token)
 
     if (tokens.length) {
       if (owner) owners.push(owner)
