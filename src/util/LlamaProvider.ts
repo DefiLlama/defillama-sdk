@@ -212,7 +212,7 @@ const httpRPC = {
         jsonrpc: '2.0', id: 1, params: [],
         method: 'eth_blockNumber',
       }, {
-        timeout: +(getEnvValue('LLAMA_PROVIDER_RPC_GET_BLOCKNUMBER_TIMEOUT', '30000') as any)
+        timeout: +(getEnvValue('LLAMA_PROVIDER_RPC_GET_BLOCKNUMBER_TIMEOUT', '3000') as any)
       })).data
       if (data.error) throw data.error
       return data.result
