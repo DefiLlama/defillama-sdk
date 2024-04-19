@@ -106,6 +106,8 @@ const DEPLOYMENT_BLOCK = {
   svm: 400460,
   degen: 414273,
   karak: 4475345,
+  iotaevm: 25022,
+  planq: 8470015,
 } as {
   [key: string | Chain]: number
 }
