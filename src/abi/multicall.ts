@@ -373,6 +373,8 @@ function multicallAddress(chainId: number | BigInt) {
     //   return '0x4398C643e4FA26420B49AcA0d3EeCD96a7C20e5e';
     case 7171: // bitrock
       return '0x40DD0342A46Ab0893251211F6626E82c09A75345';
+    case 200901: // bitlayer
+      return '0xc8818aaeaBF0dF9f3f3ffF54Ab185705177A6234';   
     default:
       return null;
   }
