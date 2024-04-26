@@ -1,6 +1,7 @@
 
 import _providerList from '../providers.json'
 import fs from 'fs'
+import * as laxios from "./laxios";
 import axios from "axios";
 import { debugLog } from './debugLog';
 import PromisePool from '@supercharge/promise-pool';
@@ -62,7 +63,8 @@ function filterRPCs(rpc: string[]): string[] {
   return rpc.filter((i: string) => {
     if (i.endsWith('/demo')) return false // remove demo rpc
     if (i.includes('$')) return false // remove anything where api key is injected
-    if (i.startsWith('wss://') || i.startsWith('ws://') || i.includes('testnet') || i.includes('devnet')) return false // remove websocket rpcs
+    // reject websocket, http, testnet, devnet, and anything with '='
+    if (/(wss\:|ws\:|http\:|test|devnet|\=)/.test(i)) return false // remove anything with blacklisted words
     return true
   }).map((i: string) => {
     if (i.endsWith('/')) return i.slice(0, -1)
@@ -76,7 +78,7 @@ async function filterForWorkingRPCs(rpc: string[], chain: string, chainId: numbe
 
   const promises = await Promise.all(rpc.map(async (i: string) => {
     try {
-      const { data } = await axios.post(i, {
+      const { data } = await laxios.post(i, {
         jsonrpc: '2.0',
         method: 'eth_blockNumber',
         params: [],

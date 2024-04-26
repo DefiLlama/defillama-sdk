@@ -1,9 +1,9 @@
 import { AbstractProvider, AddressLike, Block, BlockTag, FallbackProvider, Filter, FilterByBlockHash, JsonRpcProvider, Log, Provider, TransactionRequest, WebSocketProvider } from "ethers";
 import providerList from '../providers.json'
-import { getArchivalRPCs, getBatchMaxCount, getChainId, getChainRPCs, getEnvValue } from './env';
+import { getArchivalRPCs, getChainId, getChainRPCs, getEnvValue } from './env';
 import { debugLog } from './debugLog';
 import { Chain } from "../types";
-import axios from "axios";
+import * as laxios from "./laxios";
 
 type ProviderWithURL = {
   url: string;
@@ -208,7 +208,7 @@ function toHex(n: number | string) {
 const httpRPC = {
   getBlockNumber: async (rpc: string): Promise<number> => {
     const getData = async () => {
-      const data = (await axios.post(rpc, {
+      const data = (await laxios.post(rpc, {
         jsonrpc: '2.0', id: 1, params: [],
         method: 'eth_blockNumber',
       }, {
@@ -228,7 +228,7 @@ const httpRPC = {
   },
   getBlock: async (rpc: string, params: any): Promise<any> => {
     params[0] = toHex(params[0])
-    const { data: { result, error } } = await axios.post(rpc, {
+    const { data: { result, error } } = await laxios.post(rpc, {
       jsonrpc: '2.0', id: 1, params,
       method: 'eth_getBlockByNumber',
     }, {
@@ -241,7 +241,7 @@ const httpRPC = {
   },
   getBalance: async (rpc: string, params: any): Promise<any> => {
     params[1] = toHex(params[1])
-    const { data: { result, error } } = await axios.post(rpc, {
+    const { data: { result, error } } = await laxios.post(rpc, {
       jsonrpc: '2.0', id: 1, params,
       method: 'eth_getBalance',
     }, {
@@ -252,7 +252,7 @@ const httpRPC = {
   },
   call: async (rpc: string, params: any): Promise<any> => {
     params[1] = toHex(params[1])
-    const { data } = await axios.post(rpc, {
+    const { data } = await laxios.post(rpc, {
       jsonrpc: '2.0', id: 1, params,
       method: 'eth_call',
     }, {
@@ -264,7 +264,7 @@ const httpRPC = {
   getLogs: async (rpc: string, params: any): Promise<any> => {
     params[0].fromBlock = toHex(params[0].fromBlock)
     params[0].toBlock = toHex(params[0].toBlock)
-    const { data: { result, error } } = await axios.post(rpc, {
+    const { data: { result, error } } = await laxios.post(rpc, {
       jsonrpc: '2.0', id: 1, params,
       method: 'eth_getLogs',
     }, {
@@ -280,7 +280,7 @@ const httpRPC = {
     return result;
   },
   getTransaction: async (rpc: string, params: any): Promise<any> => {
-    const { data: { result, error } } = await axios.post(rpc, {
+    const { data: { result, error } } = await laxios.post(rpc, {
       jsonrpc: '2.0', id: 1, params,
       method: 'eth_getTransactionByHash',
     }, {
@@ -294,7 +294,7 @@ const httpRPC = {
     return result;
   },
   getTransactionReceipt: async (rpc: string, params: any): Promise<any> => {
-    const { data: { result, error } } = await axios.post(rpc, {
+    const { data: { result, error } } = await laxios.post(rpc, {
       jsonrpc: '2.0', id: 1, params,
       method: 'eth_getTransactionReceipt',
     }, {
