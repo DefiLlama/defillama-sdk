@@ -934,7 +934,9 @@
   },
   "fsc": {
     "rpc": [
-      "https://fsc-dataseed1.fonscan.io"
+      "https://fsc-dataseed1.fonscan.io",
+      "https://fsc-dataseed2.fonscan.io",
+      "https://fonscan.io/api/eth-rpc"
     ],
     "chainId": 201022
   },
@@ -1054,5 +1056,27 @@
       "https://glq-dataseed.graphlinq.io"
     ],
     "chainId": 614
+  },
+  "karak": {
+    "rpc": [
+      "https://rpc.karak.network"
+    ],
+    "chainId": 2410
+  },
+  "xlayer": {
+    "rpc": [
+      "https://endpoints.omniatech.io/v1/xlayer/mainnet/public",
+      "https://wallet.okex.org/fullnode/xlayer/discover/rpc/ro",
+      "https://rpc.xlayer.tech",
+      "https://xlayerrpc.okx.com"
+    ],
+    "chainId": 196
+  },
+  "lac": {
+    "rpc": [
+      "https://rpc1.mainnet.lachain.network",
+      "https://rpc2.mainnet.lachain.network"
+    ],
+    "chainId": 274
   }
 }

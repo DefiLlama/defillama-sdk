@@ -62,7 +62,8 @@ function filterRPCs(rpc: string[]): string[] {
   return rpc.filter((i: string) => {
     if (i.endsWith('/demo')) return false // remove demo rpc
     if (i.includes('$')) return false // remove anything where api key is injected
-    if (i.startsWith('wss://') || i.startsWith('ws://') || i.includes('testnet') || i.includes('devnet')) return false // remove websocket rpcs
+    // reject websocket, http, testnet, devnet, and anything with '='
+    if (/(wss\:|ws\:|http\:|test|devnet|\=)/.test(i)) return false // remove anything with blacklisted words
     return true
   }).map((i: string) => {
     if (i.endsWith('/')) return i.slice(0, -1)

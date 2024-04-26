@@ -373,6 +373,10 @@ function multicallAddress(chainId: number | BigInt) {
     //   return '0x4398C643e4FA26420B49AcA0d3EeCD96a7C20e5e';
     case 7171: // bitrock
       return '0x40DD0342A46Ab0893251211F6626E82c09A75345';
+    case 201022: // fsc
+      return '0x18fA376d92511Dd04090566AB6144847c03557d8';
+    case 196: // xlayer okb
+      return '0x398F92e15519B4F6F2D5cc42C17FC9ED15De53d8';
     default:
       return null;
   }
