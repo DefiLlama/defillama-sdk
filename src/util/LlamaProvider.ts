@@ -41,6 +41,9 @@ export class LlamaProvider extends FallbackProvider {
   }
 
   async _ready() {
+    if(process.env["SKIP_RPC_CHECK"] === "true"){
+      return
+    }
     const outOfSyncLimit = 1000
     const _this = this
     const currentBlocks = {} as Record<string, number>
