@@ -108,6 +108,7 @@ const DEPLOYMENT_BLOCK = {
   karak: 4475345,
   iotaevm: 25022,
   planq: 8470015,
+  bob: 946071,
 } as {
   [key: string | Chain]: number
 }
