@@ -1079,5 +1079,11 @@
       "https://rpc2.mainnet.lachain.network"
     ],
     "chainId": 274
+  },
+  "bouncebit": {
+    "rpc": [
+      "https://fullnode-mainnet.bouncebitapi.com"
+    ],
+    "chainId": 6001
   }
 }

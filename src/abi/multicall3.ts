@@ -109,6 +109,9 @@ const DEPLOYMENT_BLOCK = {
   iotaevm: 25022,
   planq: 8470015,
   bob: 946071,
+  bitr: 1045566,
+  dreyerx: 163720,
+  cyeth: 1,
 } as {
   [key: string | Chain]: number
 }
@@ -197,6 +200,7 @@ export function getMulticallAddress(chain: Chain, block?: string | number) {
     case 'svm': multicallAddress = '0x40a3a97ac5d9acadF9F96cB8283a912dDFd05dc8'; break;
     case 'degen': multicallAddress = '0xFBF562a98aB8584178efDcFd09755FF9A1e7E3a2'; break;
     case 'karak': multicallAddress = '0x73331e33f1552E706D56aa453ce19BCE314B4F59'; break;
+    case 'bitr': multicallAddress = '0x4282868539c7e22b9bc9248fd7c8196cdaeeef13'; break;
   }
   return multicallAddress
 }
