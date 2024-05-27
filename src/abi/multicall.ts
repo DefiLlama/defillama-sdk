@@ -377,6 +377,14 @@ function multicallAddress(chainId: number | BigInt) {
       return '0x18fA376d92511Dd04090566AB6144847c03557d8';
     case 196: // xlayer okb
       return '0x398F92e15519B4F6F2D5cc42C17FC9ED15De53d8';
+    case 200901: // btr
+      return '0xc8818aaeaBF0dF9f3f3ffF54Ab185705177A6234';
+    case 1130:  // defichain evm
+      return '0x7fEf77CDe3B41221Cff54B84Ea89D2EBc6b53352';
+    case 6001:  // bouncebit
+      return '0x493d616f5F9a64e5B3D527120E406439bdF29272';
+    case 810180:  // zklink
+      return '0xa8738F57538E3Bb73872d1133F2358c7Fe56FD35';
     default:
       return null;
   }

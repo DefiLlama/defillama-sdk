@@ -1085,5 +1085,11 @@
       "https://fullnode-mainnet.bouncebitapi.com"
     ],
     "chainId": 6001
+  },
+  "real": {
+    "rpc": [
+      "https://real.drpc.org"
+    ],
+    "chainId": 111188
   }
 }

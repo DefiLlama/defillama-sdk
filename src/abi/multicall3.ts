@@ -103,6 +103,7 @@ const DEPLOYMENT_BLOCK = {
   rss3_vsl: 14193,
   islm: 10515193,
   're-al': 695,
+  real: 695,
   svm: 400460,
   degen: 414273,
   karak: 4475345,
