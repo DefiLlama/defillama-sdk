@@ -385,6 +385,8 @@ function multicallAddress(chainId: number | BigInt) {
       return '0x493d616f5F9a64e5B3D527120E406439bdF29272';
     case 810180:  // zklink
       return '0xa8738F57538E3Bb73872d1133F2358c7Fe56FD35';
+    case 1329: // sei
+      return '0x51aA24A9230e62CfaF259c47DE3133578cE36317';
     default:
       return null;
   }

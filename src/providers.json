@@ -1091,5 +1091,11 @@
       "https://real.drpc.org"
     ],
     "chainId": 111188
+  },
+  "sei": {
+    "rpc": [
+      "https://evm-rpc.sei-apis.com"
+    ],
+    "chainId": 1329
   }
 }
