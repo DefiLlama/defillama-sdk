@@ -1091,5 +1091,17 @@
       "https://real.drpc.org"
     ],
     "chainId": 111188
+  },
+  "taiko": {
+    "rpc": [
+      "https://rpc.taiko.xyz"
+    ],
+    "chainId": 167000
+  },
+  "sei": {
+    "rpc": [
+      "https://evm-rpc.sei-apis.com"
+    ],
+    "chainId": 1329
   }
 }

@@ -33,7 +33,7 @@ const endPoints: {
   neutron: "https://rest-kralum.neutron-1.neutron.org",
   quasar: "https://quasar-api.polkachu.com",
   gravitybridge: "https://gravitychain.io:1317",
-  sei: "https://sei-api.polkachu.com",
+  // sei: "https://sei-api.polkachu.com",
   aura: "https://lcd.aura.network",
   archway: "https://api.mainnet.archway.io",
   sifchain: "https://sifchain-api.polkachu.com",
@@ -41,7 +41,7 @@ const endPoints: {
   bostrom: "https://lcd.bostrom.cybernode.ai"
 };
 
-const ibcChains = ['terra', 'terra2', 'crescent', 'osmosis', 'kujira', 'stargaze', 'juno', 'injective', 'cosmos', 'comdex', 'umee', 'orai', 'persistence', 'fxcore', 'neutron', 'quasar', 'chihuahua', 'sei', 'archway', 'migaloo', 'secret', 'aura', 'xpla', 'bostrom']
+const ibcChains = ['terra', 'terra2', 'crescent', 'osmosis', 'kujira', 'stargaze', 'juno', 'injective', 'cosmos', 'comdex', 'umee', 'orai', 'persistence', 'fxcore', 'neutron', 'quasar', 'chihuahua', 'archway', 'migaloo', 'secret', 'aura', 'xpla', 'bostrom']
 
 export const isCosmosChain = (chain: string) => ibcChains.includes(chain) || !!endPoints[chain]
 
