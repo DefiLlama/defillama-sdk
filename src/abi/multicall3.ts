@@ -113,6 +113,7 @@ const DEPLOYMENT_BLOCK = {
   bitr: 1045566,
   dreyerx: 163720,
   cyeth: 1,
+  taiko: 938,
 } as {
   [key: string | Chain]: number
 }
@@ -202,6 +203,7 @@ export function getMulticallAddress(chain: Chain, block?: string | number) {
     case 'degen': multicallAddress = '0xFBF562a98aB8584178efDcFd09755FF9A1e7E3a2'; break;
     case 'karak': multicallAddress = '0x73331e33f1552E706D56aa453ce19BCE314B4F59'; break;
     case 'bitr': multicallAddress = '0x4282868539c7e22b9bc9248fd7c8196cdaeeef13'; break;
+    case 'taiko': multicallAddress = '0xcb2436774C3e191c85056d248EF4260ce5f27A9D'; break;
   }
   return multicallAddress
 }

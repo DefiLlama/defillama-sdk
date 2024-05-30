@@ -24,6 +24,7 @@
   ],
   "dependencies": {
     "@aws-sdk/client-s3": "^3.400.0",
+    "@elastic/elasticsearch": "^8.13.1",
     "@supercharge/promise-pool": "^2.1.0",
     "axios": "^1.6.5",
     "ethers": "^6.0.0",

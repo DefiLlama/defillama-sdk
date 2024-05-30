@@ -104,6 +104,13 @@ test("imports", async () => {
         "writeCache": [Function],
         "writeExpiringJsonCache": [Function],
       },
+      "elastic": {
+        "addDebugLog": [Function],
+        "addErrorLog": [Function],
+        "addRuntimeLog": [Function],
+        "getClient": [Function],
+        "writeLog": [Function],
+      },
       "getEventLogs": [Function],
       "getProvider": [Function],
       "humanizeNumber": [Function],
