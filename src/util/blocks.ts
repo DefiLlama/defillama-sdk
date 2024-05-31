@@ -138,6 +138,7 @@ function getExtraProvider(chain: string | undefined) {
 export const getLatestBlock = getCurrentChainBlock
 
 const intialBlocks = {
+  sei: 78353999,
   terra: 4724001,
   crab: 4969901
 } as {
