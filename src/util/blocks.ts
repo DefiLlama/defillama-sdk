@@ -138,6 +138,7 @@ function getExtraProvider(chain: string | undefined) {
 export const getLatestBlock = getCurrentChainBlock
 
 const intialBlocks = {
+  planq: 9020190,
   sei: 78353999,
   terra: 4724001,
   crab: 4969901
@@ -210,6 +211,9 @@ async function _lookupBlock(
   }
 
   let low = intialBlocks[chain] ?? 100;
+  let envLowValue = process.env[`${chain.toUpperCase()}_BLOCK_LOW`]
+  if (envLowValue)
+    low = parseInt(envLowValue)
   let lowBlock: TimestampBlock = getLowBlock()
   let highBlock: TimestampBlock = getHighBlock()
 
