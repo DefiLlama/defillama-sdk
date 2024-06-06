@@ -88,7 +88,7 @@ export class LlamaProvider extends FallbackProvider {
   }
 
   async getLogs(_filter: Filter | FilterByBlockHash): Promise<Log[]> {
-    return this._performAction('getLogs', [_filter], 3)
+    return this._performAction('getLogs', [_filter], 7)
   }
 
   async getTransaction(_hash: string): Promise<any> {
@@ -110,7 +110,11 @@ export class LlamaProvider extends FallbackProvider {
     if (!runners.length) throw new Error('No RPCs available for ' + this.chainName)
     let primaryRunner = runners[0]
     let errors = []
-    runners = runners.slice(1).sort(() => Math.random() - 0.5) // randomize order of runners
+    if (method === 'getLogs') {
+      runners = runners.slice(1).concat(this.rpcs)
+      runners = runners.sort(() => Math.random() - 0.5) // randomize order of runners
+    } else 
+      runners = runners.slice(1).sort(() => Math.random() - 0.5) // randomize order of runners
     const isArchivalRequest = ['call', 'getBalance'].includes(method) && params[1] !== 'latest'
     let noPlayingAround = getEnvValue('RPC_NO_PLAYING_AROUND') === 'true' || primaryRunner.url.includes('llama.fi') || method === 'getLogs' || isArchivalRequest
 
@@ -271,7 +275,7 @@ const httpRPC = {
       jsonrpc: '2.0', id: 1, params,
       method: 'eth_getLogs',
     }, {
-      timeout: +(getEnvValue('LLAMA_PROVIDER_RPC_GET_LOGS_TIMEOUT', '180000') as any)
+      timeout: +(getEnvValue('LLAMA_PROVIDER_RPC_GET_LOGS_TIMEOUT', '30000') as any)
     })
     if (error) throw error
     result.forEach((i: any) => {
