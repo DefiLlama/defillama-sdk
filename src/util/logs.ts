@@ -50,7 +50,7 @@ export async function getLogs(options: GetLogsOptions): Promise<EventLog[] | Eve
     flatten = true,
   } = options
 
-  if (!target && !targets?.length) throw new Error('target|targets is required')
+  // if (!target && !targets?.length) throw new Error('target|targets is required')
   if (!fromBlock && !fromTimestamp) throw new Error('fromBlock or fromTimestamp is required')
   if (!toBlock && !toTimestamp) throw new Error('toBlock or toTimestamp is required')
 
@@ -193,7 +193,7 @@ export async function getLogs(options: GetLogsOptions): Promise<EventLog[] | Eve
     if (!extraKey) throw new Error('extraKey is required')
     if (keys.length) extraKey += '-' + keys.join('-').toLowerCase()
 
-    return `event-logs/${chain}/${target!.toLowerCase()}-${extraKey}`
+    return `event-logs/${chain}/${target?.toLowerCase() ?? null}-${extraKey}`
   }
 
   // we need to form filter topic with indexed keyword, else it messes up generated topic string

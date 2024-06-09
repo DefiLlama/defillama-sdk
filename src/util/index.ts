@@ -32,7 +32,7 @@ function getChainLimiter(chain: string, providerUrl: string) {
 }
 
 type GetLogsOptions = {
-  target: Address;
+  target?: Address;
   topic: string;
   keys: string[]; // This is just used to select only part of the logs
   fromBlock: number;
