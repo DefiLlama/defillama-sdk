@@ -113,6 +113,10 @@ test("imports", async () => {
       },
       "getEventLogs": [Function],
       "getProvider": [Function],
+      "graph": {
+        "modifyEndpoint": [Function],
+        "request": [Function],
+      },
       "humanizeNumber": [Function],
       "log": [Function],
       "logTable": [Function],

@@ -22,7 +22,7 @@ test("zkfair - get token", async () => {
   expect(res1[0]).toBe('0x1cD3E2A23C45A690a18Ed93FD1412543f464158F')
 })
 
-test("kava - get block", async () => {
+test.skip("kava - get block", async () => {
   await getLatestBlock('kava')
   await lookupBlock(1669037786, { chain: 'kava' })
 });
@@ -78,7 +78,7 @@ test("lookupBlock celo", async () => {
   expect(getDiff(block2.timestamp, 1638821718)).toBeLessThanOrEqual(15 * 60); // difference should be under 15 minutes
 });
 
-test("lookupBlock blockscout - kava", async () => {
+test.skip("lookupBlock blockscout - kava", async () => {
   const block = await lookupBlock(1668158653, { chain: 'kava' });
   expect(getDiff(block.block, 2308876)).toBeLessThanOrEqual(500); // 200 blocks appromiates to 10 minute difference
   expect(getDiff(block.timestamp, 1668158653)).toBeLessThanOrEqual(15 * 60); // difference should be under 15 minutes

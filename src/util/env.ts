@@ -7,7 +7,7 @@ const _ENV_CONSTANTS = {
 
 const whitelistedEnvConstants = [
   'R2_ENDPOINT', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'TRON_PRO_API_KEY', 'COINS_API_KEY',
-  'ELASTICSEARCH_CONFIG',
+  'ELASTICSEARCH_CONFIG', 'GRAPH_API_KEY'
 ]
 
 const defaultEnvValues = {

@@ -12,6 +12,7 @@ export * as elastic from "./util/elastic";
 export * as api2 from "./api2";
 export * as blocks from "./computeTVL/blocks";
 import * as humanN from "./computeTVL/humanizeNumber";
+export * as graph from "./util/graph";
 
 export const log = debugLog
 export const logTable = debugTable
