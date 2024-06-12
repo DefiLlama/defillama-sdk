@@ -8,7 +8,8 @@ export async function request(endpoint: string, query: string, {
   cacheKey,
   variables,
   withMetadata = false,
-}: { cache?: boolean, cacheKey?: string, withMetadata?: boolean, variables?: any } = {}) {
+  network,
+}: { cache?: boolean, cacheKey?: string, withMetadata?: boolean, variables?: any, network?: string } = {}) {
 
   try {
     const data = await _request()
@@ -25,18 +26,21 @@ export async function request(endpoint: string, query: string, {
   }
 
   async function _request() {
-    endpoint = modifyEndpoint(endpoint)
+    endpoint = modifyEndpoint(endpoint, network)
     const { data: result } = await axios.post(endpoint, { query, variables })
     if (result.errors) throw new Error(result.errors[0].message)
     return withMetadata ? result : result.data
   }
 }
 
-export function modifyEndpoint(endpoint: string) {
+export function modifyEndpoint(endpoint: string, network = 'arbitrum') {
   // example: https://api.thegraph.com/subgraphs/name/yieldyak/reinvest-tracker
   const graphKey = getEnvValue('GRAPH_API_KEY')
+
   if (!graphKey) return endpoint
-  if (!endpoint.includes('api.thegraph.com')) return endpoint
+  if (!endpoint.includes('http')) // we assume it is subgraph id
+      endpoint = `https://gateway-${network}.network.thegraph.com/api/[api-key]/subgraphs/id/${endpoint}`
+  if (!endpoint.includes('thegraph.com')) return endpoint
 
   endpoint = endpoint.replace('[api-key]', graphKey)
   return endpoint
