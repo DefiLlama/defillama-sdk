@@ -35,7 +35,7 @@ export async function request(endpoint: string, query: string, {
 
 export function modifyEndpoint(endpoint: string, network = 'arbitrum') {
   // example: https://api.thegraph.com/subgraphs/name/yieldyak/reinvest-tracker
-  const graphKey = getEnvValue('GRAPH_API_KEY')
+  let graphKey = getEnvValue('GRAPH_API_KEY')
 
   if (!endpoint.includes('http')) // we assume it is subgraph id
       endpoint = `https://gateway-${network}.network.thegraph.com/api/[api-key]/subgraphs/id/${endpoint}`
