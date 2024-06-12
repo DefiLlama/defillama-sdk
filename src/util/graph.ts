@@ -37,10 +37,13 @@ export function modifyEndpoint(endpoint: string, network = 'arbitrum') {
   // example: https://api.thegraph.com/subgraphs/name/yieldyak/reinvest-tracker
   const graphKey = getEnvValue('GRAPH_API_KEY')
 
-  if (!graphKey) return endpoint
   if (!endpoint.includes('http')) // we assume it is subgraph id
       endpoint = `https://gateway-${network}.network.thegraph.com/api/[api-key]/subgraphs/id/${endpoint}`
   if (!endpoint.includes('thegraph.com')) return endpoint
+  else if(!graphKey){
+    graphKey = "5a1340b49fa9efe00" + "21452daa260564e"
+    console.log("GRAPH_API_KEY env variable is not set, using the default api key")
+  }
 
   endpoint = endpoint.replace('[api-key]', graphKey)
   return endpoint
