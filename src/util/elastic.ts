@@ -9,7 +9,7 @@ export async function getClient() {
   try {
     const envString = getEnvValue('ELASTICSEARCH_CONFIG')
     if (!envString) return;
-    config = JSON.parse(envString)
+    config = JSON.parse(envString.replace(/\\"/g, '"')) // replace escaped quotes
   } catch (error) {
     return;
   }
