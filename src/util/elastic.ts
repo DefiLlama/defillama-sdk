@@ -3,7 +3,7 @@ import { getEnvValue } from './env'
 
 let _client: Client | undefined
 
-export async function getClient() {
+export function getClient() {
   if (_client) return _client
   let config: any
   try {
@@ -30,7 +30,7 @@ export async function getClient() {
 export async function writeLog(index: string, log: {
   [key: string]: any
 }) {
-  const client = await getClient()
+  const client = getClient()
   if (!client) return;
   index = addYearAndMonth(index)
   log.timestamp = +Date.now()
