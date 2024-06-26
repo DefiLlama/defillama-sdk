@@ -38,10 +38,11 @@ const endPoints: {
   archway: "https://api.mainnet.archway.io",
   sifchain: "https://sifchain-api.polkachu.com",
   nolus: "https://pirin-cl.nolus.network:1317",
-  bostrom: "https://lcd.bostrom.cybernode.ai"
+  bostrom: "https://lcd.bostrom.cybernode.ai",
+  noble: "https://noble-api.polkachu.com"
 };
 
-const ibcChains = ['terra', 'terra2', 'crescent', 'osmosis', 'kujira', 'stargaze', 'juno', 'injective', 'cosmos', 'comdex', 'umee', 'orai', 'persistence', 'fxcore', 'neutron', 'quasar', 'chihuahua', 'archway', 'migaloo', 'secret', 'aura', 'xpla', 'bostrom']
+const ibcChains = ['terra', 'terra2', 'crescent', 'osmosis', 'kujira', 'stargaze', 'juno', 'injective', 'cosmos', 'comdex', 'umee', 'orai', 'persistence', 'fxcore', 'neutron', 'quasar', 'chihuahua', 'archway', 'migaloo', 'secret', 'aura', 'xpla', 'bostrom', 'noble']
 
 export const isCosmosChain = (chain: string) => ibcChains.includes(chain) || !!endPoints[chain]
 
