@@ -113,7 +113,10 @@ const DEPLOYMENT_BLOCK = {
   bitr: 1045566,
   dreyerx: 163720,
   cyeth: 1,
-  taiko: 938,
+  taiko: 11269  ,
+  sei: 79351444,
+  aura: 6731307,
+  conflux: 97705330,
 } as {
   [key: string | Chain]: number
 }

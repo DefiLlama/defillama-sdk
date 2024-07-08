@@ -385,6 +385,12 @@ function multicallAddress(chainId: number | BigInt) {
       return '0x493d616f5F9a64e5B3D527120E406439bdF29272';
     case 810180:  // zklink
       return '0xa8738F57538E3Bb73872d1133F2358c7Fe56FD35';
+    case 5112:  // ham
+      return '0xB7c3Ea932649fBD594C881aDCb3F19415e2EA2d5';
+    case 1996:  // sanko
+      return '0xB32d192e07727A0F6f48e721791aa4e02cd292e1';
+    case 185:  // mint
+      return '0xf8ac4BEB2F75d2cFFb588c63251347fdD629B92c';
     default:
       return null;
   }

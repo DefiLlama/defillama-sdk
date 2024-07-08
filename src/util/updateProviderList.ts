@@ -9,6 +9,7 @@ const providerList = _providerList as {
   [key: string]: {
     rpc: string[]
     chainId: number
+    explorer?: string
   }
 }
 
@@ -38,10 +39,13 @@ async function main() {
       } else if (providerList[i.shortName.toLowerCase()]) {
         debugLog(`Duplicate short name ${i.chainId} for ${i.shortName}, doing nothing`)
       } else {
-        providerList[i.shortName.toLowerCase()] = {
+        const label = i.shortName.toLowerCase()
+        providerList[label] = {
           rpc: i.rpc,
           chainId: i.chainId
         }
+        let explorer = i.explorers?.[0]?.url
+        if (explorer) providerList[label].explorer = explorer
       }
     })
 
@@ -55,6 +59,9 @@ async function main() {
   Object.keys(providerList).forEach((i: any) => {
     if (!providerList[i].rpc.length) delete providerList[i]
   })
+  for (const [key, shorName] of Object.entries(chainShortNameMapping)) {
+    providerList[key] = providerList[shorName]
+  }
   fs.writeFileSync(__dirname + '/../providers.json', JSON.stringify(providerList));
 }
 
@@ -69,6 +76,14 @@ function filterRPCs(rpc: string[]): string[] {
     if (i.endsWith('/')) return i.slice(0, -1)
     return i
   })
+}
+
+const chainShortNameMapping = {
+  real: 're-al',
+  taiko: 'tko-mainnet',
+  bsquared: 'b2-mainnet',
+  ox_chain: 'ox-chain',
+  ailayer: 'ailayer-mainnet',
 }
 
 async function filterForWorkingRPCs(rpc: string[], chain: string, chainId: number): Promise<string[]> {
