@@ -10,7 +10,9 @@ import { getUniqueAddresses, } from "./generalUtil";
 import { getMulticallAddress } from "./abi/multicall3";
 import { getBalances } from "./eth";
 import { Provider } from "ethers";
-import getLogs, {GetLogsOptions} from "./util/logs";
+import getLogs, { GetLogsOptions } from "./util/logs";
+
+type Erc4626SumOptions = { calls: string[], tokenAbi?: string, balanceAbi?: string, balanceCalls?: any[], permitFailure?: boolean, isOG4626?: boolean }
 
 const nullAddress = '0x0000000000000000000000000000000000000000'
 export class ChainApi {
@@ -137,14 +139,21 @@ export class ChainApi {
     tokens.forEach(i => this.deleteToken(i))
   }
 
-  async erc4626Sum({ calls, tokenAbi = 'address:token', balanceAbi = 'uint256:balance', balanceCalls, permitFailure = false, isOG4626 = false }: { calls: string[], tokenAbi?: string, balanceAbi?: string, balanceCalls?: any[], permitFailure?: boolean, isOG4626?: boolean}) {
-    if (isOG4626) {
+  async erc4626Sum2(options: Erc4626SumOptions) {
+    if (options.isOG4626 !== false) options.isOG4626 = true
+    return this.erc4626Sum(options)
+  }
+
+  async erc4626Sum({ calls, tokenAbi, balanceAbi, balanceCalls, permitFailure = false, isOG4626 = false }: Erc4626SumOptions) {
+    if (isOG4626 && !tokenAbi && !balanceAbi) {
       tokenAbi = 'asset'
       balanceAbi = 'totalAssets'
     }
+    if (!tokenAbi) tokenAbi = 'address:token'
+    if (!balanceAbi) balanceAbi = 'uint256:balance'
     if (typeof tokenAbi === 'string' && (!tokenAbi.includes(':') && !tokenAbi.includes('('))) tokenAbi = `address:${tokenAbi}`
     if (typeof balanceAbi === 'string' && (!balanceAbi.includes(':') && !balanceAbi.includes('('))) balanceAbi = `uint256:${balanceAbi}`
-    
+
     const tokens = await this.multiCall({ calls, abi: tokenAbi, permitFailure })
     const balances = await this.multiCall({ calls: calls ?? balanceCalls, abi: balanceAbi, permitFailure })
     if (!permitFailure) this.addTokens(tokens, balances)

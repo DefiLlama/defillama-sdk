@@ -117,6 +117,7 @@ const DEPLOYMENT_BLOCK = {
   sei: 79351444,
   aura: 6731307,
   conflux: 97705330,
+  etlk: 1,
 } as {
   [key: string | Chain]: number
 }

@@ -22,7 +22,8 @@ export type CallOptions = {
   chain?: Chain | string;
   withMetadata?: boolean;
   skipCache?: boolean;
-  logArray?: LogArray
+  logArray?: LogArray;
+  permitFailure?: boolean;
 }
 export type Chain = string
 
@@ -36,6 +37,7 @@ export type MulticallOptions = {
   withMetadata?: boolean;
   skipCache?: boolean;
   permitFailure?: boolean;
+  excludeFailed?: boolean;
   logArray?: LogArray
 }
 
@@ -44,13 +46,17 @@ export type FetchListOptions = {
   itemAbi: string | any;
   block?: Block;
   startFrom?: number;
-  target: Address;
+  target?: Address;
+  calls?: Address[];
+  targets?: Address[];
   chain?: Chain | string;
   withMetadata?: boolean;
   startFromOne?: boolean;
   itemCount?: number;
   permitFailure?: boolean;
-  logArray?: LogArray
+  logArray?: LogArray;
+  groupedByInput?: boolean;
+  excludeFailed?: boolean;
 }
 
 export type ByteCodeCallOptions = {

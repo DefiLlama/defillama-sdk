@@ -439,3 +439,94 @@ test("ChainApi - bsc", async () => {
     '0xe606cEE895ddF32b0582A9DC7495176657b4909D'
   ]);
 });
+
+test("multiCall with excludeFailed", async () => {
+  expect(
+    await multiCall({
+      calls: [
+        "0x7f1c7aa2ce3cbc533afc7934156d4ae20d313808",
+      ],
+      excludeFailed: true,
+      abi: "address[]:getCurrentTokens",
+    })
+  ).toEqual([
+    [
+      "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+      "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
+      "0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e",
+      "0x80fB784B7eD66730e8b1DBd9820aFD29931aab03",
+      "0xa3BeD4E1c75D00fa6f4E5E6922DB7261B5E9AcD2",
+      "0xba100000625a3754423978a60c9317c58a424e3D",
+      "0xC011a73ee8576Fb46F5E1c5751cA3B9Fe0af2a6F",
+      "0x0d438F3b5175Bebc262bF23753C1E53d03432bDE",
+    ],
+  ])
+  expect(
+    await multiCall({
+      calls: [
+        "0x7f1c7aa2ce3cbc533afc7934156d4ae20d313808",
+      ],
+      excludeFailed: true,
+      abi: "address[]:getCurrentTokens_failing",
+    })
+  ).toEqual([ ])
+});
+
+test("fetchList - targets", async () => {
+  const res = await fetchList({
+    targets: ["0xa556E2d77060A42516C9A8002E9156d8d3c832CE"],
+    lengthAbi: 'allPairsLength',
+    itemAbi: 'allPairs',
+  })
+  expect(res).toEqual(['0x9536A78440f72f5E9612949F1848fe5E9D4934CC']);
+  const res2 = await fetchList({
+    calls: ["0xa556E2d77060A42516C9A8002E9156d8d3c832CE"],
+    lengthAbi: 'allPairsLength',
+    itemAbi: 'allPairs',
+  })
+  expect(res2).toEqual(['0x9536A78440f72f5E9612949F1848fe5E9D4934CC'])
+});
+
+
+test("fetchList - targets", async () => {
+  const res = await fetchList({
+    targets: ["0xa556E2d77060A42516C9A8002E9156d8d3c832CE"],
+    lengthAbi: 'allPairsLength',
+    itemAbi: 'allPairs',
+  })
+  expect(res).toEqual(['0x9536A78440f72f5E9612949F1848fe5E9D4934CC']);
+  const res2 = await fetchList({
+    calls: ["0xa556E2d77060A42516C9A8002E9156d8d3c832CE"],
+    lengthAbi: 'allPairsLength',
+    itemAbi: 'allPairs',
+  })
+  expect(res2).toEqual(['0x9536A78440f72f5E9612949F1848fe5E9D4934CC'])
+  const res3 = await fetchList({
+    calls: ["0xa556E2d77060A42516C9A8002E9156d8d3c832CE"],
+    lengthAbi: 'allPairsLength',
+    itemAbi: 'allPairs_failing',
+    excludeFailed: true,
+  })
+  expect(res3).toEqual([])
+  expect(await fetchList({
+    calls: ["0xa556E2d77060A42516C9A8002E9156d8d3c832CE"],
+    lengthAbi: 'allPairsLength',
+    itemAbi: 'allPairs',
+    groupedByInput: true,
+  })).toEqual([['0x9536A78440f72f5E9612949F1848fe5E9D4934CC']])
+});
+
+test("fetchList - targets 2", async () => {
+  expect(await fetchList({
+    calls: ["0xa556E2d77060A42516C9A8002E9156d8d3c832CE","0xa556E2d77060A42516C9A8002E9156d8d3c832CE", "0xa556E2d77060A42516C9A8002E9156d8d3c832CE"],
+    lengthAbi: 'allPairsLength',
+    itemAbi: 'allPairs',
+    groupedByInput: true,
+  })).toEqual([['0x9536A78440f72f5E9612949F1848fe5E9D4934CC'],['0x9536A78440f72f5E9612949F1848fe5E9D4934CC'],['0x9536A78440f72f5E9612949F1848fe5E9D4934CC']])
+
+  expect(await fetchList({
+    calls: ["0xa556E2d77060A42516C9A8002E9156d8d3c832CE","0xa556E2d77060A42516C9A8002E9156d8d3c832CE", "0xa556E2d77060A42516C9A8002E9156d8d3c832CE"],
+    lengthAbi: 'allPairsLength',
+    itemAbi: 'allPairs',
+  })).toEqual(['0x9536A78440f72f5E9612949F1848fe5E9D4934CC','0x9536A78440f72f5E9612949F1848fe5E9D4934CC','0x9536A78440f72f5E9612949F1848fe5E9D4934CC',])
+});
