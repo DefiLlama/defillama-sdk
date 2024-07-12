@@ -5,6 +5,7 @@ import { debugLog } from "../util/debugLog";
 export async function call(params: CallOptions): Promise<any> {
   try {
     const response = await abi1.call(params)
+    if (params.field) response.output = response.output[params.field]
     if (params.withMetadata) return response
     return response.output
   } catch (e) {
@@ -28,13 +29,18 @@ export async function multiCall(params: MulticallOptions): Promise<any[]> {
   let { output } = await abi1.multiCall(params as any)
 
   if (params.excludeFailed) output = output.filter((i: any) => i.success)
+  if (params.field) output = output.forEach((i: any) => i.output = i.output[params.field!])
   if (params.withMetadata) return output
   return output.map((i: any) => i.output)
 }
 
 export async function fetchList(params: FetchListOptions) {
-  let { startFrom = 0, lengthAbi, itemAbi, withMetadata, startFromOne = false, itemCount, target, targets, calls: _targets, chain, block, permitFailure, groupedByInput, excludeFailed, } = params
+  // itemAbi2 is used when we need to make a second call to get the final result
+  let { startFrom = 0, lengthAbi, itemAbi, withMetadata, startFromOne = false, itemCount, target, targets, calls: _targets, chain, block, permitFailure, groupedByInput, excludeFailed, itemAbi2, field, field2, } = params
+
   if (!targets) targets = _targets
+  const _groupedByInputOrignal = groupedByInput
+  if (targets && itemAbi2) groupedByInput = true
   permitFailure = permitFailure || excludeFailed
 
   if (excludeFailed && groupedByInput) throw new Error('excludeFailed and groupedByInput cannot be used together!')
@@ -58,14 +64,17 @@ export async function fetchList(params: FetchListOptions) {
     }
     for (let i = startFrom; i < itemLength; i++) calls.push({ target, params: [i] })
 
-    return multiCall({ chain, block, permitFailure, abi: itemAbi, calls, withMetadata, excludeFailed, })
+    const response = await multiCall({ chain, block, permitFailure, abi: itemAbi, calls, withMetadata, excludeFailed, field, })
+    if (!itemAbi2) return response
+    return multiCall({ chain, block, target, permitFailure, abi: itemAbi2, calls: response, withMetadata, excludeFailed, field: field2, })
+
   }
 
   if (itemCount) itemLengths = targets!.map(() => itemCount)
   else itemLengths = await multiCall({ chain, block, calls: targets!, abi: lengthAbi, })
 
   debugLog('itemLengths: ', itemLengths)
-  const groupedByRes: any = itemLengths.map(() => [])
+  let groupedByRes: any = itemLengths.map(() => [])
   const indexToTargetMapping: { [idx: number]: number } = {}
   let k = 0
   for (let i = 0; i < itemLengths.length; i++) {
@@ -81,9 +90,24 @@ export async function fetchList(params: FetchListOptions) {
     }
   }
 
-  const res = await multiCall({ chain, block, permitFailure, abi: itemAbi, calls, withMetadata, excludeFailed, })
+  const res = await multiCall({ chain, block, permitFailure, abi: itemAbi, calls, withMetadata, excludeFailed, field, })
   if (!groupedByInput) return res
   res.forEach((i: any, idx: number) => groupedByRes[indexToTargetMapping[idx]].push(i))
+  if (!itemAbi2) return groupedByRes
+
+
+  const calls2 = []
+  for (let i = 0; i < targets!.length; i++) {
+    for (let j = 0; j < groupedByRes[i].length; j++) {
+      calls2.push({ target: targets![i], params: groupedByRes[i][j] })
+    }
+  }
+
+  const res2 = await multiCall({ chain, block, permitFailure, abi: itemAbi2, calls: calls2, withMetadata, excludeFailed, field: field2, })
+  if (!_groupedByInputOrignal) return res2
+
+  groupedByRes = itemLengths.map(() => [])
+  res2.forEach((i: any, idx: number) => groupedByRes[indexToTargetMapping[idx]].push(i))
   return groupedByRes
 }
 

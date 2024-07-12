@@ -24,6 +24,7 @@ export type CallOptions = {
   skipCache?: boolean;
   logArray?: LogArray;
   permitFailure?: boolean;
+  field?: string;
 }
 export type Chain = string
 
@@ -38,12 +39,14 @@ export type MulticallOptions = {
   skipCache?: boolean;
   permitFailure?: boolean;
   excludeFailed?: boolean;
-  logArray?: LogArray
+  logArray?: LogArray;
+  field?: string;
 }
 
 export type FetchListOptions = {
   lengthAbi?: string | any;
   itemAbi: string | any;
+  itemAbi2?: string | any;
   block?: Block;
   startFrom?: number;
   target?: Address;
@@ -57,6 +60,8 @@ export type FetchListOptions = {
   logArray?: LogArray;
   groupedByInput?: boolean;
   excludeFailed?: boolean;
+  field?: string;
+  field2?: string;
 }
 
 export type ByteCodeCallOptions = {
