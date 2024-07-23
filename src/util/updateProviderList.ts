@@ -60,6 +60,7 @@ async function main() {
     if (!providerList[i].rpc.length) delete providerList[i]
   })
   for (const [key, shorName] of Object.entries(chainShortNameMapping)) {
+    if (providerList[key]) continue
     providerList[key] = providerList[shorName]
   }
   fs.writeFileSync(__dirname + '/../providers.json', JSON.stringify(providerList));
