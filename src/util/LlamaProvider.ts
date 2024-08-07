@@ -128,6 +128,13 @@ export class LlamaProvider extends FallbackProvider {
 
     runners = runners.slice(0, attempts)
 
+    if (this.chainName === 'rsk' && method === 'getLogs') {
+      const hostString = getEnvValue('RSK_ARCHIVAL_RPC')
+      if (!hostString) 
+        throw new Error('RSK public nodes dont support getLogs. need to set RSK_ARCHIVAL_RPC');
+      (runners as any) = hostString.split(',').map(host => ({ url: host  }))
+    }
+
     for (const runner of runners) {
       try {
         const result = await (httpRPC as any)[method](runner.url, params)
@@ -174,7 +181,8 @@ function createProvider(name: string, rpcString: string, chainId = 400069, archi
   function getProviderObject(url: string, chain: string): AbstractProvider {
     const jsonRpcApiProviderOptions = { staticNetwork: true, batchMaxCount: 1, }
     if (url.startsWith('wss://')) {
-      return new WebSocketProvider(url, networkish, jsonRpcApiProviderOptions)
+      return null as any; // websocket provider is not supported
+      // return new WebSocketProvider(url, networkish, jsonRpcApiProviderOptions)
     }
     return new JsonRpcProvider(url, networkish, jsonRpcApiProviderOptions)
   }
