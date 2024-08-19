@@ -4,6 +4,7 @@ import { Address } from "../types";
 import { getBlockNumber } from "./blocks";
 import { readCache, writeCache } from "./cache";
 import { debugLog } from "./debugLog";
+import { hexifyTarget } from "../abi/tron";
 
 const currentVersion = 'v3'
 
@@ -69,6 +70,9 @@ export async function getLogs(options: GetLogsOptions): Promise<EventLog[] | Eve
     if (flatten) return res.flat()
     return res
   }
+
+  if (chain === 'tron')
+    target = hexifyTarget(target!)
 
 
   let iface: Interface | undefined

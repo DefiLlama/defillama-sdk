@@ -1,5 +1,7 @@
 import { ChainApi } from "../ChainApi";
 import { getBalance, getBalances } from "../eth/index";
+import { getLatestBlock, lookupBlock } from "../util/blocks";
+import getLogs from "../util/logs";
 
 
 const intercroneFactory = 'TPvaMEL5oY2gWsJv7MDjNQh2dohwvwwVwx'
@@ -7,7 +9,6 @@ const tronPair = 'TW1gkyFAHstM33MJVk6tmKdcaPKkD2G4MG'
 const tUSDT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t'
 const tronApi = new ChainApi({ chain: 'tron' })
 const reservesAbi = "function getReserves() view returns (uint112 _reserve0, uint112 _reserve1, uint32 _blockTimestampLast)"
-
 test("call tron address 0x", async () => {
   expect(
     await tronApi.call({
@@ -129,4 +130,37 @@ test("tron: getBalances", async () => {
     targets: ['TKgD8Qnx9Zw3DNvG6o83PkufnMbtEXis4T'],
   })
   expect(+res.output[0].balance).toBeGreaterThan(1e6)
+});
+
+test('tron: getLatestBlock', async () => {
+  const res = await getLatestBlock('tron')
+  expect(res.block).toBeDefined()
+})
+
+
+function getDiff(a: number, b: number): number {
+  return (a > b) ? a - b : b - a;
+}
+
+test("tron: lookupBlock", async () => {
+  const block = await lookupBlock(1668158653, { chain: 'tron' });
+  expect(getDiff(block.block, 45858868)).toBeLessThanOrEqual(500); // 200 blocks appromiates to 10 minute difference
+  expect(getDiff(block.timestamp, 1668158653)).toBeLessThanOrEqual(15 * 60); // difference should be under 15 minutes
+});
+
+test("tron: getLogs", async () => {
+  const { block: latestBlock } = await getLatestBlock('tron')
+  expect(latestBlock).toBeDefined()
+  const fromBlock = latestBlock - 500
+  const toBlock = latestBlock
+  const logs = await getLogs({
+    chain: 'tron',
+    target: 'TEkxiTehnzSmSe2XqrBj4w32RUN966rdz8',
+    fromBlock,
+    toBlock,
+    cacheInCloud: false,
+    skipCache: true,
+    eventAbi: 'event Transfer(address indexed from, address indexed to,uint256 value)',
+  })
+  expect(logs.length).toBeGreaterThan(0)
 });

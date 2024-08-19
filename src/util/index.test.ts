@@ -11,8 +11,6 @@ function getDiff(a: number, b: number): number {
   return (a > b) ? a - b : b - a;
 }
 
-
-
 test("zkfair - get token", async () => {
   const api = new ChainApi({ chain: 'zkfair' })
   const res = await api.call({ abi: 'address:token0', target: '0x1ED4b941ea37ad767FDd552f5A7115E83d3976AA' })

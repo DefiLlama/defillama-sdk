@@ -194,11 +194,11 @@ async function executeCalls(
   })
 }
 
-function unhexifyTarget(address: string) {
+export function unhexifyTarget(address: string) {
   if (address.startsWith('0x')) return fromHex(address)
   return address
 }
-function hexifyTarget(address: string) {
+export function hexifyTarget(address: string) {
   if (!address.startsWith('0x')) return toHex(address)
   return address
 }

@@ -14,6 +14,7 @@ const defaultEnvValues = {
   INTERNAL_SDK_CACHE_FILE: './cache.json',
   TRON_RPC_CONCURRENCY_LIMIT: '5',
   TRON_RPC: 'https://api.trongrid.io',
+  TRON_EVM_RPC: 'https://rpc.ankr.com/tron_jsonrpc',
   NAKA_RPC: 'https://node.nakachain.xyz',
   ETHF_RPC: 'https://rpc.dischain.xyz/',
   CORE_RPC: "https://rpc.coredao.org,https://rpc.ankr.com/core,https://1rpc.io/core,https://rpc-core.icecreamswap.com",
@@ -98,8 +99,7 @@ export function getArchivalRPCs(chain: string): string[] {
 }
 
 export function getChainRPCs(chain: string, defaultList: string[] = []): string | undefined {
-  const key = chain + '_RPC'
-  const envValue = getEnvValue(key)
+  const envValue = getEnvRPC(chain)
   if (defaultList.length) {
     const listString = defaultList.join(',')
     if (envValue) return envValue + ',' + listString
