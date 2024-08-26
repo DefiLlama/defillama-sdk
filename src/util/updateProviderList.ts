@@ -55,6 +55,11 @@ async function main() {
       return;
     }
     i.rpc = Array.from(new Set(filterRPCs(i.rpc)));
+    if (key.endsWith('-mainnet')) {
+      const shortName = key.slice(0, -8)
+      if (!providerList[shortName])
+        providerList[shortName] = i
+    }
   });
   Object.keys(providerList).forEach((i: any) => {
     if (!providerList[i].rpc.length) delete providerList[i]
