@@ -103,13 +103,13 @@ const algorandBlockProvider = {
   getBlock: async (height: number | "latest"): Promise<TimestampBlock> => {
     if (height !== 'latest')
       return axios(`https://algoindexer.algoexplorerapi.io/v2/blocks/${height}`)
-        .then((res) => res.data)
+        .then((res: any) => res.data)
         .then((block: any) => ({
           number: block.round,
           timestamp: block.timestamp
         }))
     return axios('https://algoindexer.algoexplorerapi.io/health')
-      .then((res) => res.data)
+      .then((res: any) => res.data)
       .then((block: any) => algorandBlockProvider.getBlock(block.round))
   }
 };
@@ -126,8 +126,8 @@ async function fetchBlockFromProvider(
   return block;
 }
 
-function getExtraProvider(chain: string | undefined) {
-  if (chain && isCosmosChain(chain))
+function getExtraProvider(chain = "ethereum") {
+  if (isCosmosChain(chain))  // maybe check if it is also an evm chain?
     return getCosmosProvider(chain)
   if (chain === "algorand")
     return algorandBlockProvider;
