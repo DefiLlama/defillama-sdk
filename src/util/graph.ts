@@ -32,17 +32,20 @@ export async function request(endpoint: string, query: string, {
     return withMetadata ? result : result.data
   }
 }
+let graphKeyWarned = false
 
 export function modifyEndpoint(endpoint: string, network = 'arbitrum') {
   // example: https://api.thegraph.com/subgraphs/name/yieldyak/reinvest-tracker
   let graphKey = getEnvValue('GRAPH_API_KEY')
 
   if (!endpoint.includes('http')) // we assume it is subgraph id
-      endpoint = `https://gateway-${network}.network.thegraph.com/api/[api-key]/subgraphs/id/${endpoint}`
+    endpoint = `https://gateway-${network}.network.thegraph.com/api/[api-key]/subgraphs/id/${endpoint}`
   if (!endpoint.includes('thegraph.com')) return endpoint
-  else if(!graphKey){
+  else if (!graphKey) {
     graphKey = "5a1340b49fa9efe00" + "21452daa260564e"
-    console.log("GRAPH_API_KEY env variable is not set, using the default api key")
+    if (!graphKeyWarned)
+      console.log("GRAPH_API_KEY env variable is not set, using the default api key")
+    graphKeyWarned = true
   }
 
   endpoint = endpoint.replace('[api-key]', graphKey)
