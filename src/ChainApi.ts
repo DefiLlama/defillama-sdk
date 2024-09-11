@@ -103,6 +103,10 @@ export class ChainApi {
     this.add(nullAddress, balance)
   }
 
+  addUSDValue(balance: any) {
+    this._balances.addUSDValue(balance)
+  }
+
   addTokens(tokens: string[], balances: any[], { skipChain = false } = {}) {
     this.add(tokens, balances, { skipChain })
   }

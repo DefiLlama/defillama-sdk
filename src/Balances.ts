@@ -68,6 +68,10 @@ export class Balances {
     this._add(token, balance, { skipChain: true })
   }
 
+  addUSDValue(balance: any) {
+    this.addCGToken('tether', balance)
+  }
+
   addTokens(tokens: string[], balances: any[], { skipChain = false } = {}) {
     if (!Array.isArray(tokens)) throw new Error('tokens must be an array')
     if (!Array.isArray(balances)) throw new Error('balances must be an array')
