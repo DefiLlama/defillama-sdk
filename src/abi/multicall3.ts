@@ -111,6 +111,7 @@ const DEPLOYMENT_BLOCK = {
   planq: 8470015,
   bob: 946071,
   bitr: 1045566,
+  btr: 3225645,
   dreyerx: 163720,
   cyeth: 1,
   taiko: 11269  ,
