@@ -120,7 +120,7 @@ export async function getLogs({ address, chain, topic0, fromBlock, toBlock, all 
       limit,
       offset,
     }
-    const { data: { logs } } = await axios.get(`${indexerURL}/logs`, { params })
+    const { data: { logs: _logs } } = await axios.get(`${indexerURL}/logs`, { params })
     offset += limit
   } while (all && hasMore)
   

@@ -135,7 +135,7 @@ export async function getLogs(options: GetLogsOptions): Promise<EventLog[] | Eve
   return logs.map((i: any) => iface!.parseLog(i)).map((i: any) => onlyArgs ? i.args : i)
 
   async function addLogsToCache(fromBlock: number, toBlock: number) {
-    debugLog('adding logs to cache: ', fromBlock, toBlock, target, topic)
+    debugLog('adding logs to cache: ', fromBlock, toBlock, target, topic, chain,)
     if (fromBlock > toBlock) return; // no data to add
     fromBlock = fromBlock - 10
     toBlock = toBlock + 10
