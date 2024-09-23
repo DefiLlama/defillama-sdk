@@ -71,8 +71,13 @@ async function main() {
   fs.writeFileSync(__dirname + '/../providers.json', JSON.stringify(providerList));
 }
 
+const blacklist: string[] = [
+  'https://eth.api.onfinality.io/public'
+]
+
 function filterRPCs(rpc: string[]): string[] {
   return rpc.filter((i: string) => {
+    if (blacklist.includes(i)) return false // remove rpcs returning bad block heights etc
     if (i.endsWith('/demo')) return false // remove demo rpc
     if (i.includes('$')) return false // remove anything where api key is injected
     // reject websocket, http, testnet, devnet, and anything with '='
