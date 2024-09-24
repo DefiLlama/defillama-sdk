@@ -4,6 +4,7 @@ import { Address } from "../types";
 import { getBlockNumber } from "./blocks";
 import { readCache, writeCache } from "./cache";
 import { debugLog } from "./debugLog";
+import { getLogs as getIndexerLogs, isIndexerEnabled } from "./indexer";
 import { hexifyTarget } from "../abi/tron";
 
 const currentVersion = 'v3'
@@ -27,6 +28,8 @@ export type GetLogsOptions = {
   onlyArgs?: boolean;
   targets?: Address[];
   flatten?: boolean;
+  skipIndexer?: boolean;
+  onlyIndexer?: boolean;
 }
 
 export async function getLogs(options: GetLogsOptions): Promise<EventLog[] | EventLog[][] | any[]> {
@@ -49,7 +52,25 @@ export async function getLogs(options: GetLogsOptions): Promise<EventLog[] | Eve
     keys = [], //  [Deprecated] This is just used to select only part of the logs
     targets,
     flatten = true,
+    skipIndexer = false,
+    onlyIndexer = false,
   } = options
+
+  if (!skipIndexer && isIndexerEnabled(chain)) {
+    try {
+
+    const response = await getIndexerLogs({
+      ...options,
+      all: true,
+    })
+    return response
+    } catch (e) {
+      let message = (e as any)?.message
+      debugLog('Error in  indexer getLogs', message)
+    }
+  }
+
+  if (onlyIndexer) throw new Error('onlyIndexer is true, but indexer is not enabled or threw an error')
 
   // if (!target && !targets?.length) throw new Error('target|targets is required')
   if (!fromBlock && !fromTimestamp) throw new Error('fromBlock or fromTimestamp is required')
@@ -200,16 +221,17 @@ export async function getLogs(options: GetLogsOptions): Promise<EventLog[] | Eve
     return `event-logs/${chain}/${target?.toLowerCase() ?? null}-${extraKey}`
   }
 
-  // we need to form filter topic with indexed keyword, else it messes up generated topic string
-  function toFilterTopic(topic: string | Interface) {
-    if (typeof topic === 'string') {
-      if (topic.startsWith('0x')) return topic
-      topic = new Interface([topic])
-    }
+}
 
-    const fragment: any = topic.fragments[0]
-    return id(`${fragment.name}(${fragment.inputs.map((i: any) => i.type).join(',')})`)
+// we need to form filter topic with indexed keyword, else it messes up generated topic string
+export function toFilterTopic(topic: string | Interface) {
+  if (typeof topic === 'string') {
+    if (topic.startsWith('0x')) return topic
+    topic = new Interface([topic])
   }
+
+  const fragment: any = topic.fragments[0]
+  return id(`${fragment.name}(${fragment.inputs.map((i: any) => i.type).join(',')})`)
 }
 
 export type logCache = {
