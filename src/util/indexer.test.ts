@@ -22,15 +22,6 @@ test("Indexer - getLogs", async () => {
   })
   expect(res.length).toBe(2)
   expect(res[0].source).toBe(contract.toLowerCase())
-
-  const _res = await getLogs({  
-    target: contract,
-    eventAbi,
-    fromBlock: 16310967,
-    toBlock: 20021179,
-    chain: 'ethereum',
-    entireLog: true,
-  })
 });
 
 

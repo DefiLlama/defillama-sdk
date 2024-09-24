@@ -1,7 +1,7 @@
 import axios from "axios"
 import { getEnvValue } from "./env"
 import { readCache, writeCache } from "./cache"
-import { debugLog } from "./debugLog"
+import { DEBUG_LEVEL2, debugLog } from "./debugLog"
 import { getUniqueAddresses } from "../generalUtil"
 import { ETHER_ADDRESS } from "../general"
 import { Interface, ethers } from "ethers"
@@ -11,10 +11,11 @@ import { getBlockNumber } from "./blocks"
 
 const indexerURL = getEnvValue('LLAMA_INDEXER_ENDPOINT')
 
+
 type ChainIndexStatus = { [chain: string]: { block: number, timestamp: number } }
 const state: {
   timestamp?: number
-  chainIndexStatus:  ChainIndexStatus| Promise<ChainIndexStatus>
+  chainIndexStatus: ChainIndexStatus | Promise<ChainIndexStatus>
 } = { chainIndexStatus: {} }
 
 const cacheTime = 1 * 60 * 1000 // 1 minutes - we cache sync status for 1 minute
@@ -114,7 +115,7 @@ export async function getTokens(address: string | string[], { onlyWhitelisted = 
     if (cache.timestamp && (timeNow - cache.timestamp) < THREE_DAYS)
       return cache.tokens
   }
-  debugLog('Pulling tokens for ' + address)
+  debugLog('[Indexer] Pulling tokens for ' + address)
 
   const tokens = cache.tokens ?? {}
   const { data: { balances } } = await axios.get(`${indexerURL}/balances`, {
@@ -162,12 +163,14 @@ export type IndexerGetLogsOptions = {
   all?: boolean;
   limit?: number;
   offset?: number;
+  debugMode?: boolean;
 }
 
-export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, toBlock, all = true, limit = 1000, offset = 0, target, targets, eventAbi, entireLog = false, flatten = true, extraTopics, fromTimestamp, toTimestamp, }: IndexerGetLogsOptions) {
+export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, toBlock, all = true, limit = 1000, offset = 0, target, targets, eventAbi, entireLog = false, flatten = true, extraTopics, fromTimestamp, toTimestamp, debugMode = false }: IndexerGetLogsOptions) {
   if (!indexerURL) throw new Error('Llama Indexer URL not set')
   const chainId = chainToIDMapping[chain]
   if (!chainId) throw new Error('Chain not supported')
+  if (!debugMode) debugMode = DEBUG_LEVEL2
 
   if (topics?.length || extraTopics?.length) throw new Error('TODO: topics and extraTopics part are not yet imeplemented')
 
@@ -197,7 +200,6 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
   if (lastIndexedBlock < toBlock)
     throw new Error(`Indexer not up to date for ${chain}. Last indexed block: ${lastIndexedBlock}, requested block: ${toBlock}`)
 
-  debugLog('Pulling logs for ' + address)
   // Create an Interface object
   let iface: Interface
   if (eventAbi)
@@ -210,6 +212,13 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
 
   let hasMore = true
   let logs: any[] = []
+
+  const debugTimeKey = `Indexer-getLogs-${chain}-${topic}-${address}_${Math.random()}`
+  if (debugMode) {
+    debugLog('[Indexer] Pulling logs ' + debugTimeKey)
+    console.time(debugTimeKey)
+  }
+
   do {
     const params: any = {
       address,
@@ -230,6 +239,11 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
 
   } while (all && hasMore)
 
+  if (debugMode) {
+    console.timeEnd(debugTimeKey)
+    debugLog('Logs pulled ' + chain, address, logs.length)
+  }
+
   const mappedLogs = [] as any[]
   let addressIndexMap: any = {}
   const splitByAddress = targets?.length && !flatten
@@ -244,6 +258,7 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
     log.logIndex = log.log_index
     log.index = log.log_index
     log.transactionHash = log.transaction_hash
+    log.blockNumber = log.block_number
     log.topics = [log.topic0, log.topic1, log.topic2, log.topic3,].filter(t => t !== '').map(i => ethers.zeroPadValue(i, 32))
 
     const deleteKeys = ['chain', 'address', 'block_number', 'log_index', 'topic0', 'topic1', 'topic2', 'topic3', 'decodedArgs', 'transaction_hash',]

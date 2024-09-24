@@ -1,6 +1,7 @@
 
 const _ENV_CONSTANTS = {
   DEBUG_ENABLED: getEnvValue('DEBUG') === "true" || process.env.LLAMA_DEBUG_MODE ? 'true' : 'false',
+  DEBUG_LEVEL2: process.env.LLAMA_DEBUG_LEVEL2 ? 'true' : 'false',
 } as {
   [key: string]: string | undefined
 }

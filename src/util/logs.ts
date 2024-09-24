@@ -3,7 +3,7 @@ import { EventLog, Interface, id } from "ethers";
 import { Address } from "../types";
 import { getBlockNumber } from "./blocks";
 import { readCache, writeCache } from "./cache";
-import { debugLog } from "./debugLog";
+import { DEBUG_LEVEL2, debugLog } from "./debugLog";
 import { getLogs as getIndexerLogs, isIndexerEnabled } from "./indexer";
 import { hexifyTarget } from "../abi/tron";
 
@@ -30,6 +30,7 @@ export type GetLogsOptions = {
   flatten?: boolean;
   skipIndexer?: boolean;
   onlyIndexer?: boolean;
+  debugMode?: boolean;
 }
 
 export async function getLogs(options: GetLogsOptions): Promise<EventLog[] | EventLog[][] | any[]> {
@@ -54,21 +55,23 @@ export async function getLogs(options: GetLogsOptions): Promise<EventLog[] | Eve
     flatten = true,
     skipIndexer = false,
     onlyIndexer = false,
+    debugMode = false,
   } = options
 
   if (!skipIndexer && isIndexerEnabled(chain)) {
     try {
 
-    const response = await getIndexerLogs({
-      ...options,
-      all: true,
-    })
-    return response
+      const response = await getIndexerLogs({
+        ...options,
+        all: true,
+      })
+      return response
     } catch (e) {
       let message = (e as any)?.message
       debugLog('Error in  indexer getLogs', message)
     }
   }
+  if (!debugMode) debugMode = DEBUG_LEVEL2
 
   if (onlyIndexer) throw new Error('onlyIndexer is true, but indexer is not enabled or threw an error')
 
@@ -156,14 +159,26 @@ export async function getLogs(options: GetLogsOptions): Promise<EventLog[] | Eve
   return logs.map((i: any) => iface!.parseLog(i)).map((i: any) => onlyArgs ? i.args : i)
 
   async function addLogsToCache(fromBlock: number, toBlock: number) {
-    debugLog('adding logs to cache: ', fromBlock, toBlock, target, topic, chain,)
+    const debugTimeKey = `getLogs-${chain}-${topic}-${target}_${Math.random()}-${fromBlock}-${toBlock}`
+    if (debugMode)
+      debugLog('adding logs to cache: ', fromBlock, toBlock, target, topic, chain,)
+
     if (fromBlock > toBlock) return; // no data to add
     fromBlock = fromBlock - 10
     toBlock = toBlock + 10
 
+    if (debugMode)
+      console.time(debugTimeKey)
+
     let { output: logs } = await getLogsV1({
       chain, target: target!, topic: topic as string, keys, topics, fromBlock, toBlock,
     })
+
+    if (debugMode) {
+      console.timeEnd(debugTimeKey)
+      debugLog('Logs pulled ' + chain, target, logs.length)
+    }
+
     caches.push({
       logs,
       metadata: { fromBlock, toBlock, }
