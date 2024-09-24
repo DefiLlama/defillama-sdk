@@ -64,7 +64,7 @@ const indexerChainIdChainMapping: any = {
   34443: 'mode',
   42170: 'arbitrum_nova',
   42161: 'arbitrum',
-  43114: 'avalanche',
+  43114: 'avax',
   59144: 'linea',
   81457: 'blast',
   534352: 'scroll',
@@ -172,7 +172,10 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
   if (!chainId) throw new Error('Chain not supported')
   if (!debugMode) debugMode = DEBUG_LEVEL2
 
-  if (topics?.length || extraTopics?.length) throw new Error('TODO: topics and extraTopics part are not yet imeplemented')
+  if ((topics?.length && topics.length > 1)|| extraTopics?.length) throw new Error('TODO: topics and extraTopics part are not yet imeplemented')
+  if (topics?.length) topic = topics[0] as string
+
+  if (!eventAbi) entireLog = true
 
 
   // if (!target && !targets?.length) throw new Error('target|targets is required')
