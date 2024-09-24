@@ -1,13 +1,14 @@
 
 const _ENV_CONSTANTS = {
   DEBUG_ENABLED: getEnvValue('DEBUG') === "true" || process.env.LLAMA_DEBUG_MODE ? 'true' : 'false',
+  DEBUG_LEVEL2: process.env.LLAMA_DEBUG_LEVEL2 ? 'true' : 'false',
 } as {
   [key: string]: string | undefined
 }
 
 const whitelistedEnvConstants = [
   'R2_ENDPOINT', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'TRON_PRO_API_KEY', 'COINS_API_KEY',
-  'ELASTICSEARCH_CONFIG', 'GRAPH_API_KEY'
+  'ELASTICSEARCH_CONFIG', 'GRAPH_API_KEY', 'LLAMA_INDEXER_ENDPOINT',
 ]
 
 const defaultEnvValues = {
