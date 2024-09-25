@@ -221,6 +221,7 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
     debugLog('[Indexer] Pulling logs ' + debugTimeKey)
     console.time(debugTimeKey)
   }
+  const addressSet = new Set(address?.split(','))
 
   do {
     const params: any = {
@@ -234,7 +235,10 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
     }
     const { data: { logs: _logs, totalCount } } = await axios.get(`${indexerURL}/logs`, { params })
 
-    logs.push(..._logs)
+    logs.push(..._logs.filter((l: any) => {
+      if (!addressSet.size) return true
+      return addressSet.has(l?.source.toLowerCase())
+    }))
     offset += limit
 
     // If we have all the logs, or we have reached the limit, or there are no logs, we stop

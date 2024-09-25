@@ -90,7 +90,7 @@ export async function getLogs(options: GetLogsOptions): Promise<EventLog[] | Eve
   if (targets?.length) {
     const newOptions = { ...options, fromBlock, toBlock }
     delete newOptions.targets
-    const res = await Promise.all(targets.map(i => getLogs({ ...newOptions, target: i })))
+    const res = await Promise.all(targets.map(i => getLogs({ ...newOptions, target: i, skipIndexer: true })))
     if (flatten) return res.flat()
     return res
   }
