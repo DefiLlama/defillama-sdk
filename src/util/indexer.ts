@@ -224,7 +224,7 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
 
   do {
     const params: any = {
-      address,
+      addresses: address,
       chain: chainId,
       topic0: topic,
       from_block: fromBlock,
