@@ -258,6 +258,7 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
   }
 
   logs = logs.map((log: any) => {
+    const source = log.source.toLowerCase()
     log.logIndex = log.log_index
     log.index = log.log_index
     log.transactionHash = log.transaction_hash
@@ -273,7 +274,7 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
     log.args = parsedLog?.args
     log = !entireLog ? log.args : log
     if (splitByAddress) {
-      const index = addressIndexMap[log.source.toLowerCase()]
+      const index = addressIndexMap[source]
       mappedLogs[index].push(log)
     }
     return log
