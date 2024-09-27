@@ -120,8 +120,8 @@ test("imports", async () => {
       "humanizeNumber": [Function],
       "indexer": {
         "getLogs": [Function],
-        "getTokens": [Function],
         "getTokenTransfers": [Function],
+        "getTokens": [Function],
         "isIndexerEnabled": [Function],
         "supportedChainSet": Set {
           "ethereum",
@@ -137,7 +137,7 @@ test("imports", async () => {
           "mode",
           "arbitrum",
           "arbitrum_nova",
-          "avalanche",
+          "avax",
           "linea",
           "blast",
           "scroll",
