@@ -1,4 +1,4 @@
-import { getLogs, getTokens, } from "./indexer";
+import { getLogs, getTokens, getTokenTransfers, } from "./indexer";
 const contract = '0xf33c13da4425629c3f10635e4f935d8020f97D1F'
 const eventAbi = 'event MarketCreated(uint256 indexed mIndex, address hedge, address risk, address token, string name, int256 strikePrice)'
 
@@ -34,4 +34,19 @@ test("Indexer - getLogs - block not synced", async () => {
     chain: 'ethereum',
   })
   await expect(res).rejects.toThrowError()
+});
+
+test("Indexer - getTokenTransfers", async () => {
+  const addresses = ['0x1B5e59759577fa0079e2a35bc89143bc0603d546', '0xD5aC6419635Aa6352EbaDe0Ab42d25FbFa570D21']
+
+  const res = await getTokenTransfers({  
+    targets: addresses,
+    tokens: ['0xff970a61a04b1ca14834a43f5de4533ebddb5cc8', '0x09faeb69e29845f3326e4f004f45a31ceb0eedb9'],
+    fromBlock: 119877801,
+    toBlock: 119943935,
+    chain: 'arbitrum',
+  })
+  const addressesSet = new Set(addresses.map((t: any) => t.toLowerCase()))
+  expect(res.length).toBe(2)
+  expect(res.some((i: any) => !addressesSet.has(i.to_address))).toBeFalsy()
 });

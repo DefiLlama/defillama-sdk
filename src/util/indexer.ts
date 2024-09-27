@@ -102,7 +102,8 @@ export async function getTokens(address: string | string[], { onlyWhitelisted = 
   if (Array.isArray(address) && !address.length) throw new Error('Address array cannot be empty')
   if (Array.isArray(address)) address = address.join(',')
   address = address.toLowerCase()
-
+  let chainId
+  if (chain) chainId = chainToIDMapping[chain]
 
   const project = 'llama-indexer-cache'
   const key = onlyWhitelisted ? address : `${address}/all`
@@ -121,7 +122,7 @@ export async function getTokens(address: string | string[], { onlyWhitelisted = 
   const { data: { balances } } = await axios.get(`${indexerURL}/balances`, {
     params: {
       addresses: address,
-      chain: chain,
+      chainId,
       type: tokenType,
     }
   })
@@ -166,13 +167,32 @@ export type IndexerGetLogsOptions = {
   debugMode?: boolean;
 }
 
+export type IndexerGetTokenTransfersOptions = {
+  target?: Address;
+  targets?: Address[];
+  fromBlock?: number;
+  toBlock?: number;
+  chain?: string;
+  fromTimestamp?: number;
+  toTimestamp?: number;
+  flatten?: boolean;
+  all?: boolean;
+  limit?: number;
+  offset?: number;
+  debugMode?: boolean;
+  fromAddressFilter?: string | string[];
+  transferType?: 'in' | 'out';
+  tokens?: string | string[];
+  token?: string;
+}
+
 export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, toBlock, all = true, limit = 1000, offset = 0, target, targets, eventAbi, entireLog = false, flatten = true, extraTopics, fromTimestamp, toTimestamp, debugMode = false }: IndexerGetLogsOptions) {
   if (!indexerURL) throw new Error('Llama Indexer URL not set')
   const chainId = chainToIDMapping[chain]
   if (!chainId) throw new Error('Chain not supported')
   if (!debugMode) debugMode = DEBUG_LEVEL2
 
-  if ((topics?.length && topics.length > 1)|| extraTopics?.length) throw new Error('TODO: topics and extraTopics part are not yet imeplemented')
+  if ((topics?.length && topics.length > 1) || extraTopics?.length) throw new Error('TODO: topics and extraTopics part are not yet imeplemented')
   if (topics?.length) topic = topics[0] as string
 
   if (!eventAbi) entireLog = true
@@ -226,7 +246,7 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
   do {
     const params: any = {
       addresses: address,
-      chain: chainId,
+      chainId,
       topic0: topic,
       from_block: fromBlock,
       to_block: toBlock,
@@ -292,4 +312,114 @@ export function isIndexerEnabled(chain?: string) {
   if (!indexerURL) return false
   if (chain && !supportedChainSet.has(chain)) return false
   return true
+}
+
+
+export async function getTokenTransfers({ chain = 'ethereum', fromAddressFilter, fromBlock, toBlock, all = true, limit = 1000, offset = 0, target, targets = [], flatten = true, fromTimestamp, toTimestamp, debugMode = false, transferType = 'in', token, tokens, }: IndexerGetTokenTransfersOptions) {
+  if (!indexerURL) throw new Error('Llama Indexer URL not set')
+  const chainId = chainToIDMapping[chain]
+  if (!chainId) throw new Error('Chain not supported')
+  if (!debugMode) debugMode = DEBUG_LEVEL2
+
+
+  const fromFilterEnabled = fromAddressFilter && fromAddressFilter.length
+  if (fromAddressFilter && typeof fromAddressFilter === 'string') fromAddressFilter = [fromAddressFilter]
+  const fromFilterSet = new Set((fromAddressFilter ?? [] as any).map((a: string) => a.toLowerCase()))
+
+  // if (!target && !targets?.length) throw new Error('target|targets is required')
+  if (!fromBlock && !fromTimestamp) throw new Error('fromBlock or fromTimestamp is required')
+  if (!toBlock && !toTimestamp) throw new Error('toBlock or toTimestamp is required')
+
+  if (!fromBlock)
+    fromBlock = await getBlockNumber(chain, fromTimestamp)
+
+  if (!toBlock)
+    toBlock = await getBlockNumber(chain, toTimestamp)
+
+  if (!fromBlock || !toBlock) throw new Error('fromBlock and toBlock must be > 0')
+
+  if (token) tokens = [token]
+
+  if (tokens) {
+    if (typeof tokens === 'string') tokens = [tokens]
+    tokens = tokens.join(',').toLowerCase()
+  }
+
+  if (target) targets = [target]
+  if (!targets.length) throw new Error('target|targets is required')
+  targets = targets.map(t => t.toLowerCase())
+
+
+  let addresses = targets.join(',')
+
+  const chainIndexStatus = await getChainIndexStatus()
+  const lastIndexedBlock = chainIndexStatus[chain]?.block ?? 0
+
+  if (lastIndexedBlock < toBlock)
+    throw new Error(`Indexer not up to date for ${chain}. Last indexed block: ${lastIndexedBlock}, requested block: ${toBlock}`)
+
+  let hasMore = true
+  let logs: any[] = []
+
+  const debugTimeKey = `Indexer-tokenTransfers-${chain}-${addresses}_${Math.random()}`
+  if (debugMode) {
+    debugLog('[Indexer] Pulling token transfers ' + debugTimeKey)
+    console.time(debugTimeKey)
+  }
+
+  do {
+    const params: any = {
+      addresses,
+      chainId,
+      from_block: fromBlock,
+      to_block: toBlock,
+      limit,
+      offset,
+      tokens,
+    }
+
+    if (transferType === 'in') params.to_address = true
+    else params.from_address = true
+
+    const { data: { transfers: _logs, totalCount } } = await axios.get(`${indexerURL}/token-transfers`, { params })
+
+    logs.push(..._logs)
+    offset += limit
+
+    // If we have all the logs, or we have reached the limit, or there are no logs, we stop
+    if (_logs.length < limit || totalCount <= logs.length || _logs.length === 0) hasMore = false
+
+  } while (all && hasMore)
+
+  logs = logs.filter((l: any) => {
+    if (!fromFilterEnabled) return true
+    return fromFilterSet.has(l?.from_address.toLowerCase())
+  })
+
+  if (debugMode) {
+    console.timeEnd(debugTimeKey)
+    debugLog('Token Transfers pulled ' + chain, addresses, logs.length)
+  }
+
+  const mappedLogs = [] as any[]
+  let addressIndexMap: any = {}
+  const splitByAddress = targets?.length && !flatten
+  if (splitByAddress) {
+    for (let i = 0; i < targets!.length; i++) {
+      addressIndexMap[targets![i]] = i
+      mappedLogs.push([])
+    }
+  }
+
+  if (splitByAddress) {
+    logs.forEach((log: any) => {
+      const sourceField = transferType === 'in' ? 'to_address' : 'from_address'
+      const source = log[sourceField].toLowerCase()
+      const index = addressIndexMap[source]
+      mappedLogs[index].push(log)
+    })
+    return mappedLogs
+  }
+
+  return logs
 }
