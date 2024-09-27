@@ -121,6 +121,7 @@ test("imports", async () => {
       "indexer": {
         "getLogs": [Function],
         "getTokens": [Function],
+        "getTokenTransfers": [Function],
         "isIndexerEnabled": [Function],
         "supportedChainSet": Set {
           "ethereum",
