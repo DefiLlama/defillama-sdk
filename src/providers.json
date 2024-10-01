@@ -1104,16 +1104,16 @@
     ],
     "chainId": 1329
   },
-  "cronos_zkevm": {
-    "rpc": [
-      "https://mainnet.zkevm.cronos.org"
-    ],
-    "chainId": 388
-  },
   "flow": {
     "rpc": [
       "https://mainnet.evm.nodes.onflow.org"
     ],
     "chainId": 747
+  },
+  "cronos_zkevm": {
+    "rpc": [
+      "https://mainnet.zkevm.cronos.org"
+    ],
+    "chainId": 388
   }
 }
