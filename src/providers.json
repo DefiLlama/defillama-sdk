@@ -1109,5 +1109,11 @@
       "https://mainnet.zkevm.cronos.org"
     ],
     "chainId": 388
+  },
+  "flow": {
+    "rpc": [
+      "https://mainnet.evm.nodes.onflow.org"
+    ],
+    "chainId": 747
   }
 }
