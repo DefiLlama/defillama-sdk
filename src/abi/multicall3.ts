@@ -122,6 +122,7 @@ const DEPLOYMENT_BLOCK = {
   alg: 2344547,
   lisk: 4664276,
   gravity: 52682,
+  flow: 968659,
 } as {
   [key: string | Chain]: number
 }
