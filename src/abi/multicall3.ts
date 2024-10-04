@@ -123,6 +123,10 @@ const DEPLOYMENT_BLOCK = {
   lisk: 4664276,
   gravity: 52682,
   flow: 968659,
+  rupx: 35231,
+  fluence: 207583,
+  ontology: 17984796,
+  wc: 4353799,
 } as {
   [key: string | Chain]: number
 }

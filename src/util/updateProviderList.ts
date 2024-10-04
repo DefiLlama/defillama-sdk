@@ -95,6 +95,7 @@ const chainShortNameMapping = {
   bsquared: 'b2-mainnet',
   ox_chain: 'ox-chain',
   ailayer: 'ailayer-mainnet',
+  ontology: 'OntologyMainnet',
 }
 
 async function filterForWorkingRPCs(rpc: string[], chain: string, chainId: number): Promise<string[]> {
