@@ -1109,5 +1109,39 @@
       "https://mainnet.zkevm.cronos.org"
     ],
     "chainId": 388
+  },
+  "ancient8": {
+    "rpc": ["https://rpc.ancient8.gg"],
+    "chainId": 888888888
+  },
+  "u2u": {
+    "rpc": ["https://rpc-mainnet.u2u.xyz"],
+    "chainId": 39
+  },
+  "saakuru": {
+    "rpc": ["https://rpc.saakuru.network"],
+    "chainId": 7225878
+  },
+  "manta_pacific": {
+    "rpc": [
+      "https://pacific-rpc.manta.network/http",
+      "https://manta-pacific.drpc.org",
+      "https://www.tencentcloud-rpc.com/v2/manta/manta-rpc",
+      "https://r1.pacific.manta.systems/http",
+      "https://manta.nirvanalabs.xyz/mantapublic"
+    ],
+    "chainId": 169
+  },
+  "zircuit": {
+    "rpc": ["https://zircuit1-mainnet.p2pify.com"],
+    "chainId": 48900
+  },
+  "phoenix": {
+    "rpc": ["https://replicator.phoenix.lightlink.io/rpc/v1"],
+    "chainId": 1890
+  },
+  "etherlink": {
+    "rpc": ["https://node.mainnet.etherlink.com"],
+    "chainId": 42793
   }
 }
