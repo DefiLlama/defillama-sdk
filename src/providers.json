@@ -1109,5 +1109,11 @@
       "https://mainnet.zkevm.cronos.org"
     ],
     "chainId": 388
+  },
+  "helachain": {
+    "rpc": [
+      "https://mainnet-rpc.helachain.com"
+    ],
+    "chainId": 8668
   }
 }
