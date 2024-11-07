@@ -1114,6 +1114,7 @@
     "rpc": [
       "https://rpc1.bahamut.io",
       "https://rpc2.bahamut.io"
-    ]
+    ],
+    "chainId": 5165
   }
 }
