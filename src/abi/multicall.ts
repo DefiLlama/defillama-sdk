@@ -395,6 +395,8 @@ function multicallAddress(chainId: number | BigInt) {
       return '0x9b122BF7a96F24EFB7A2b5765c635909dB3458F7';
     case 47763:  // neox
       return '0xD6010D102015fEa9cB3a9AbFBB51994c0Fd6E672';
+    case 766:  // ql1
+      return '0x905F05Bf383F252Ac1d56Ff6177364970C0032B6';
     default:
       return null;
   }

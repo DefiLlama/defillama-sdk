@@ -1109,5 +1109,11 @@
       "https://mainnet.zkevm.cronos.org"
     ],
     "chainId": 388
+  },
+  "ql1": {
+    "rpc": [
+      "https://rpc.qom.one"
+    ],
+    "chainId": 766
   }
 }

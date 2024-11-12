@@ -127,6 +127,7 @@ const DEPLOYMENT_BLOCK = {
   fluence: 207583,
   ontology: 17984796,
   wc: 4353799,
+  ql1: 10050
 } as {
   [key: string | Chain]: number
 }
@@ -216,6 +217,7 @@ export function getMulticallAddress(chain: Chain, block?: string | number) {
     case 'degen': multicallAddress = '0xFBF562a98aB8584178efDcFd09755FF9A1e7E3a2'; break;
     case 'karak': multicallAddress = '0x73331e33f1552E706D56aa453ce19BCE314B4F59'; break;
     case 'taiko': multicallAddress = '0xcb2436774C3e191c85056d248EF4260ce5f27A9D'; break;
+    case 'ql1' : multicallAddress = '0x7A52370716ea730585884F5BDB0f6E60C39b8C64'; break;
   }
   return multicallAddress
 }
