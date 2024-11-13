@@ -1,5 +1,5 @@
 import { getLogs as getLogsV1 } from ".";
-import { EventLog, Interface, id } from "ethers";
+import { EventFragment, EventLog, Interface, id } from "ethers";
 import { Address } from "../types";
 import { getBlockNumber } from "./blocks";
 import { readCache, writeCache } from "./cache";
@@ -238,15 +238,13 @@ export async function getLogs(options: GetLogsOptions): Promise<EventLog[] | Eve
 
 }
 
-// we need to form filter topic with indexed keyword, else it messes up generated topic string
-export function toFilterTopic(topic: string | Interface) {
-  if (typeof topic === 'string') {
-    if (topic.startsWith('0x')) return topic
-    topic = new Interface([topic])
+export function toFilterTopic(topic: string) {
+  if (typeof topic === 'string' && topic.startsWith('0x')) {
+    return topic
   }
-
-  const fragment: any = topic.fragments[0]
-  return id(`${fragment.name}(${fragment.inputs.map((i: any) => i.type).join(',')})`)
+  
+  const fragment = EventFragment.from(topic)
+  return id(fragment.format())
 }
 
 export type logCache = {
