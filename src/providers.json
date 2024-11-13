@@ -1109,5 +1109,12 @@
       "https://mainnet.zkevm.cronos.org"
     ],
     "chainId": 388
+  },
+  "shido": {
+    "rpc": [
+      "https://rpc-nodes.shidoscan.com",
+      "https://rpc-delta-nodes.shidoscan.com"
+    ],
+    "chainId": 9008
   }
 }
