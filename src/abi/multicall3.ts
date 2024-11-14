@@ -127,6 +127,11 @@ const DEPLOYMENT_BLOCK = {
   fluence: 207583,
   ontology: 17984796,
   wc: 4353799,
+  unit0: 9727,
+  spn: 39,
+  starchain: 23898035,
+  apechain: 20889,
+  zircuit: 5815253,
 } as {
   [key: string | Chain]: number
 }
