@@ -952,7 +952,10 @@
   },
   "xai": {
     "rpc": [
-      "https://xai-chain.net/rpc"
+      "https://xai-chain.net/rpc",
+      "https://rpc.ankr.com/xai",
+      "https://660279.rpc.thirdweb.com",
+      "https://xai-mainnet.rpc.quicknode.com/"
     ],
     "chainId": 660279
   },
