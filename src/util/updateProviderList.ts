@@ -20,6 +20,7 @@ async function getChainData() {
     return chainData
   } catch (e) {
     console.log('Failed to fetch chainlist.org, falling back to local copy')
+    // https://unpkg.com/@defillama/sdk@latest/build/providers.json
     return require(__dirname+'/chainlistOrgCache.json')
   }
 }
