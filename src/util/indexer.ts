@@ -231,7 +231,7 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
   if (topic)
     topic = toFilterTopic(topic)
   else if (eventAbi)
-    topic = toFilterTopic(iface!)
+    topic = toFilterTopic(eventAbi)
 
   let hasMore = true
   let logs: any[] = []
