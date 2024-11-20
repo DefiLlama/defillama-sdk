@@ -5,6 +5,7 @@ import axios from "axios";
 import { debugLog } from './debugLog';
 import PromisePool from '@supercharge/promise-pool';
 
+
 const providerList = _providerList as {
   [key: string]: {
     rpc: string[]
@@ -13,8 +14,18 @@ const providerList = _providerList as {
   }
 }
 
+async function getChainData() {
+  try {
+    const { data: chainData } = await axios('https://chainlist.org/rpcs.json')
+    return chainData
+  } catch (e) {
+    console.log('Failed to fetch chainlist.org, falling back to local copy')
+    return require(__dirname+'/chainlistOrgCache.json')
+  }
+}
+
 async function main() {
-  let { data: chainData } = await axios('https://chainlist.org/rpcs.json')
+  let chainData = await getChainData() 
   const providerIDMap = {} as {
     [key: string]: string[]
   }
