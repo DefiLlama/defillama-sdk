@@ -108,7 +108,7 @@ export async function getLogs(options: GetLogsOptions): Promise<EventLog[] | Eve
     if (topic)
       topic = toFilterTopic(topic)
     else if (eventAbi)
-      topic = toFilterTopic(iface!)
+      topic = toFilterTopic(eventAbi)
     else {
       throw new Error('eventAbi | topic | topics are required')
     }
@@ -238,7 +238,7 @@ export async function getLogs(options: GetLogsOptions): Promise<EventLog[] | Eve
 
 }
 
-export function toFilterTopic(topic: string) {
+export function toFilterTopic(topic: string): string {
   if (typeof topic === 'string' && topic.startsWith('0x')) {
     return topic
   }
