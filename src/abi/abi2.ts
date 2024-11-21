@@ -29,7 +29,7 @@ export async function multiCall(params: MulticallOptions): Promise<any[]> {
   let { output } = await abi1.multiCall(params as any)
 
   if (params.excludeFailed) output = output.filter((i: any) => i.success)
-  if (params.field) output = output.forEach((i: any) => i.output = i.output[params.field!])
+  if (params.field) output.forEach((i: any) => i.output = i.output[params.field!])
   if (params.withMetadata) return output
   return output.map((i: any) => i.output)
 }
