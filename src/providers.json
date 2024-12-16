@@ -1112,5 +1112,18 @@
       "https://mainnet.zkevm.cronos.org"
     ],
     "chainId": 388
+  },
+  "etn": {
+    "rpc": [
+      "https://rpc.electroneum.com"
+    ],
+    "chainId": 52014
+  },
+  "idex": {
+    "rpc": [
+      "https://mainnet.zkevm.cronos.org"
+    ],
+    "chainId": 999429991,
+    "madeup": true
   }
 }

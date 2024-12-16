@@ -136,6 +136,8 @@ const DEPLOYMENT_BLOCK = {
   matchain: 2598669,
   shape: 3443414,
   morph: 169985,
+  sonic: 1,
+  ace: 1,
 } as {
   [key: string | Chain]: number
 }
@@ -228,6 +230,7 @@ export function getMulticallAddress(chain: Chain, block?: string | number) {
     case 'qom' : multicallAddress = '0x7A52370716ea730585884F5BDB0f6E60C39b8C64'; break;
     case 'matchain' : multicallAddress = '0xDa91510Bd8c50bfa54FC2BE2dD6dAbE03eA8496c'; break;
     case 'morph' : multicallAddress = '0x33A213b1049D5AD2eeE6e61dAe040955e60383D4'; break;
+    case 'ace' : multicallAddress = '0x025A2B4fCE1E0bD736D5cebe6C8a52229795376B'; break;
   }
   return multicallAddress
 }
