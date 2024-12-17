@@ -45,14 +45,14 @@ export async function getCurrentBlocks(chains: Chain[] | undefined = undefined) 
   };
 }
 
-export async function getBlock(chain: Chain, timestamp?: number): Promise<Block> {
+export async function getBlock(chain: Chain, timestamp?: number, options: LookupBlockOptionalParams = {}): Promise<Block> {
   if (!timestamp)
     return getCurrentChainBlock(chain)
 
   let error
   for (let i = 0; i < blockRetries; i++) {
     try {
-      let res = await lookupBlock(timestamp!, { chain, })
+      let res = await lookupBlock(timestamp!, { ...options, chain, })
       return res
     } catch (e) {
       error = e

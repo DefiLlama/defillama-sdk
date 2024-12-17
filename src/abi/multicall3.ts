@@ -138,6 +138,7 @@ const DEPLOYMENT_BLOCK = {
   morph: 169985,
   sonic: 1,
   ace: 1,
+  ink: 1,
 } as {
   [key: string | Chain]: number
 }

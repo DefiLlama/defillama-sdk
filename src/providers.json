@@ -1125,5 +1125,11 @@
     ],
     "chainId": 999429991,
     "madeup": true
+  },
+  "ink": {
+    "rpc": [
+      "https://rpc-gel.inkonchain.com"
+    ],
+    "chainId": 57073
   }
 }
