@@ -1131,5 +1131,44 @@
       "https://rpc-gel.inkonchain.com"
     ],
     "chainId": 57073
+  },
+  "mint": {
+    "rpc": ["https://rpc.mintchain.io"],
+    "chainId": 185
+  },
+  "shape": {
+    "rpc": ["https://mainnet.shape.network"],
+    "chainId": 360
+  },
+  "world-chain": {
+    "rpc": ["https://worldchain-mainnet.gateway.tenderly.co"],
+    "chainId": 480
+  },
+  "redstone": {
+    "rpc": ["https://rpc.redstonechain.com/"],
+    "chainId": 185
+  },
+  "lisk": { "rpc": ["https://rpc.api.lisk.com"], "chainId": 1135 },
+  "hychain": { "rpc": ["https://rpc.hychain.com/http"], "chainId": 2911 },
+  "ham": { "rpc": ["https://rpc.ham.fun"], "chainId": 5112 },
+  "cyber": { "rpc": ["https://cyber.alt.technology/"], "chainId": 7560 },
+  "B3": { "rpc": ["https://mainnet-rpc.b3.fun/http"], "chainId": 8333 },
+  "funki": { "rpc": ["https://rpc-mainnet.funkichain.com"], "chainId": 33979 },
+  "superposition": {
+    "rpc": ["https://rpc.superposition.so"],
+    "chainId": 55244
+  },
+  "bob": { "rpc": ["https://rpc.gobob.xyz"], "chainId": 60808 },
+  "apex": { "rpc": ["https://rpc.apex.proofofplay.com"], "chainId": 70700 },
+  "boss": { "rpc": ["https://rpc.boss.proofofplay.com"], "chainId": 70701 },
+  "zero-network": {
+    "rpc": ["https://zero-network.calderachain.xyz"],
+    "chainId": 543210
+  },
+  "forma": { "rpc": ["https://rpc.forma.art"], "chainId": 984122 },
+  "ancient8": { "rpc": ["https://rpc.ancient8.gg"], "chainId": 888888888 },
+  "rari": {
+    "rpc": ["https://mainnet.rpc.rarichain.org/http"],
+    "chainId": 1380012617
   }
 }
