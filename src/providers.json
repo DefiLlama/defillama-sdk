@@ -1131,5 +1131,12 @@
       "https://rpc-gel.inkonchain.com"
     ],
     "chainId": 57073
+  },
+  "duckchain": {
+    "rpc": [
+      "https://rpc.duckchain.io",
+      "https://rpc-hk.duckchain.io"
+    ],
+    "chainId": 5545
   }
 }
