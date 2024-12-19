@@ -1132,6 +1132,13 @@
     ],
     "chainId": 57073
   },
+  "duckchain": {
+    "rpc": [
+      "https://rpc.duckchain.io",
+      "https://rpc-hk.duckchain.io"
+    ],
+    "chainId": 5545
+  },
   "mint": {
     "rpc": ["https://rpc.mintchain.io"],
     "chainId": 185

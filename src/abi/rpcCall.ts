@@ -16,6 +16,7 @@ export async function call(provider: ethers.AbstractProvider, data: ethers.JsonR
   const currentId = counter.requestCount++
   const eventId = `${chain}-${currentId}`
   let chainMaxParallelCalls = getMaxParallelRequests(chain)
+  if (!provider) throw new Error('Provider not found for chain: ' + chain)
 
   if (counter.activeWorkers > chainMaxParallelCalls) {
     counter.queue.push(eventId)
