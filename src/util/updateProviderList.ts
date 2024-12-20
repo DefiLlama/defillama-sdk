@@ -51,7 +51,7 @@ async function main() {
       } else if (providerList[i.shortName.toLowerCase()]) {
         debugLog(`Duplicate short name ${i.chainId} for ${i.shortName}, doing nothing`)
       } else {
-        const label = i.shortName.toLowerCase()
+        const label = i.shortName.toLowerCase().replace(/-/g, '_')
         providerList[label] = {
           rpc: i.rpc,
           chainId: i.chainId
