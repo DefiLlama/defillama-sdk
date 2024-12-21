@@ -1138,5 +1138,11 @@
       "https://rpc-hk.duckchain.io"
     ],
     "chainId": 5545
+  },
+  "zircuit": {
+    "rpc": [
+      "https://zircuit1-mainnet.p2pify.com/"
+    ],
+    "chainId": 48900
   }
 }
