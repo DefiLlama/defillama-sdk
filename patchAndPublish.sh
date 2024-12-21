@@ -12,6 +12,10 @@ git push
 rm -rf build
 rm LICENSE
 npm run update-providers
+if [[ $? -ne 0 ]] ; then
+  echo "Providers update failed, fix it before publishing new version"
+  exit 1
+fi
 npm publish
 git checkout master -- LICENSE
 git checkout master -- src/providers.json

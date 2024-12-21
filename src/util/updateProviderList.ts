@@ -26,6 +26,7 @@ async function getChainData() {
 }
 
 async function main() {
+  const { data: oldProviders } = await axios(`https://unpkg.com/@defillama/sdk@latest/build/providers.json`)
   let chainData = await getChainData() 
   const providerIDMap = {} as {
     [key: string]: string[]
@@ -80,6 +81,13 @@ async function main() {
     if (providerList[key]) continue
     providerList[key] = providerList[shorName]
   }
+
+  Object.keys(oldProviders).forEach(oldChain=>{
+    if(providerList[oldChain] === undefined){
+      throw new Error(`Chain "${oldChain}" used to be included but is not anymore, can the devs fix please?`)
+    }
+  })
+
   fs.writeFileSync(__dirname + '/../providers.json', JSON.stringify(providerList));
 }
 
