@@ -68,7 +68,7 @@ async function main() {
       return;
     }
     i.rpc = Array.from(new Set(filterRPCs(i.rpc)));
-    if (key.endsWith('-mainnet')) {
+    if (key.endsWith('-mainnet') || key.endsWith('_mainnet')) {
       const shortName = key.slice(0, -8)
       if (!providerList[shortName])
         providerList[shortName] = i
