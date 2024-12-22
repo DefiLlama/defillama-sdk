@@ -1139,6 +1139,26 @@
     ],
     "chainId": 5545
   },
+  "bsquared": {
+    "rpc": [
+      "https://rpc.bsquared.network",
+      "https://rpc.ankr.com/b2",
+      "https://mainnet.b2-rpc.com"
+    ],
+    "chainId": 223
+  },
+  "ailayer": {
+    "rpc": [
+      "https://mainnet-rpc.ailayer.xyz"
+    ],
+    "chainId": 2649
+  },
+  "flow": {
+    "rpc": [
+      "https://mainnet.evm.nodes.onflow.org"
+    ],
+    "chainId": 747
+  },
   "zircuit": {
     "rpc": [
       "https://zircuit1-mainnet.p2pify.com/"

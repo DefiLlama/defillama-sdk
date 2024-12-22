@@ -82,11 +82,10 @@ async function main() {
     providerList[key] = providerList[shorName]
   }
 
-  Object.keys(oldProviders).forEach(oldChain=>{
-    if(providerList[oldChain] === undefined){
-      throw new Error(`Chain "${oldChain}" used to be included but is not anymore, can the devs fix please?`)
-    }
-  })
+  const droppedChains = Object.keys(oldProviders).filter(oldChain=>providerList[oldChain] === undefined)
+  if(droppedChains.length > 0){
+    throw new Error(`Following chains used to be included but is not anymore, can the devs fix please?\n${droppedChains.join('\n')}`)
+  }
 
   fs.writeFileSync(__dirname + '/../providers.json', JSON.stringify(providerList));
 }
