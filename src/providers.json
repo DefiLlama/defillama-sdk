@@ -1155,7 +1155,8 @@
   },
   "flow": {
     "rpc": [
-      "https://mainnet.evm.nodes.onflow.org"
+      "https://mainnet.evm.nodes.onflow.org",
+      "https://rest-mainnet.onflow.org"
     ],
     "chainId": 747
   },

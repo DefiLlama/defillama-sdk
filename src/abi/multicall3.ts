@@ -142,6 +142,9 @@ const DEPLOYMENT_BLOCK = {
   sophon: 1,
   vana: 818176,
   swellchain: 878173,
+  odyssey: 1,
+  aleph_zero: 4603377,
+  wemix: 66084281,
 } as {
   [key: string | Chain]: number
 }
@@ -237,6 +240,7 @@ export function getMulticallAddress(chain: Chain, block?: string | number) {
     case 'ace' : multicallAddress = '0x025A2B4fCE1E0bD736D5cebe6C8a52229795376B'; break;
     case 'sophon' : multicallAddress = '0x5f4867441d2416cA88B1b3fd38f21811680CD2C8'; break;
     case 'vana' : multicallAddress = '0xFe92b91F3326e58557478c28EeAe1936E0c7148a'; break;
+    case 'odyssey' : multicallAddress = '0xD5F04861e1249F488ef8898607cF7ad0F334d823'; break;
   }
   return multicallAddress
 }
