@@ -1121,7 +1121,7 @@
   },
   "idex": {
     "rpc": [
-      "https://mainnet.zkevm.cronos.org"
+      "https://xchain-rpc.idex.io"
     ],
     "chainId": 999429991,
     "madeup": true
