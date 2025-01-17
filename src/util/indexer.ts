@@ -1,13 +1,13 @@
 import axios from "axios"
-import { getEnvValue } from "./env"
-import { readCache, writeCache } from "./cache"
-import { DEBUG_LEVEL2, debugLog } from "./debugLog"
-import { getUniqueAddresses } from "../generalUtil"
-import { ETHER_ADDRESS } from "../general"
 import { Interface, ethers } from "ethers"
-import { toFilterTopic } from "./logs"
+import { ETHER_ADDRESS } from "../general"
+import { getUniqueAddresses } from "../generalUtil"
 import { Address } from "../types"
 import { getBlockNumber } from "./blocks"
+import { readCache, writeCache } from "./cache"
+import { DEBUG_LEVEL2, debugLog } from "./debugLog"
+import { getEnvValue } from "./env"
+import { toFilterTopic } from "./logs"
 
 const indexerURL = getEnvValue('LLAMA_INDEXER_ENDPOINT')
 
@@ -68,6 +68,7 @@ const indexerChainIdChainMapping: any = {
   59144: 'linea',
   81457: 'blast',
   534352: 'scroll',
+  146: 'sonic'
 }
 
 export const supportedChainSet = new Set(Object.values(indexerChainIdChainMapping))
