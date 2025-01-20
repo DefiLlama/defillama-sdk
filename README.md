@@ -24,4 +24,4 @@ BSC_RPC="https://..."
 
 Before putting up a PR for new chain, check if we already support it here: https://unpkg.com/@defillama/sdk@latest/build/providers.json 
 
-Everytime we publish a new sdk version, we automically pull latest list from chainlist.org and include it.
+Everytime we publish a new sdk version, we automatically pull latest list from chainlist.org and include it.
