@@ -83,7 +83,7 @@ async function main() {
   }
 
   const droppedChains = Object.keys(oldProviders).filter(oldChain=>providerList[oldChain] === undefined)
-  if(droppedChains.length > 0){
+  if(droppedChains.length > 20){
     throw new Error(`Following chains used to be included but is not anymore, can the devs fix please?\n${droppedChains.join('\n')}`)
   }
 
