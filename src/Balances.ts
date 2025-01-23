@@ -30,6 +30,11 @@ export class Balances {
       chain = 'ethereum'
       token = token.replace('peggy', '')
     }
+
+    // add a leading 0 to the token if it's a starknet token
+    if (!skipChain && this.chain === 'starknet' && token.length === 65) {
+      token = token.replace('0x', '0x0')
+    }
     sumSingleBalance(this._balances, token, balance, chain)
   }
 

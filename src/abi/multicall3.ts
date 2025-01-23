@@ -145,6 +145,9 @@ const DEPLOYMENT_BLOCK = {
   odyssey: 1,
   aleph_zero: 4603377,
   wemix: 66084281,
+  soneium: 1,
+  ronin: 1,
+  peaq: 1,
 } as {
   [key: string | Chain]: number
 }

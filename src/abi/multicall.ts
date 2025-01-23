@@ -399,6 +399,8 @@ function multicallAddress(chainId: number | BigInt) {
       return '0x63CE2062281fb85fE5BC407799A455C21f35F355';
     case 32770:  // zilliqa
       return '0x38899efb93d5106d3adb86662c557f237f6ecf57';
+    case 181: // water
+      return '0x63cee78B11774535132fd773C5dDe3c4b41CD07f';
     default:
       return null;
   }
