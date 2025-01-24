@@ -116,6 +116,7 @@ const chainShortNameMapping = {
   ailayer: 'ailayer-mainnet',
   ontology: 'OntologyMainnet',
   occ: 'edu_chain',
+  ely: 'ely',
 }
 
 async function filterForWorkingRPCs(rpc: string[], chain: string, chainId: number): Promise<string[]> {
