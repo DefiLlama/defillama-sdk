@@ -10,7 +10,18 @@ import { getEnvValue } from "./env"
 import { toFilterTopic } from "./logs"
 
 const indexerURL = getEnvValue('LLAMA_INDEXER_ENDPOINT')
+const LLAMA_INDEXER_API_KEY = getEnvValue('LLAMA_INDEXER_API_KEY')
 
+const axiosIndexer = axios.create({
+  headers: {
+    "x-api-key": LLAMA_INDEXER_API_KEY,
+  },
+  baseURL: indexerURL,
+})
+
+function checkIndexerConfig() {
+  if (!indexerURL || !LLAMA_INDEXER_API_KEY) throw new Error('Llama Indexer URL/api key is not set')
+}
 
 type ChainIndexStatus = { [chain: string]: { block: number, timestamp: number } }
 const state: {
@@ -22,7 +33,7 @@ const cacheTime = 1 * 60 * 1000 // 1 minutes - we cache sync status for 1 minute
 
 async function getChainIndexStatus() {
 
-  if (!indexerURL) throw new Error('Llama Indexer URL not set')
+  checkIndexerConfig()
 
   if (state.timestamp && (Date.now() - state.timestamp) < cacheTime)
     return state.chainIndexStatus
@@ -33,7 +44,7 @@ async function getChainIndexStatus() {
   return state.chainIndexStatus
 
   async function _getState() {
-    const { data: { syncStatus } } = await axios.get(`${indexerURL}/syncStatus`)
+    const { data: { syncStatus } } = await axiosIndexer.get(`/sync`);
     const syncInfo: any = {}
 
     syncStatus.forEach((d: any) => {
@@ -98,7 +109,7 @@ export async function getTokens(address: string | string[], { onlyWhitelisted = 
   tokenType?: TokenTypes,
 } = {}) {
 
-  if (!indexerURL) throw new Error('Llama Indexer URL not set')
+  checkIndexerConfig()
   if (!address) throw new Error('Address is required either as a string or an array of strings')
   if (Array.isArray(address) && !address.length) throw new Error('Address array cannot be empty')
   if (Array.isArray(address)) address = address.join(',')
@@ -120,12 +131,12 @@ export async function getTokens(address: string | string[], { onlyWhitelisted = 
   debugLog('[Indexer] Pulling tokens for ' + address)
 
   const tokens = cache.tokens ?? {}
-  const { data: { balances } } = await axios.get(`${indexerURL}/balances`, {
+  const { data: { balances } } = await axiosIndexer(`/balances`, {
     params: {
       addresses: address,
       chainId,
       type: tokenType,
-    }
+    },
   })
   balances.filter((b: any) => +b.total_amount > 0).forEach((b: any) => {
     const chain = indexerChainIdChainMapping[b.chain]
@@ -188,7 +199,8 @@ export type IndexerGetTokenTransfersOptions = {
 }
 
 export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, toBlock, all = true, limit = 1000, offset = 0, target, targets, eventAbi, entireLog = false, flatten = true, extraTopics, fromTimestamp, toTimestamp, debugMode = false }: IndexerGetLogsOptions) {
-  if (!indexerURL) throw new Error('Llama Indexer URL not set')
+  checkIndexerConfig()
+
   const chainId = chainToIDMapping[chain]
   if (!chainId) throw new Error('Chain not supported')
   if (!debugMode) debugMode = DEBUG_LEVEL2
@@ -254,7 +266,7 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
       limit,
       offset,
     }
-    const { data: { logs: _logs, totalCount } } = await axios.get(`${indexerURL}/logs`, { params })
+    const { data: { logs: _logs, totalCount } } = await axiosIndexer(`/logs`, { params, })
 
     logs.push(..._logs.filter((l: any) => {
       if (!addressSet.size) return true
@@ -317,7 +329,8 @@ export function isIndexerEnabled(chain?: string) {
 
 
 export async function getTokenTransfers({ chain = 'ethereum', fromAddressFilter, fromBlock, toBlock, all = true, limit = 1000, offset = 0, target, targets = [], flatten = true, fromTimestamp, toTimestamp, debugMode = false, transferType = 'in', token, tokens, }: IndexerGetTokenTransfersOptions) {
-  if (!indexerURL) throw new Error('Llama Indexer URL not set')
+  checkIndexerConfig()
+
   const chainId = chainToIDMapping[chain]
   if (!chainId) throw new Error('Chain not supported')
   if (!debugMode) debugMode = DEBUG_LEVEL2
@@ -382,7 +395,7 @@ export async function getTokenTransfers({ chain = 'ethereum', fromAddressFilter,
     if (transferType === 'in') params.to_address = true
     else params.from_address = true
 
-    const { data: { transfers: _logs, totalCount } } = await axios.get(`${indexerURL}/token-transfers`, { params })
+    const { data: { transfers: _logs, totalCount } } = await axiosIndexer(`/token-transfers`, { params, })
 
     logs.push(..._logs)
     offset += limit
