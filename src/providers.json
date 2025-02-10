@@ -1165,5 +1165,14 @@
       "https://zircuit1-mainnet.p2pify.com/"
     ],
     "chainId": 48900
+  },
+  "artela": {
+    "rpc": [
+      "https://node-euro.artela.network/rpc",
+      "http://dataseed-0.rpc.novanetwork.io:8545",
+      "http://dataseed-0.rpc.novanetwork.io:8545",
+      "https://node-us-2.artela.network/rpc"
+    ],
+    "chainId": 11820
   }
 }

@@ -401,6 +401,8 @@ function multicallAddress(chainId: number | BigInt) {
       return '0x38899efb93d5106d3adb86662c557f237f6ecf57';
     case 181: // water
       return '0x63cee78B11774535132fd773C5dDe3c4b41CD07f';
+    case 11820: return '0x80BC476a33a1b40a788dcC9bfe9dFdae9723b872'; // artela
+    case 2355: return '0x566da61a4D0841a67bA8F2c7e5975885fa0Af4DA'; // silicon_zk
     default:
       return null;
   }

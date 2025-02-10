@@ -148,6 +148,10 @@ const DEPLOYMENT_BLOCK = {
   soneium: 1,
   ronin: 1,
   peaq: 1,
+  berachain: 1,
+  plume: 1,
+  abstract: 5288,
+  zero_network: 11517,
 } as {
   [key: string | Chain]: number
 }
@@ -244,6 +248,8 @@ export function getMulticallAddress(chain: Chain, block?: string | number) {
     case 'sophon' : multicallAddress = '0x5f4867441d2416cA88B1b3fd38f21811680CD2C8'; break;
     case 'vana' : multicallAddress = '0xFe92b91F3326e58557478c28EeAe1936E0c7148a'; break;
     case 'odyssey' : multicallAddress = '0xD5F04861e1249F488ef8898607cF7ad0F334d823'; break;
+    case 'abstract' : multicallAddress = '0xaa4de41dba0ca5dcbb288b7cc6b708f3aac759e7'; break;
+    case 'zero_network' : multicallAddress = '0x0307F341a18f1FC1f63a7Ceeac970245A08C5a80'; break;
   }
   return multicallAddress
 }
