@@ -152,6 +152,7 @@ const DEPLOYMENT_BLOCK = {
   plume: 1,
   abstract: 5288,
   zero_network: 11517,
+  unichain: 1,
 } as {
   [key: string | Chain]: number
 }

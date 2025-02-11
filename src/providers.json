@@ -1174,5 +1174,11 @@
       "https://node-us-2.artela.network/rpc"
     ],
     "chainId": 11820
+  },
+  "unichain": {
+    "rpc": [
+      "https://mainnet.unichain.org"
+    ],
+    "chainId": 130
   }
 }
