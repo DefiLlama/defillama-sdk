@@ -140,6 +140,7 @@ const DEPLOYMENT_BLOCK = {
   ace: 1,
   ink: 1,
   sophon: 1,
+  story: 1,
   vana: 818176,
   swellchain: 878173,
   odyssey: 1,
