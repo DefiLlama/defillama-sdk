@@ -155,7 +155,7 @@ const DEPLOYMENT_BLOCK = {
   zero_network: 11517,
   unichain: 1,
   sanko: 1,
-  form: 1,
+  formnetwork: 1,
   hyper_evm: 13051,
 } as {
   [key: string | Chain]: number
