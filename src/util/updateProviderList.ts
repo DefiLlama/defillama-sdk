@@ -116,6 +116,7 @@ const chainShortNameMapping = {
   ailayer: 'ailayer-mainnet',
   ontology: 'OntologyMainnet',
   occ: 'edu_chain',
+  hyperliquid: 'hyper_evm',
   elsm: 'ely',
 }
 
