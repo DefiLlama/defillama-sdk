@@ -4,7 +4,7 @@ export const blockscoutEndpoints: any = {
   celo: 'https://explorer.celo.org',
   onus: 'https://explorer.onuschain.io',
   base: 'https://base.blockscout.com',
-  // scroll: 'https://blockscout.scroll.io',
+  onfa: 'https://onfascan.com',
   canto: 'https://explorer.plexnode.wtf',
 }
 
