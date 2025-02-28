@@ -48,6 +48,7 @@ const DEPLOYMENT_BLOCK = {
   dfk: 14790551,
   pulse: 14353601,
   onus: 805931,
+  onus: 2057854,
   rollux: 119222,
   xdai: 21022491,
   evmos: 188483,
@@ -233,6 +234,7 @@ export function getMulticallAddress(chain: Chain, block?: string | number) {
   if (!isMulticallV3Supported(chain, block)) return null
   let multicallAddress = MULTICALL_V3_ADDRESS
   switch (chain) {
+    case 'onfa': multicallAddress = '0xbBE4140BA78c135407BB2dD677ea84cDC5bC640F'; break;
     case 'onus': multicallAddress = '0x748c384f759cc596f0d9fa96dcabe8a11e443b30'; break;
     case 'era': multicallAddress = '0xF9cda624FBC7e059355ce98a31693d299FACd963'; break;
     case 'tron': multicallAddress = 'TEazPvZwDjDtFeJupyo7QunvnrnUjPH8ED'; break;
