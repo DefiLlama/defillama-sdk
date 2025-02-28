@@ -97,6 +97,16 @@ test("lookupBlock blockscout - onus", async () => {
   expect(getDiff(block2.timestamp, 1700213053)).toBeLessThanOrEqual(15 * 60); // difference should be under 15 minutes
 });
 
+test("lookupBlock blockscout - onfa", async () => {
+  const block = await lookupBlock(1668158653, { chain: 'onfa' });
+  expect(getDiff(block.block, 116265)).toBeLessThanOrEqual(500); // 200 blocks appromiates to 10 minute difference
+  expect(getDiff(block.timestamp, 1668158653)).toBeLessThanOrEqual(15 * 60); // difference should be under 15 minutes
+
+  const block2 = await lookupBlock(1700213053, { chain: 'onfa' });
+  expect(getDiff(block2.block, 10800303)).toBeLessThanOrEqual(500); // 200 blocks appromiates to 10 minute difference
+  expect(getDiff(block2.timestamp, 1700213053)).toBeLessThanOrEqual(15 * 60); // difference should be under 15 minutes
+});
+
 
 test("lookupBlock blockscout - base", async () => {
   const block2 = await lookupBlock(1700213053, { chain: 'base' });
