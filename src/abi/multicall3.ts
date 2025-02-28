@@ -48,7 +48,7 @@ const DEPLOYMENT_BLOCK = {
   dfk: 14790551,
   pulse: 14353601,
   onus: 805931,
-  onus: 2057854,
+  onfa: 2057854,
   rollux: 119222,
   xdai: 21022491,
   evmos: 188483,
