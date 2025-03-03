@@ -1180,5 +1180,11 @@
       "https://mainnet.unichain.org"
     ],
     "chainId": 130
+  },
+  "onfa": {
+    "rpc": [
+      "https://rpc.onfachain.com"
+    ],
+    "chainId": 8691942025
   }
 }
