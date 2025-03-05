@@ -114,7 +114,7 @@ const DEPLOYMENT_BLOCK = {
   btr: 3225645,
   dreyerx: 163720,
   cyeth: 1,
-  taiko: 11269  ,
+  taiko: 11269,
   sei: 79351444,
   aura: 6731307,
   conflux: 97705330,
@@ -158,6 +158,7 @@ const DEPLOYMENT_BLOCK = {
   formnetwork: 1,
   hemi: 1,
   hyperliquid: 13051,
+  sage: 467530,
 } as {
   [key: string | Chain]: number
 }
@@ -247,15 +248,16 @@ export function getMulticallAddress(chain: Chain, block?: string | number) {
     case 'degen': multicallAddress = '0xFBF562a98aB8584178efDcFd09755FF9A1e7E3a2'; break;
     case 'karak': multicallAddress = '0x73331e33f1552E706D56aa453ce19BCE314B4F59'; break;
     case 'taiko': multicallAddress = '0xcb2436774C3e191c85056d248EF4260ce5f27A9D'; break;
-    case 'qom' : multicallAddress = '0x7A52370716ea730585884F5BDB0f6E60C39b8C64'; break;
-    case 'matchain' : multicallAddress = '0xDa91510Bd8c50bfa54FC2BE2dD6dAbE03eA8496c'; break;
-    case 'morph' : multicallAddress = '0x33A213b1049D5AD2eeE6e61dAe040955e60383D4'; break;
-    case 'ace' : multicallAddress = '0x025A2B4fCE1E0bD736D5cebe6C8a52229795376B'; break;
-    case 'sophon' : multicallAddress = '0x5f4867441d2416cA88B1b3fd38f21811680CD2C8'; break;
-    case 'vana' : multicallAddress = '0xFe92b91F3326e58557478c28EeAe1936E0c7148a'; break;
-    case 'odyssey' : multicallAddress = '0xD5F04861e1249F488ef8898607cF7ad0F334d823'; break;
-    case 'abstract' : multicallAddress = '0xaa4de41dba0ca5dcbb288b7cc6b708f3aac759e7'; break;
-    case 'zero_network' : multicallAddress = '0x0307F341a18f1FC1f63a7Ceeac970245A08C5a80'; break;
+    case 'qom': multicallAddress = '0x7A52370716ea730585884F5BDB0f6E60C39b8C64'; break;
+    case 'matchain': multicallAddress = '0xDa91510Bd8c50bfa54FC2BE2dD6dAbE03eA8496c'; break;
+    case 'morph': multicallAddress = '0x33A213b1049D5AD2eeE6e61dAe040955e60383D4'; break;
+    case 'ace': multicallAddress = '0x025A2B4fCE1E0bD736D5cebe6C8a52229795376B'; break;
+    case 'sophon': multicallAddress = '0x5f4867441d2416cA88B1b3fd38f21811680CD2C8'; break;
+    case 'vana': multicallAddress = '0xFe92b91F3326e58557478c28EeAe1936E0c7148a'; break;
+    case 'odyssey': multicallAddress = '0xD5F04861e1249F488ef8898607cF7ad0F334d823'; break;
+    case 'abstract': multicallAddress = '0xaa4de41dba0ca5dcbb288b7cc6b708f3aac759e7'; break;
+    case 'zero_network': multicallAddress = '0x0307F341a18f1FC1f63a7Ceeac970245A08C5a80'; break;
+    case 'saga': multicallAddress = '0x864DDc9B50B9A0dF676d826c9B9EDe9F8913a160'; break;
   }
   return multicallAddress
 }
