@@ -8,6 +8,7 @@ import { readCache, writeCache } from "./cache"
 import { DEBUG_LEVEL2, debugLog } from "./debugLog"
 import { getEnvValue } from "./env"
 import { toFilterTopic } from "./logs"
+import { sliceIntoChunks } from "."
 
 const indexerURL = getEnvValue('LLAMA_INDEXER_ENDPOINT')
 const LLAMA_INDEXER_API_KEY = getEnvValue('LLAMA_INDEXER_API_KEY')
@@ -228,6 +229,8 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
   if (typeof target === 'string') targets = [target]
   if (Array.isArray(targets)) address = targets.join(',')
 
+  const hasAddressFilter = address && address.length
+
   if (address) address = address.toLowerCase()
 
   const chainIndexStatus = await getChainIndexStatus()
@@ -255,29 +258,36 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
     console.time(debugTimeKey)
   }
   const addressSet = new Set(address?.split(','))
+  const addressChunks = sliceIntoChunks(address?.split(',') ?? [], 10)
 
-  do {
-    const params: any = {
-      addresses: address,
-      chainId,
-      topic0: topic,
-      from_block: fromBlock,
-      to_block: toBlock,
-      limit,
-      offset,
-    }
-    const { data: { logs: _logs, totalCount } } = await axiosIndexer(`/logs`, { params, })
+  for (const chunk of addressChunks) {
+    let _logAgg = [] as any[]
+    do {
+      const params: any = {
+        addresses: hasAddressFilter ? chunk.join(','): undefined,
+        chainId,
+        topic0: topic,
+        from_block: fromBlock,
+        to_block: toBlock,
+        limit,
+        offset,
+      }
+      const { data: { logs: _logs, totalCount } } = await axiosIndexer(`/logs`, { params, })
+  
+      _logAgg.push(..._logs.filter((l: any) => {
+        if (!addressSet.size) return true
+        return addressSet.has(l?.source.toLowerCase())
+      }))
+      offset += limit
+  
+      // If we have all the logs, or we have reached the limit, or there are no logs, we stop
+      if (_logs.length < limit || totalCount <= _logAgg.length || _logs.length === 0) hasMore = false
+  
+    } while (all && hasMore)
 
-    logs.push(..._logs.filter((l: any) => {
-      if (!addressSet.size) return true
-      return addressSet.has(l?.source.toLowerCase())
-    }))
-    offset += limit
+    logs.push(..._logAgg)
+  }
 
-    // If we have all the logs, or we have reached the limit, or there are no logs, we stop
-    if (_logs.length < limit || totalCount <= logs.length || _logs.length === 0) hasMore = false
-
-  } while (all && hasMore)
 
   if (debugMode) {
     console.timeEnd(debugTimeKey)

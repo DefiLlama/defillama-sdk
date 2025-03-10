@@ -50,3 +50,19 @@ test("Indexer - getTokenTransfers", async () => {
   expect(res.length).toBe(2)
   expect(res.some((i: any) => !addressesSet.has(i.to_address))).toBeFalsy()
 });
+
+
+test("Indexer - getLogs - multiple targets", async () => {
+  const addresses = ['0xDFC14d2Af169B0D36C4EFF567Ada9b2E0CAE044f', '0xBb2b8038a1640196FbE3e38816F3e67Cba72D940'].map(i => i.toLowerCase())
+
+  const res = await getLogs({  
+    targets: addresses,
+    fromBlock: 22018452,
+    toBlock: 22019085,
+    chain: 'ethereum',
+    topic: 'event Swap (address indexed sender, uint256 amount0In, uint256 amount1In, uint256 amount0Out, uint256 amount1Out, address indexed to)'
+  })
+  expect(res.length).toBe(37)
+  expect(res.filter((i: any) => i.source === addresses[0]).length).toBe(4)
+  expect(res.filter((i: any) => i.source === addresses[1]).length).toBe(33)
+});
