@@ -1,7 +1,7 @@
 import axios from "axios"
 
 export const blockscoutEndpoints: any = {
-  celo: 'https://explorer.celo.org',
+  // celo: 'https://celo.blockscout.com',
   onus: 'https://explorer.onuschain.io',
   base: 'https://base.blockscout.com',
   // scroll: 'https://blockscout.scroll.io',
