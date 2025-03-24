@@ -1180,5 +1180,11 @@
       "https://mainnet.unichain.org"
     ],
     "chainId": 130
+  },
+  "winr": {
+    "rpc":[
+      "https://rpc.winr.games"
+    ],
+    "chainId":777777
   }
 }
