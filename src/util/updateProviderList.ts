@@ -21,13 +21,13 @@ async function getChainData() {
   } catch (e) {
     console.log('Failed to fetch chainlist.org, falling back to local copy')
     // https://unpkg.com/@defillama/sdk@latest/build/providers.json
-    return require(__dirname+'/chainlistOrgCache.json')
+    return require(__dirname + '/chainlistOrgCache.json')
   }
 }
 
 async function main() {
   const { data: oldProviders } = await axios(`https://unpkg.com/@defillama/sdk@latest/build/providers.json`)
-  let chainData = await getChainData() 
+  let chainData = await getChainData()
   const providerIDMap = {} as {
     [key: string]: string[]
   }
@@ -48,7 +48,9 @@ async function main() {
       i.rpc = await filterForWorkingRPCs(i.rpc.map((j: any) => j.url), i.name, i.chainId)
       if (!i.rpc.length) return;
       if (providerIDMap[i.chainId]) {
-        providerIDMap[i.chainId].push(...i.rpc)
+        const isBEVM = i.chainId + '' === '11501'  // bevm chain id clashes with 
+        if (!isBEVM)
+          providerIDMap[i.chainId].push(...i.rpc)
       } else if (providerList[i.shortName.toLowerCase()]) {
         debugLog(`Duplicate short name ${i.chainId} for ${i.shortName}, doing nothing`)
       } else {
@@ -86,8 +88,8 @@ async function main() {
     providerList.hyperliquid.rpc.push('https://hyperliquid.cloud.blockscout.com/api/eth-rpc')
   }
 
-  const droppedChains = Object.keys(oldProviders).filter(oldChain=>providerList[oldChain] === undefined)
-  if(droppedChains.length > 20){
+  const droppedChains = Object.keys(oldProviders).filter(oldChain => providerList[oldChain] === undefined)
+  if (droppedChains.length > 20) {
     throw new Error(`Following chains used to be included but is not anymore, can the devs fix please?\n${droppedChains.join('\n')}`)
   }
 
