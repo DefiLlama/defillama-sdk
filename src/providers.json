@@ -2,7 +2,6 @@
   "ethereum": {
     "rpc": [
       "https://eth.llamarpc.com",
-      "https://rpc.ankr.com/eth",
       "https://cloudflare-eth.com/"
     ],
     "chainId": 1
@@ -33,7 +32,6 @@
   },
   "fantom": {
     "rpc": [
-      "https://rpc.ankr.com/fantom",
       "https://rpc.ftm.tools/",
       "https://rpcapi.fantom.network"
     ],
@@ -53,15 +51,13 @@
   },
   "xdai": {
     "rpc": [
-      "https://rpc.ankr.com/gnosis",
       "https://xdai-archive.blockscout.com"
     ],
     "chainId": 100
   },
   "avax": {
     "rpc": [
-      "https://api.avax.network/ext/bc/C/rpc",
-      "https://rpc.ankr.com/avalanche"
+      "https://api.avax.network/ext/bc/C/rpc"
     ],
     "chainId": 43114
   },
@@ -92,7 +88,6 @@
   },
   "optimism": {
     "rpc": [
-      "https://rpc.ankr.com/optimism",
       "https://mainnet.optimism.io/"
     ],
     "chainId": 10
@@ -384,7 +379,6 @@
   },
   "syscoin": {
     "rpc": [
-      "https://rpc.ankr.com/syscoin",
       "https://rpc.syscoin.org"
     ],
     "chainId": 57
@@ -470,7 +464,6 @@
   },
   "bittorrent": {
     "rpc": [
-      "https://rpc.ankr.com/bttc",
       "https://bttc.trongrid.io/",
       "https://rpc.bittorrentchain.io",
       "https://rpc.bt.io"
@@ -591,7 +584,6 @@
   "dogechain": {
     "rpc": [
       "https://dogechain.rpc.thirdweb.com",
-      "https://rpc.ankr.com/dogechain",
       "https://rpc-us.dogechain.dog",
       "https://rpc.dogechain.dog",
       "https://rpc-sg.dogechain.dog",
@@ -747,7 +739,6 @@
   },
   "goerli": {
     "rpc": [
-      "https://rpc.ankr.com/eth_goerli"
     ],
     "chainId": 5
   },
@@ -814,7 +805,6 @@
   "mantle": {
     "rpc": [
       "https://mantle.publicnode.com",
-      "https://rpc.ankr.com/mantle",
       "https://mantle.drpc.org",
       "https://1rpc.io/mantle",
       "https://mantle-mainnet.public.blastapi.io"
@@ -898,7 +888,6 @@
   },
   "scroll": {
     "rpc": [
-      "https://rpc.ankr.com/scroll",
       "https://rpc.scroll.io",
       "https://scroll.blockpi.network/v1/rpc/public",
       "https://scroll-mainnet.public.blastapi.io",
@@ -911,8 +900,7 @@
   },
   "chz": {
     "rpc": [
-      "https://chiliz.publicnode.com",
-      "https://rpc.ankr.com/chiliz"
+      "https://chiliz.publicnode.com"
     ],
     "chainId": 88888
   },
@@ -953,7 +941,6 @@
   "xai": {
     "rpc": [
       "https://xai-chain.net/rpc",
-      "https://rpc.ankr.com/xai",
       "https://660279.rpc.thirdweb.com",
       "https://xai-mainnet.rpc.quicknode.com/"
     ],
@@ -967,8 +954,7 @@
   },
   "blast": {
     "rpc": [
-      "https://blast.blockpi.network/v1/rpc/public",
-      "https://rpc.ankr.com/blast"
+      "https://blast.blockpi.network/v1/rpc/public"
     ],
     "chainId": 81457
   },
@@ -993,7 +979,6 @@
   "core": {
     "rpc": [
       "https://rpc.coredao.org",
-      "https://rpc.ankr.com/core",
       "https://1rpc.io/core",
       "https://rpc-core.icecreamswap.com"
     ],
@@ -1142,7 +1127,6 @@
   "bsquared": {
     "rpc": [
       "https://rpc.bsquared.network",
-      "https://rpc.ankr.com/b2",
       "https://mainnet.b2-rpc.com"
     ],
     "chainId": 223

@@ -104,7 +104,7 @@ function filterRPCs(rpc: string[]): string[] {
     if (i.endsWith('/demo')) return false // remove demo rpc
     if (i.includes('$')) return false // remove anything where api key is injected
     // reject websocket, http, testnet, devnet, and anything with '='
-    if (/(wss\:|ws\:|http\:|test|devnet|terminet\.io|huobichain\.com|getblock\.io|bitstack\.com|nodereal.io\/v1|pokt\.network|\=)/.test(i)) return false // remove anything with blacklisted words
+    if (/(wss\:|ws\:|http\:|test|devnet|terminet\.io|huobichain\.com|getblock\.io|bitstack\.com|nodereal.io\/v1|pokt\.network|ankr\.com|\=)/.test(i)) return false // remove anything with blacklisted words
     return true
   }).map((i: string) => {
     if (i.endsWith('/')) return i.slice(0, -1)
