@@ -1167,8 +1167,31 @@
   },
   "winr": {
     "rpc":[
-      "https://rpc.winr.games"
+      "https://rpc.winr.games",
+      "https://rpc-winr-mainnet-0.t.conduit.xyz"
     ],
     "chainId":777777
+  },
+  "etlk": {
+    "rpc": [
+      "https://node.mainnet.etherlink.com"
+    ],
+    "chainId": 42793,
+    "explorer": "https://explorer.etherlink.com"
+  },
+  "bevm": {
+    "rpc": [
+      "https://rpc-mainnet-1.bevm.io",
+      "https://rpc-mainnet-2.bevm.io"
+    ],
+    "chainId": 11501,
+    "explorer": "https://scan-mainnet.bevm.io"
+  },
+  "mtt_network": {
+    "rpc": [
+      "https://evm-rpc.mtt.network"
+    ],
+    "chainId": 6880,
+    "explorer": "https://explorer.mtt.network"
   }
 }
