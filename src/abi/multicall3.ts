@@ -157,6 +157,7 @@ const DEPLOYMENT_BLOCK = {
   sanko: 1,
   formnetwork: 1,
   hemi: 1,
+  hedera: 1,
   hyperliquid: 13051,
   saga: 467530,
 } as {
@@ -258,6 +259,7 @@ export function getMulticallAddress(chain: Chain, block?: string | number) {
     case 'abstract': multicallAddress = '0xaa4de41dba0ca5dcbb288b7cc6b708f3aac759e7'; break;
     case 'zero_network': multicallAddress = '0x0307F341a18f1FC1f63a7Ceeac970245A08C5a80'; break;
     case 'saga': multicallAddress = '0x864DDc9B50B9A0dF676d826c9B9EDe9F8913a160'; break;
+    case 'hedera': multicallAddress = '0x18fa376d92511dd04090566ab6144847c03557d8'; break;
   }
   return multicallAddress
 }
