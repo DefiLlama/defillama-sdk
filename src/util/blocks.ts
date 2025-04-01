@@ -4,7 +4,6 @@ import { formError, getProviderUrl, } from "../generalUtil";
 import { debugLog } from "./debugLog";
 import { isCosmosChain, getCosmosProvider } from "./cosmos";
 import { getTempLocalCache } from "./cache";
-import { blockscoutEndpoints, getBlockscoutBlock } from "./blockscout";
 import pLimit from 'p-limit';
 import { getParallelGetBlocksLimit } from "./env";
 
@@ -189,16 +188,6 @@ async function _lookupBlock(
 ): Promise<Block> {
   const { allowedTimeRange = 5 * 60, acceptableBlockImprecision = 10 } = extraParams ?? {};
   const chain = extraParams?.chain ?? "ethereum"
-
-  if (blockscoutEndpoints[chain]) {
-    try {
-      const block = await getBlockscoutBlock(timestamp, chain)
-      addBlockToCache(block)
-      return block
-    } catch (e) { // fallback to usual way of fetching logs
-      debugLog('error fetching block from blockscout', e, chain)
-    }
-  }
 
   if (chain === 'waves') {
     const api = `https://nodes.wavesnodes.com/blocks/heightByTimestamp/${timestamp}`
