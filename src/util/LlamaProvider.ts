@@ -128,12 +128,12 @@ export class LlamaProvider extends FallbackProvider {
 
     runners = runners.slice(0, attempts)
 
-    if (this.chainName === 'rsk' && method === 'getLogs') {
-      const hostString = getEnvValue('RSK_ARCHIVAL_RPC')
-      if (!hostString) 
-        throw new Error('RSK public nodes dont support getLogs. need to set RSK_ARCHIVAL_RPC');
-      (runners as any) = hostString.split(',').map(host => ({ url: host  }))
-    }
+    // if (this.chainName === 'rsk' && method === 'getLogs') {
+    //   const hostString = getEnvValue('RSK_ARCHIVAL_RPC')
+    //   if (!hostString) 
+    //     throw new Error('RSK public nodes dont support getLogs. need to set RSK_ARCHIVAL_RPC');
+    //   (runners as any) = hostString.split(',').map(host => ({ url: host  }))
+    // }
 
     for (const runner of runners) {
       try {
