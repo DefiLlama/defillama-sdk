@@ -15,9 +15,9 @@ const nullAddress = '0x0000000000000000000000000000000000000000'
 
 // https://docs.soliditylang.org/en/latest/abi-spec.html
 const knownTypes = [
-  'string', 'address', 'bool',
-  'int', 'int8', 'int16', 'int32', 'int64', 'int128', 'int256',
-  'uint', 'uint8', 'uint16', 'uint32', 'uint64', 'uint128', 'uint256',
+  'string', 'address', 'bool', 'bytes32',
+  'int', 'int8', 'int16', 'int24', 'int32', 'int64', 'int96', 'int128', 'int256',
+  'uint', 'uint8', 'uint16', 'uint24', 'uint32', 'uint64', 'uint96', 'uint128', 'uint256',
 ];
 
 ([...knownTypes]).forEach(i => knownTypes.push(i + '[]')) // support array type for all known types
@@ -117,42 +117,42 @@ export async function call(params: CallOptions): Promise<any> {
   let errorParams: any = { ...params }
   try {
 
-  if (!params.skipCache) return cachedCall(params)
-  const abi = resolveABI(params.abi);
-  const callParams = normalizeParams(params.params);
-  if (chain === 'tron') return Tron.call({ ...params, abi, params: callParams })
+    if (!params.skipCache) return cachedCall(params)
+    const abi = resolveABI(params.abi);
+    const callParams = normalizeParams(params.params);
+    if (chain === 'tron') return Tron.call({ ...params, abi, params: callParams })
 
-  const contractInterface = new ethers.Interface([abi]);
-  const functionABI = ethers.FunctionFragment.from(abi);
-  const callData = contractInterface.encodeFunctionData(
-    functionABI,
-    callParams
-  );
+    const contractInterface = new ethers.Interface([abi]);
+    const functionABI = ethers.FunctionFragment.from(abi);
+    const callData = contractInterface.encodeFunctionData(
+      functionABI,
+      callParams
+    );
 
-  const provider = getProvider(chain as Chain);
-  errorParams.provider = provider
-  const result = await provider.call({
+    const provider = getProvider(chain as Chain);
+    errorParams.provider = provider
+    const result = await provider.call({
       to: params.target,
       data: callData,
       blockTag: params.block,
     });
-  errorParams.result = result
-  const decodedResult = contractInterface.decodeFunctionResult(abi, result);
+    errorParams.result = result
+    const decodedResult = contractInterface.decodeFunctionResult(abi, result);
 
-  const output = convertResults(decodedResult, functionABI)
+    const output = convertResults(decodedResult, functionABI)
 
 
-  if (params.logArray && abi.name == 'balanceOf' && abi.outputs[0].type == 'uint256')
-    params.logArray.push({
-      chain,
-      token: params.target,
-      holder: Array.isArray(params.params) ? params.params[0] : params.params,
-      amount: output
-    });
+    if (params.logArray && abi.name == 'balanceOf' && abi.outputs[0].type == 'uint256')
+      params.logArray.push({
+        chain,
+        token: params.target,
+        holder: Array.isArray(params.params) ? params.params[0] : params.params,
+        amount: output
+      });
 
-  return {
-    output,
-  };
+    return {
+      output,
+    };
   } catch (e) {
     errorParams.isCallError = true
     throw formError(e, errorParams)
