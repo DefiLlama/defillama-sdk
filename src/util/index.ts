@@ -94,10 +94,12 @@ async function _getLogs(params: GetLogsOptions): Promise<{ output: EventLog[] }>
       currentBlock = nextBlock;
     } catch (e) {
       debugLog(`Error fetching logs for chain ${params.chain} blockSpread: ${blockSpread}. ${formError(e, { chain: params.chain, target: params.target, provider })}`)
-      if (blockSpread >= 1500) {
+      if (blockSpread >= 1001) {
         // We got too many results
-        // We could chop it up into 1500 block spreads as that is guaranteed to always return but then we'll have to make a lot of queries (easily >1000), so instead we'll keep dividing the block spread by two until we make it
+        // We could chop it up into 1001 block spreads as that is guaranteed to always return but then we'll have to make a lot of queries (easily >1000), so instead we'll keep dividing the block spread by two until we make it
         blockSpread = Math.floor(blockSpread / 2);
+        if (blockSpread >= 500 && blockSpread < 1000) blockSpread = 999;
+        if (blockSpread >= 5000 && blockSpread < 10000) blockSpread = 9999;
       } else {
         const error = formError(e, { chain: params.chain, target: params.target, provider })
         error.message = `[chain: ${params.chain}] ${(error as any)?.message} params: ${JSON.stringify(logParams)}`
