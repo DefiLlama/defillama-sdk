@@ -194,7 +194,7 @@ export type IndexerGetTokenTransfersOptions = {
   offset?: number;
   debugMode?: boolean;
   fromAddressFilter?: string | string[];
-  transferType?: 'in' | 'out';
+  transferType?: 'in' | 'out'  | 'all';
   tokens?: string | string[];
   token?: string;
 }
@@ -400,10 +400,24 @@ export async function getTokenTransfers({ chain = 'ethereum', fromAddressFilter,
       limit,
       offset,
       tokens,
+      from_address: false,
+      to_address: false,
     }
 
-    if (transferType === 'in') params.to_address = true
-    else params.from_address = true
+    switch (transferType) {
+      case 'in':
+        params.to_address = true
+        break
+      case 'out':
+        params.from_address = true
+        break
+      case 'all':
+        params.from_address = true
+        params.to_address = true
+        break
+      default:
+        throw new Error('Invalid transferType')
+    }
 
     const { data: { transfers: _logs, totalCount } } = await axiosIndexer(`/token-transfers`, { params, })
 
