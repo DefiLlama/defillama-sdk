@@ -698,5 +698,26 @@
     "rpc": [],
     "chainId": 6880,
     "explorer": "https://explorer.mtt.network"
+  },
+  "hyperliquid": {
+    "rpc": [
+      "https://rpc.purroofgroup.com"
+    ],
+    "chainId": 999,
+    "explorer": "https://purrsec.com/"
+  },
+  "hsk": {
+    "rpc": [
+      "https://hashkey.blockscout.com/api/eth-rpc"
+    ],
+    "chainId": 177,
+    "explorer": "https://hashkey.blockscout.com"
+  },
+  "etlk": {
+    "rpc": [
+      "https://explorer.etherlink.com/api/eth-rpc"
+    ],
+    "chainId": 42793,
+    "explorer": "https://explorer.etherlink.com"
   }
 }
