@@ -9,6 +9,7 @@
     "watch": "tsc --watch",
     "test": "LLAMA_DEBUG_MODE='' SDK_DEBUG='' jest",
     "update-providers": "ts-node src/util/updateProviderList.ts",
+    "remove-rpcs": "ts-node src/util/removeRedundantRPCs.ts",
     "format": "prettier --write \"src/**/*.ts\"",
     "prepublishOnly": "npm run build"
   },
