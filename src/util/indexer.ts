@@ -283,6 +283,11 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
       }
       const { data: { logs: _logs, totalCount } } = await axiosIndexer(`/logs`, { params, })
 
+      // getLogs uses 'address' field to return log source, so we add the field here to make it compatible
+      _logs.forEach((l: any) => {
+        l.address = l.source
+      })
+
       _logAgg.push(..._logs.filter((l: any) => {
         if (!addressSet.size) return true
         return addressSet.has(l?.source.toLowerCase())

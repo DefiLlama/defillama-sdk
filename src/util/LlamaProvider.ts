@@ -1,7 +1,7 @@
 import { AbstractProvider, AddressLike, Block, BlockTag, FallbackProvider, Filter, FilterByBlockHash, JsonRpcProvider, Log, Provider, TransactionRequest, WebSocketProvider } from "ethers";
 import providerList from '../providers.json'
 import { getArchivalRPCs, getBatchMaxCount, getChainId, getChainRPCs, getEnvValue } from './env';
-import { debugLog } from './debugLog';
+import { debugLog, debugTable } from './debugLog';
 import { Chain } from "../types";
 import axios from "axios";
 
@@ -338,6 +338,6 @@ function getMedianBlockValue(blocks: number[]) {
 process.on('exit', () => {
   if (Object.keys(rpcRequestCounter).length > 7) {
     debugLog('RPC request count per chain',)
-    console.table(rpcRequestCounter)
+    debugTable(rpcRequestCounter)
   }
 })
