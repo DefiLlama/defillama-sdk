@@ -326,7 +326,7 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
     log.blockNumber = log.block_number
     log.topics = [log.topic0, log.topic1, log.topic2, log.topic3,].filter(t => t !== '').map(i => ethers.zeroPadValue(i, 32))
 
-    const deleteKeys = ['chain', 'address', 'block_number', 'log_index', 'topic0', 'topic1', 'topic2', 'topic3', 'decodedArgs', 'transaction_hash',]
+    const deleteKeys = ['chain', 'block_number', 'log_index', 'topic0', 'topic1', 'topic2', 'topic3', 'decodedArgs', 'transaction_hash',]
     deleteKeys.forEach(k => delete log[k])
     const parsedLog = iface?.parseLog({ data: log.data, topics: log.topics, });
 
