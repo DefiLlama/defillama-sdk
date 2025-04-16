@@ -31,6 +31,8 @@ export type GetLogsOptions = {
   skipIndexer?: boolean;
   onlyIndexer?: boolean;
   debugMode?: boolean;
+  noTarget?: boolean;  // we sometimes want to query logs without a target, but it will an be expensive bug if target/targets were not passed by mistake, so this is a safety check
+  parseLog?: boolean;
 }
 
 export async function getLogs(options: GetLogsOptions): Promise<EventLog[] | EventLog[][] | any[]> {
@@ -56,6 +58,8 @@ export async function getLogs(options: GetLogsOptions): Promise<EventLog[] | Eve
     skipIndexer = false,
     onlyIndexer = false,
     debugMode = false,
+    noTarget = false,  // we sometimes want to query logs without a target, but it will an be expensive bug if target/targets were not passed by mistake, so this is a safety check
+    parseLog = false,
   } = options
 
   if (!skipIndexer && isIndexerEnabled(chain)) {
@@ -86,6 +90,10 @@ export async function getLogs(options: GetLogsOptions): Promise<EventLog[] | Eve
     toBlock = await getBlockNumber(chain, toTimestamp)
 
   if (!fromBlock || !toBlock) throw new Error('fromBlock and toBlock must be > 0')
+
+  if (!noTarget && !target && !targets?.length) {
+    throw new Error('target|targets is required or set the flag "noTarget" to true')
+  }
 
   if (targets?.length) {
     const newOptions = { ...options, fromBlock, toBlock }
@@ -155,7 +163,12 @@ export async function getLogs(options: GetLogsOptions): Promise<EventLog[] | Eve
     logs.push(...cacheData.logs.filter((i: EventLog) => i.blockNumber >= fromBlock! && i.blockNumber <= toBlock!))
   }
 
-  if (!eventAbi || entireLog) return logs
+  if (!eventAbi || entireLog) {
+    if (iface && parseLog) {
+      logs.forEach((i: any) => i.parsedLog = iface?.parseLog(i))
+    }
+    return logs
+  }
   return logs.map((i: any) => iface!.parseLog(i)).map((i: any) => onlyArgs ? i.args : i)
 
   async function addLogsToCache(fromBlock: number, toBlock: number) {
@@ -242,7 +255,7 @@ export function toFilterTopic(topic: string): string {
   if (typeof topic === 'string' && topic.startsWith('0x')) {
     return topic
   }
-  
+
   const fragment = EventFragment.from(topic)
   return id(fragment.format())
 }

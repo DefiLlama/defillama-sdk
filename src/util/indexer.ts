@@ -178,6 +178,8 @@ export type IndexerGetLogsOptions = {
   limit?: number;
   offset?: number;
   debugMode?: boolean;
+  noTarget?: boolean;  // we sometimes want to query logs without a target, but it will an be expensive bug if target/targets were not passed by mistake, so this is a safety check
+  parseLog?: boolean;
 }
 
 export type IndexerGetTokenTransfersOptions = {
@@ -194,12 +196,12 @@ export type IndexerGetTokenTransfersOptions = {
   offset?: number;
   debugMode?: boolean;
   fromAddressFilter?: string | string[];
-  transferType?: 'in' | 'out'  | 'all';
+  transferType?: 'in' | 'out' | 'all';
   tokens?: string | string[];
   token?: string;
 }
 
-export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, toBlock, all = true, limit = 1000, offset = 0, target, targets, eventAbi, entireLog = false, flatten = true, extraTopics, fromTimestamp, toTimestamp, debugMode = false }: IndexerGetLogsOptions) {
+export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, toBlock, all = true, limit = 1000, offset = 0, target, targets, eventAbi, entireLog = false, flatten = true, extraTopics, fromTimestamp, toTimestamp, debugMode = false, noTarget = false, parseLog = true, }: IndexerGetLogsOptions) {
   checkIndexerConfig()
 
   const chainId = chainToIDMapping[chain]
@@ -215,6 +217,10 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
   // if (!target && !targets?.length) throw new Error('target|targets is required')
   if (!fromBlock && !fromTimestamp) throw new Error('fromBlock or fromTimestamp is required')
   if (!toBlock && !toTimestamp) throw new Error('toBlock or toTimestamp is required')
+
+  if (!noTarget && !target && !targets?.length)
+    throw new Error('target|targets is required or set the flag "noTarget" to true')
+
 
   if (!fromBlock)
     fromBlock = await getBlockNumber(chain, fromTimestamp)
@@ -260,11 +266,14 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
   const addressSet = new Set(address?.split(','))
   const addressChunks = sliceIntoChunks(address?.split(',') ?? [], 10)
 
+  // to ensure that we have at least one chunk to process if no target is provided
+  if (noTarget && addressChunks.length === 0) addressChunks.push(undefined as any)
+
   for (const chunk of addressChunks) {
     let _logAgg = [] as any[]
     do {
       const params: any = {
-        addresses: hasAddressFilter ? chunk.join(','): undefined,
+        addresses: hasAddressFilter ? chunk.join(',') : undefined,
         chainId,
         topic0: topic,
         from_block: fromBlock,
@@ -273,16 +282,16 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
         offset,
       }
       const { data: { logs: _logs, totalCount } } = await axiosIndexer(`/logs`, { params, })
-  
+
       _logAgg.push(..._logs.filter((l: any) => {
         if (!addressSet.size) return true
         return addressSet.has(l?.source.toLowerCase())
       }))
       offset += limit
-  
+
       // If we have all the logs, or we have reached the limit, or there are no logs, we stop
       if (_logs.length < limit || totalCount <= _logAgg.length || _logs.length === 0) hasMore = false
-  
+
     } while (all && hasMore)
 
     logs.push(..._logAgg)
@@ -314,12 +323,13 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
 
     const deleteKeys = ['chain', 'address', 'block_number', 'log_index', 'topic0', 'topic1', 'topic2', 'topic3', 'decodedArgs', 'transaction_hash',]
     deleteKeys.forEach(k => delete log[k])
-    const parsedLog = iface?.parseLog({
-      data: log.data,
-      topics: log.topics,
-    });
+    const parsedLog = iface?.parseLog({ data: log.data, topics: log.topics, });
+
     log.args = parsedLog?.args
     log = !entireLog ? log.args : log
+    if (entireLog && parseLog) log.parsedLog = parsedLog
+
+
     if (splitByAddress) {
       const index = addressIndexMap[source]
       mappedLogs[index].push(log)

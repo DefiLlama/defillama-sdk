@@ -12,7 +12,7 @@ test("Indexer - getTokens 1", async () => {
 
 test("Indexer - getLogs", async () => {
 
-  const res = await getLogs({  
+  const res = await getLogs({
     target: contract,
     eventAbi,
     fromBlock: 16310967,
@@ -26,7 +26,7 @@ test("Indexer - getLogs", async () => {
 
 
 test("Indexer - getLogs - block not synced", async () => {
-  const res = getLogs({  
+  const res = getLogs({
     target: contract,
     eventAbi,
     fromBlock: 16310967,
@@ -39,7 +39,7 @@ test("Indexer - getLogs - block not synced", async () => {
 test("Indexer - getTokenTransfers", async () => {
   const addresses = ['0x1B5e59759577fa0079e2a35bc89143bc0603d546', '0xD5aC6419635Aa6352EbaDe0Ab42d25FbFa570D21']
 
-  const res = await getTokenTransfers({  
+  const res = await getTokenTransfers({
     targets: addresses,
     tokens: ['0xff970a61a04b1ca14834a43f5de4533ebddb5cc8', '0x09faeb69e29845f3326e4f004f45a31ceb0eedb9'],
     fromBlock: 119877801,
@@ -55,7 +55,7 @@ test("Indexer - getTokenTransfers", async () => {
 test("Indexer - getLogs - multiple targets", async () => {
   const addresses = ['0xDFC14d2Af169B0D36C4EFF567Ada9b2E0CAE044f', '0xBb2b8038a1640196FbE3e38816F3e67Cba72D940'].map(i => i.toLowerCase())
 
-  const res = await getLogs({  
+  const res = await getLogs({
     targets: addresses,
     fromBlock: 22018452,
     toBlock: 22019085,
@@ -65,4 +65,31 @@ test("Indexer - getLogs - multiple targets", async () => {
   expect(res.length).toBe(37)
   expect(res.filter((i: any) => i.source === addresses[0]).length).toBe(4)
   expect(res.filter((i: any) => i.source === addresses[1]).length).toBe(33)
+});
+
+
+test("Indexer - getLogs - no targets - throw error", async () => {
+
+  const res = getLogs({
+    fromBlock: 22280140,
+    toBlock: 22280145,
+    chain: 'ethereum',
+    topic: 'event Swap (address indexed sender, uint256 amount0In, uint256 amount1In, uint256 amount0Out, uint256 amount1Out, address indexed to)'
+  })
+  await expect(res).rejects.toThrowError()
+});
+
+
+
+
+test("Indexer - getLogs - no targets", async () => {
+
+  const res = await getLogs({
+    fromBlock: 22280140,
+    toBlock: 22280145,
+    chain: 'ethereum',
+    topic: 'event Swap (address indexed sender, uint256 amount0In, uint256 amount1In, uint256 amount0Out, uint256 amount1Out, address indexed to)',
+    noTarget: true,
+  })
+  expect(res.length).toBe(94)
 });
