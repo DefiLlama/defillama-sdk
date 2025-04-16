@@ -84,10 +84,6 @@ async function main() {
     providerList[key] = providerList[shorName]
   }
 
-  if (providerList.hyperliquid) {
-    providerList.hyperliquid.rpc.push('https://hyperliquid.cloud.blockscout.com/api/eth-rpc')
-  }
-
   const droppedChains = Object.keys(oldProviders).filter(oldChain => providerList[oldChain] === undefined)
   if (droppedChains.length > 20) {
     throw new Error(`Following chains used to be included but is not anymore, can the devs fix please?\n${droppedChains.join('\n')}`)
