@@ -10,6 +10,8 @@ type ProviderWithURL = {
   provider: AbstractProvider;
 }
 
+const rpcRequestCounter = {} as Record<string, number>
+
 
 export class LlamaProvider extends FallbackProvider {
   isCustomLlamaProvider = true
@@ -41,7 +43,7 @@ export class LlamaProvider extends FallbackProvider {
   }
 
   async _ready() {
-    if(process.env["SKIP_RPC_CHECK"] === "true"){
+    if (process.env["SKIP_RPC_CHECK"] === "true") {
       return
     }
     const outOfSyncLimit = 1000
@@ -100,6 +102,8 @@ export class LlamaProvider extends FallbackProvider {
   }
 
   async _performAction(method: string, params: any, attempts = 7): Promise<any> {
+    if (!rpcRequestCounter[this.chainName]) rpcRequestCounter[this.chainName] = 0
+    rpcRequestCounter[this.chainName]++
     await this._isReady
     let runners = [...this.rpcs]
     if (method === 'getLogs') {
@@ -113,7 +117,7 @@ export class LlamaProvider extends FallbackProvider {
     if (method === 'getLogs') {
       runners = runners.slice(1).concat(this.rpcs)
       runners = runners.sort(() => Math.random() - 0.5) // randomize order of runners
-    } else 
+    } else
       runners = runners.slice(1).sort(() => Math.random() - 0.5) // randomize order of runners
     const isArchivalRequest = ['call', 'getBalance'].includes(method) && params[1] !== 'latest'
     let noPlayingAround = getEnvValue('RPC_NO_PLAYING_AROUND') === 'true' || primaryRunner.url.includes('llama.fi') || method === 'getLogs' || isArchivalRequest
@@ -329,3 +333,11 @@ function getMedianBlockValue(blocks: number[]) {
   const mid = Math.floor(blocks.length / 3)
   return blocks.length % 2 !== 0 ? blocks[mid] : (blocks[mid - 1] + blocks[mid]) / 2
 }
+
+
+process.on('exit', () => {
+  if (Object.keys(rpcRequestCounter).length > 7) {
+    debugLog('RPC request count per chain',)
+    console.table(rpcRequestCounter)
+  }
+})
