@@ -161,6 +161,7 @@ const DEPLOYMENT_BLOCK = {
   hyperliquid: 13051,
   saga: 467530,
   goat: 1,
+  corn: 1,
 } as {
   [key: string | Chain]: number
 }
