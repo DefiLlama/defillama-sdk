@@ -132,6 +132,13 @@ export class LlamaProvider extends FallbackProvider {
 
     runners = runners.slice(0, attempts)
 
+    // print stats every 5 minutes
+    let currentTimeMS = Date.now()
+    if (currentTimeMS - lastPrintTimeMS > 1000 * 60 * 5) {
+      lastPrintTimeMS = currentTimeMS
+      printRPCCallStats()
+    }
+
     // if (this.chainName === 'rsk' && method === 'getLogs') {
     //   const hostString = getEnvValue('RSK_ARCHIVAL_RPC')
     //   if (!hostString) 
@@ -334,10 +341,13 @@ function getMedianBlockValue(blocks: number[]) {
   return blocks.length % 2 !== 0 ? blocks[mid] : (blocks[mid - 1] + blocks[mid]) / 2
 }
 
+let lastPrintTimeMS = Date.now()
 
-process.on('exit', () => {
+function printRPCCallStats() {
   if (Object.keys(rpcRequestCounter).length > 7) {
     debugLog('RPC request count per chain',)
     debugTable(rpcRequestCounter)
   }
-})
+}
+
+process.on('exit',printRPCCallStats)

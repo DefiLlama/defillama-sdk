@@ -12,6 +12,7 @@ import { sliceIntoChunks } from "."
 
 const indexerURL = getEnvValue('LLAMA_INDEXER_ENDPOINT')
 const LLAMA_INDEXER_API_KEY = getEnvValue('LLAMA_INDEXER_API_KEY')
+const addressChunkSize = +getEnvValue('LLAMA_INDEXER_ADDRESS_CHUNK_SIZE')!
 
 const axiosIndexer = axios.create({
   headers: {
@@ -264,13 +265,13 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
     console.time(debugTimeKey)
   }
   const addressSet = new Set(address?.split(','))
-  const addressChunks = sliceIntoChunks(address?.split(',') ?? [], 10)
+  const addressChunks = sliceIntoChunks(address?.split(',') ?? [], addressChunkSize)
 
   // to ensure that we have at least one chunk to process if no target is provided
   if (noTarget && addressChunks.length === 0) addressChunks.push(undefined as any)
 
   for (const chunk of addressChunks) {
-    let _logAgg = [] as any[]
+    let logCount = 0
     do {
       const params: any = {
         addresses: hasAddressFilter ? chunk.join(',') : undefined,
@@ -286,20 +287,20 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
       // getLogs uses 'address' field to return log source, so we add the field here to make it compatible
       _logs.forEach((l: any) => {
         l.address = l.source
+        const iswhitelisted =  !addressSet.size || addressSet.has(l.source.toLowerCase())
+        if (iswhitelisted) {
+          logs.push(l)
+        }
       })
+      logCount += _logs.length
 
-      _logAgg.push(..._logs.filter((l: any) => {
-        if (!addressSet.size) return true
-        return addressSet.has(l?.source.toLowerCase())
-      }))
       offset += limit
 
       // If we have all the logs, or we have reached the limit, or there are no logs, we stop
-      if (_logs.length < limit || totalCount <= _logAgg.length || _logs.length === 0) hasMore = false
+      if (_logs.length < limit || totalCount <= logCount || _logs.length === 0) hasMore = false
 
     } while (all && hasMore)
 
-    logs.push(..._logAgg)
   }
 
 
