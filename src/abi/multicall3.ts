@@ -150,7 +150,7 @@ const DEPLOYMENT_BLOCK = {
   ronin: 1,
   peaq: 1,
   berachain: 1,
-  plume: 1,
+  plume_mainnet: 39679,
   abstract: 5288,
   zero_network: 11517,
   unichain: 1,
