@@ -151,6 +151,7 @@ const DEPLOYMENT_BLOCK = {
   peaq: 1,
   berachain: 1,
   plume: 1,
+  plume_mainnet: 39679,
   abstract: 5288,
   zero_network: 11517,
   unichain: 1,
@@ -162,6 +163,17 @@ const DEPLOYMENT_BLOCK = {
   saga: 467530,
   goat: 1,
   corn: 1,
+  hoe: 2589,
+  power: 46125,
+  bittensor_evm: 5098260,
+  wbt: 1,
+  tangle: 1,
+  nero: 1,
+  flame: 1,
+  sseed: 1,
+  lens: 1,
+  basecamp: 1,
+
 } as {
   [key: string | Chain]: number
 }

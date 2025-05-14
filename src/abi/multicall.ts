@@ -391,6 +391,8 @@ function multicallAddress(chainId: number | BigInt) {
       return '0xB32d192e07727A0F6f48e721791aa4e02cd292e1';
     case 185:  // mint
       return '0xf8ac4BEB2F75d2cFFb588c63251347fdD629B92c';
+    case 42420:  // assetchain
+      return '0xf8ac4BEB2F75d2cFFb588c63251347fdD629B92c';
     case 388:  // cronos_zkevm
       return '0x9b122BF7a96F24EFB7A2b5765c635909dB3458F7';
     case 47763:  // neox
