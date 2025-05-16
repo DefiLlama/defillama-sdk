@@ -284,6 +284,10 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
   if (noTarget && addressChunks.length === 0) addressChunks.push(undefined as any)
 
   for (const chunk of addressChunks) {
+    if (Array.isArray(chunk) && chunk.length === 0) {
+      throw new Error('Address chunk cannot be empty')
+    }
+
     let logCount = 0
     do {
       const params: any = {
