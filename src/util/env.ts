@@ -1,11 +1,4 @@
 
-const _ENV_CONSTANTS = {
-  DEBUG_ENABLED: getEnvValue('DEBUG') === "true" || process.env.LLAMA_DEBUG_MODE ? 'true' : 'false',
-  DEBUG_LEVEL2: process.env.LLAMA_DEBUG_LEVEL2 ? 'true' : 'false',
-} as {
-  [key: string]: string | undefined
-}
-
 const whitelistedEnvConstants = [
   'R2_ENDPOINT', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'TRON_PRO_API_KEY', 'COINS_API_KEY',
   'ELASTICSEARCH_CONFIG', 'GRAPH_API_KEY', 'LLAMA_INDEXER_ENDPOINT', 'LLAMA_INDEXER_API_KEY',
@@ -27,6 +20,13 @@ const defaultEnvValues = {
   DEFIVERSE_RPC: "https://rpc.defi-verse.org/",
 } as {
   [key: string]: string
+}
+
+const _ENV_CONSTANTS = {
+  DEBUG_ENABLED: getEnvValue('DEBUG') === "true" || process.env.LLAMA_DEBUG_MODE ? 'true' : 'false',
+  DEBUG_LEVEL2: process.env.LLAMA_DEBUG_LEVEL2 ? 'true' : 'false',
+} as {
+  [key: string]: string | undefined
 }
 
 whitelistedEnvConstants.forEach(key => _ENV_CONSTANTS[key] = getEnvValue(key))
@@ -67,6 +67,7 @@ export function getEnvRPC(chain: string): string | undefined {
 
 export function getEnvValue(key: string, defaultValue?: string) {
   key = key.toUpperCase()
+  defaultValue = defaultValue ?? defaultEnvValues[key]
   return process.env['LLAMA_SDK_' + key] ?? process.env['SDK_' + key] ??  process.env[key] ?? defaultValue
 }
 

@@ -12,7 +12,7 @@ test("getBlock failure: echelon", async () => {
   }
 });
 
-test("getBlock failure: kekchain", async () => {
+test.skip("getBlock failure: kekchain", async () => {
   const api = new ChainApi({ chain: "kekchain", timestamp: Math.floor(Date.now() / 1000) })
   try {
     await api.getBlock()

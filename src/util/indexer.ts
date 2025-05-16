@@ -208,8 +208,21 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
   const chainId = chainToIDMapping[chain]
   if (!chainId) throw new Error('Chain not supported')
   if (!debugMode) debugMode = DEBUG_LEVEL2
+  let topic1: string | undefined
+  let topic2: string | undefined
+  let topic3: string | undefined
 
-  if ((topics?.length && topics.length > 1) || extraTopics?.length) throw new Error('TODO: topics and extraTopics part are not yet imeplemented')
+  if ((topics?.length && topics.length > 1)) {
+    if (topics?.length) {
+      topic1 = topics[1] as string
+      topic2 = topics[2] as string
+      topic3 = topics[3] as string
+    }
+  } else if (extraTopics?.length) {
+    topic1 = extraTopics[0] as string
+    topic2 = extraTopics[1] as string
+    topic3 = extraTopics[2] as string
+  }
   if (topics?.length) topic = topics[0] as string
 
   if (!eventAbi) entireLog = true
@@ -271,6 +284,10 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
   if (noTarget && addressChunks.length === 0) addressChunks.push(undefined as any)
 
   for (const chunk of addressChunks) {
+    if (Array.isArray(chunk) && chunk.length === 0) {
+      throw new Error('Address chunk cannot be empty')
+    }
+
     let logCount = 0
     do {
       const params: any = {
@@ -279,15 +296,16 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
         topic0: topic,
         from_block: fromBlock,
         to_block: toBlock,
-        limit,
-        offset,
+        topic1, topic2, topic3,
+        limit, offset,
+        noTarget,
       }
       const { data: { logs: _logs, totalCount } } = await axiosIndexer(`/logs`, { params, })
 
       // getLogs uses 'address' field to return log source, so we add the field here to make it compatible
       _logs.forEach((l: any) => {
         l.address = l.source
-        const iswhitelisted =  !addressSet.size || addressSet.has(l.source.toLowerCase())
+        const iswhitelisted = !addressSet.size || addressSet.has(l.source.toLowerCase())
         if (iswhitelisted) {
           logs.push(l)
         }

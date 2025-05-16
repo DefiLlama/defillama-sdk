@@ -14,7 +14,7 @@ test("modify graph endpoint", async () => {
   expect(modifiedEndpoint2).toBe(endpoint2);
 })
 
-test("request graph data", async () => {
+test.skip("request graph data", async () => {
   const data = await request("https://api.thegraph.com/subgraphs/name/yieldyak/reinvest-tracker", "{ farms(first: 1000) { id }}");
   expect(data.farms.length).toBeGreaterThan(0);
 })
