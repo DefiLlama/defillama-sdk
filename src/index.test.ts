@@ -129,6 +129,7 @@ test("imports", async () => {
           "bsc",
           "xdai",
           "polygon",
+          "sonic",
           "op_bnb",
           "fantom",
           "era",

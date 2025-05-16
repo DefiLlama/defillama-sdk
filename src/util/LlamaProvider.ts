@@ -5,6 +5,11 @@ import { debugLog, debugTable } from './debugLog';
 import { Chain } from "../types";
 import axios from "axios";
 
+let buildProviders: any = undefined
+if (process.env['TEST_MODE']) {
+  buildProviders = require('../../build/providers.json')
+}
+
 type ProviderWithURL = {
   url: string;
   provider: AbstractProvider;
@@ -213,9 +218,10 @@ export function setProvider(
 export function getProvider(chain: Chain = "ethereum", _getArchivalNode = false): AbstractProvider {
   const rpcKey = chain === 'tron' ? 'tron_evm' : chain
   if (providers[chain]) return providers[chain]
+  const pList: any = buildProviders ?? providerList
 
   // use RPC from env variable if set else use RPC from providers.json
-  let rpcList: (string | undefined) = getChainRPCs(rpcKey, (providerList as any)[chain]?.rpc)
+  let rpcList: (string | undefined) = getChainRPCs(rpcKey, pList[chain]?.rpc)
   let archivalRPCList: (string[] | undefined) = getArchivalRPCs(rpcKey)
   if (!rpcList) {
     // @ts-ignore (throwing error here would alter function behavior and have side effects)
