@@ -137,7 +137,7 @@ function getExtraProvider(chain = "ethereum") {
 export const getLatestBlock = getCurrentChainBlock
 
 const intialBlocks = {
-  planq: 13800000,
+  planq: 14000000,
   sei: 78353999,
   terra: 4724001,
   crab: 4969901
@@ -203,8 +203,9 @@ async function _lookupBlock(
   let envLowValue = process.env[`${chain.toUpperCase()}_BLOCK_LOW`]
   if (envLowValue)
     low = parseInt(envLowValue)
-  let lowBlock: TimestampBlock = getLowBlock()
+  let lowBlock: TimestampBlock|undefined = getLowBlock()
   let highBlock: TimestampBlock = getHighBlock()
+  if (lowBlock?.number < low) lowBlock = undefined
 
   let block: TimestampBlock;
   let i = 0
@@ -287,7 +288,7 @@ async function _lookupBlock(
     blocks.forEach(addBlockToCache)
     const getPrecision = (block: TimestampBlock) => block.timestamp - timestamp > 0 ? block.timestamp - timestamp : timestamp - block.timestamp
 
-    blocks.push(highBlock, lowBlock)
+    blocks.push(highBlock, lowBlock!)
     blocks.sort((a, b) => getPrecision(a) - getPrecision(b))
     block = blocks[0]
     // find the closest upper and lower bound between 4 points
