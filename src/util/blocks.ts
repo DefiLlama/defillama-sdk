@@ -137,7 +137,7 @@ function getExtraProvider(chain = "ethereum") {
 export const getLatestBlock = getCurrentChainBlock
 
 const intialBlocks = {
-  planq: 9020190,
+  planq: 13800000,
   sei: 78353999,
   terra: 4724001,
   crab: 4969901
