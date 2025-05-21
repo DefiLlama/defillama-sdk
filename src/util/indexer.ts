@@ -268,9 +268,6 @@ async function getIndexerVersionForBlock(chain: string, blockNumber: number): Pr
     return 'v2';
   }
 
-  if (!isIndexerEnabled(chain)) {
-    throw new Error(`Indexer not enabled for chain ${chain}`)
-  }
   return 'v1';
 }
 
