@@ -1,4 +1,4 @@
-import { getLogs, getTokens, getTokenTransfers, getTransaction } from "./indexer";
+import { getLogs, getTokens, getTokenTransfers, getTransactions } from "./indexer";
 const contract = '0xf33c13da4425629c3f10635e4f935d8020f97D1F'
 const eventAbi = 'event MarketCreated(uint256 indexed mIndex, address hedge, address risk, address token, string name, int256 strikePrice)'
 
@@ -91,29 +91,70 @@ test("Indexer - getLogs - no targets", async () => {
   expect(res.length).toBe(94)
 });
 
-test("Indexer - getTransaction", async () => {
+test("Indexer - getTransactions", async () => {
   const txHash = '0x1d1a14b882adf9d9c078a9868b682eba7833ebfd59ee0a93aa477c990056aa79'
-  const res = await getTransaction(txHash, 'ethereum')
-  if (!res) throw new Error('Transaction not found')
+  const res = await getTransactions({
+    chain: 'ethereum',
+    addresses: ['0x00a7227f026012459c218f0d9eaabd992bd48c56'],
+    transaction_hashes: [txHash],
+    from_block: 19000067,
+    to_block: 19001067,
+  })
+  if (!res || !res.length) throw new Error('Transaction not found')
+  const tx = res[0]
 
-  expect(res.hash).toBe(txHash)
-  expect(res.blockNumber).toBe(19000067)
-  expect(res.from).toBe('0x00a7227f026012459c218f0d9eaabd992bd48c56')
-  expect(res.to).toBe('0x28c6c06298d514db089934071355e5743bf21d60')
-  expect(res.value).toBe('540432699734939000')
-  expect(res.gas).toBe(207128)
-  expect(res.gasPrice).toBe('17883340967')
-  expect(res.nonce).toBe(68)
-  expect(res.input).toBe('0x')
-  expect(res.data).toBe('0x')
-  expect(res.type).toBe(2)
-  expect(res.maxFeePerGas).toBe('24000000000')
-  expect(res.maxPriorityFeePerGas).toBe('2000000000')
-  expect(res.baseFeePerGas).toBe(0)
-  expect(res.effectiveGasPrice).toBe('17883340967')
-  expect(res.gasUsed).toBe(21000)
-  expect(res.cumulativeGasUsed).toBe(6678791)
-  expect(res.status).toBe(1)
-  expect(res.contractCreated).toBeUndefined()
-  expect(res.timestamp).toBe('2024-01-13 19:30:47')
+  expect(tx.hash).toBe(txHash)
+  expect(tx.blockNumber).toBe(19000067)
+  expect(tx.from).toBe('0x00a7227f026012459c218f0d9eaabd992bd48c56')
+  expect(tx.to).toBe('0x28c6c06298d514db089934071355e5743bf21d60')
+  expect(tx.value).toBe('540432699734939000')
+  expect(tx.gas).toBe(207128)
+  expect(tx.gasPrice).toBe('17883340967')
+  expect(tx.nonce).toBe(68)
+  expect(tx.input).toBe('0x')
+  expect(tx.data).toBe('0x')
+  expect(tx.type).toBe(2)
+  expect(tx.maxFeePerGas).toBe('24000000000')
+  expect(tx.maxPriorityFeePerGas).toBe('2000000000')
+  expect(tx.baseFeePerGas).toBe(0)
+  expect(tx.effectiveGasPrice).toBe('17883340967')
+  expect(tx.gasUsed).toBe(21000)
+  expect(tx.cumulativeGasUsed).toBe(6678791)
+  expect(tx.status).toBe(1)
+  expect(tx.contractCreated).toBeUndefined()
+  expect(tx.timestamp).toBe('2024-01-13 19:30:47')
+});
+
+test("Indexer - getTransactions - missing from_block", async () => {
+  await expect(getTransactions({
+    chain: 'ethereum',
+    transaction_hashes: ['0x1d1a14b882adf9d9c078a9868b682eba7833ebfd59ee0a93aa477c990056aa79'],
+    to_block: 19000067,
+  })).rejects.toThrow("'from_block' and 'to_block' are required to search for transactions");
+});
+
+test("Indexer - getTransactions - missing addresses and transaction_hashes", async () => {
+  await expect(getTransactions({
+    chain: 'ethereum',
+    from_block: 19000067,
+    to_block: 19001067,
+  })).rejects.toThrow("You must provide at least 'addresses' or 'transaction_hashes'");
+});
+
+test("Indexer - getTransactions - to_block not synced", async () => {
+  await expect(getTransactions({
+    chain: 'ethereum',
+    addresses: ['0x00a7227f026012459c218f0d9eaabd992bd48c56'],
+    from_block: 19000067,
+    to_block: 999999999,
+  })).rejects.toThrow();
+});
+
+test("Indexer - getTransactions - unknown chain", async () => {
+  await expect(getTransactions({
+    chain: 'unknownchain',
+    addresses: ['0x00a7227f026012459c218f0d9eaabd992bd48c56'],
+    from_block: 19000067,
+    to_block: 19001067,
+  })).rejects.toThrow();
 });

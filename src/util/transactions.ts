@@ -1,15 +1,31 @@
 import { debugLog } from "./debugLog";
-import { getTransaction as getIndexerTransaction, isIndexerEnabled } from "./indexer";
+import { getTransactions as getIndexerTransaction, isIndexer2Enabled } from "./indexer";
 
-export async function getTransaction(tx: string, chain: string) {
-  if (isIndexerEnabled(chain)) {
-    try {
-      const response = await getIndexerTransaction(tx, chain)
-      if (response) return response
-    } catch (e) {
-      let message = (e as any)?.message
-      debugLog('Error in indexer getTransaction', message)
-    }
+export interface GetTransactionOptions {
+  addresses?: string[];
+  from_block?: number;
+  to_block?: number;
+  transaction_hashes?: string[];
+  limit?: number | 'all';
+  offset?: number;
+  chain: string;
+  all?: boolean;
+  debugMode?: boolean;
+  transactionType?: 'from' | 'to' | 'all';
+}
+
+export async function getTransactions(params: GetTransactionOptions) {
+  const { chain } = params;
+  if (!isIndexer2Enabled(chain)) {
+    throw new Error(`Indexer v2 not available for chain ${chain}`);
   }
-  return null
+  try {
+    const response = await getIndexerTransaction(params);
+    if (response) return response;
+  } catch (e) {
+    let message = (e as any)?.message;
+    debugLog('Error in indexer getTransactions', message);
+    throw e;
+  }
+  return null;
 } 

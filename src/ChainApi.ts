@@ -11,7 +11,7 @@ import { getBalances } from "./eth";
 import { getUniqueAddresses, } from "./generalUtil";
 import { debugLog, debugTable, } from "./util/debugLog";
 import getLogs, { GetLogsOptions } from "./util/logs";
-import { getTransaction } from "./util/transactions";
+import { GetTransactionOptions, getTransactions } from "./util/transactions";
 
 type Erc4626SumOptions = { calls: string[], tokenAbi?: string, balanceAbi?: string, balanceCalls?: any[], permitFailure?: boolean, isOG4626?: boolean }
 
@@ -258,10 +258,8 @@ export class ChainApi {
     return this._balances
   }
 
-  async getTransaction(tx: string) {
-    const response = await getTransaction(tx, this.chain as string)
-    if (response) return response
-    return this.provider.getTransaction(tx)
+  async getTransactions(params: GetTransactionOptions) {
+    return getTransactions({ ...params, chain: this.chain as string });
   }
 
   async getTransactionReceipt(tx: string) {

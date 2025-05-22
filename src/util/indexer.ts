@@ -9,6 +9,7 @@ import { readCache, writeCache } from "./cache"
 import { DEBUG_LEVEL2, debugLog } from "./debugLog"
 import { getEnvValue } from "./env"
 import { toFilterTopic } from "./logs"
+import { GetTransactionOptions } from "./transactions"
 
 const indexerURL = getEnvValue('LLAMA_INDEXER_ENDPOINT')
 const LLAMA_INDEXER_API_KEY = getEnvValue('LLAMA_INDEXER_API_KEY')
@@ -41,7 +42,8 @@ const indexer2ChainIdChainMapping: { [key: number]: string } = {
   ...indexerChainIdChainMapping,
   130: 'unichain',
   1868: 'soneium',
-  80094: 'berachain'
+  80094: 'berachain',
+  999: 'hyperliquid'
 };
 
 type ChainIndexStatus = { [chain: string]: { block: number, timestamp: number } };
@@ -594,22 +596,89 @@ export async function getTokenTransfers({ chain = 'ethereum', fromAddressFilter,
   return logs
 }
 
-export async function getTransaction(tx: string, chain: string = 'ethereum') {
-  checkIndexerConfig('v2')
-  const chainId = getChainId(chain, 'v2')
+export async function getTransactions({ chain = 'ethereum', addresses, transaction_hashes, from_block, to_block, all = true, limit = 1000, offset = 0, debugMode = false, transactionType = 'from' }: GetTransactionOptions) {
+  if (!debugMode) debugMode = DEBUG_LEVEL2;
+  checkIndexerConfig('v2');
+  const chainId = getChainId(chain, 'v2');
+
+  if ((!addresses || addresses.length === 0) && (!transaction_hashes || transaction_hashes.length === 0)) {
+    throw new Error("You must provide at least 'addresses' or 'transaction_hashes'");
+  }
+
+  if (!from_block || !to_block) {
+    throw new Error("'from_block' and 'to_block' are required to search for transactions");
+  }
+
+  const chainIndexStatus = await getChainIndexStatus('v2');
+  const lastIndexedBlock = chainIndexStatus[chain]?.block ?? 0;
+  if (to_block > lastIndexedBlock) {
+    throw new Error(`Indexer not up to date for ${chain}. Last indexed block: ${lastIndexedBlock}, requested block: ${to_block}`);
+  }
+
+  const apiParams: any = { chainId };
+  if (addresses) {
+    if (Array.isArray(addresses)) {
+      apiParams.addresses = addresses.map((a: string) => a.toLowerCase()).join(',');
+    } else {
+      apiParams.addresses = (addresses as string).toLowerCase();
+    }
+  }
+  if (transaction_hashes) {
+    if (Array.isArray(transaction_hashes)) {
+      apiParams.transaction_hashes = transaction_hashes.map((h: string) => h.toLowerCase()).join(',');
+    } else {
+      apiParams.transaction_hashes = (transaction_hashes as string).toLowerCase();
+    }
+  }
+  
+  apiParams.from_block = from_block;
+  apiParams.to_block = to_block;
+  if (offset) apiParams.offset = offset;
+
+  let from_address = false;
+  let to_address = false;
+  switch (transactionType) {
+    case 'from':
+      from_address = true;
+      break;
+    case 'to':
+      to_address = true;
+      break;
+    case 'all':
+    default:
+      from_address = true;
+      to_address = true;
+      break;
+  }
+  apiParams.from_address = from_address;
+  apiParams.to_address = to_address;
+
+  if (all) {
+    apiParams.limit = 'all';
+  } else {
+    if (limit !== 'all' && limit !== 0) {
+      apiParams.limit = limit;
+    }
+  }
+
+  const debugTimeKey = `Indexer-getTransactions-${chain}-${addresses || transaction_hashes}-${from_block}-${to_block}_${Math.random()}`;
+  if (debugMode) {
+    debugLog('[Indexer] Pulling transactions ' + debugTimeKey)
+    console.time(debugTimeKey)
+  }
 
   const { data: { transactions } } = await axiosInstances.v2(`/transactions`, {
-    params: {
-      chainId,
-      transaction_hashes: tx,
-    },
-  })
+    params: apiParams,
+  });
 
-  if (!transactions?.length) return null
+  if (debugMode) {
+    console.timeEnd(debugTimeKey)
+    debugLog('Transactions pulled ' + chain, addresses || transaction_hashes, transactions?.length || 0)
+  }
 
-  const transaction = transactions[0]
+  if (!transactions?.length) return null;
 
-  return {
+  return transactions.map((transaction: any) => ({
     hash: transaction.hash,
     blockNumber: parseInt(transaction.block_number),
     transactionIndex: parseInt(transaction.transaction_index),
@@ -631,5 +700,5 @@ export async function getTransaction(tx: string, chain: string = 'ethereum') {
     status: transaction.status === 'success' ? 1 : 0,
     contractCreated: transaction.contract_created || undefined,
     timestamp: transaction.timestamp,
-  }
+  }));
 }
