@@ -1,5 +1,6 @@
 import axios from "axios"
 import { Interface, ethers } from "ethers"
+import { sliceIntoChunks } from "."
 import { ETHER_ADDRESS } from "../general"
 import { getUniqueAddresses } from "../generalUtil"
 import { Address } from "../types"
@@ -8,62 +9,15 @@ import { readCache, writeCache } from "./cache"
 import { DEBUG_LEVEL2, debugLog } from "./debugLog"
 import { getEnvValue } from "./env"
 import { toFilterTopic } from "./logs"
-import { sliceIntoChunks } from "."
+import { GetTransactionOptions } from "./transactions"
 
 const indexerURL = getEnvValue('LLAMA_INDEXER_ENDPOINT')
 const LLAMA_INDEXER_API_KEY = getEnvValue('LLAMA_INDEXER_API_KEY')
+const LLAMA_INDEXER_V2_ENDPOINT = getEnvValue('LLAMA_INDEXER_V2_ENDPOINT')
+const LLAMA_INDEXER_V2_API_KEY = getEnvValue('LLAMA_INDEXER_V2_API_KEY')
 const addressChunkSize = +getEnvValue('LLAMA_INDEXER_ADDRESS_CHUNK_SIZE')!
 
-const axiosIndexer = axios.create({
-  headers: {
-    "x-api-key": LLAMA_INDEXER_API_KEY,
-  },
-  baseURL: indexerURL,
-})
-
-function checkIndexerConfig() {
-  if (!indexerURL || !LLAMA_INDEXER_API_KEY) throw new Error('Llama Indexer URL/api key is not set')
-}
-
-type ChainIndexStatus = { [chain: string]: { block: number, timestamp: number } }
-const state: {
-  timestamp?: number
-  chainIndexStatus: ChainIndexStatus | Promise<ChainIndexStatus>
-} = { chainIndexStatus: {} }
-
-const cacheTime = 1 * 60 * 1000 // 1 minutes - we cache sync status for 1 minute
-
-async function getChainIndexStatus() {
-
-  checkIndexerConfig()
-
-  if (state.timestamp && (Date.now() - state.timestamp) < cacheTime)
-    return state.chainIndexStatus
-
-  state.timestamp = Date.now()
-  state.chainIndexStatus = _getState()
-
-  return state.chainIndexStatus
-
-  async function _getState() {
-    const { data: { syncStatus } } = await axiosIndexer.get(`/sync`);
-    const syncInfo: any = {}
-
-    syncStatus.forEach((d: any) => {
-      const chain = indexerChainIdChainMapping[d.chain]
-      syncInfo[chain] = {
-        block: d.lastIndexedBlock,
-        timestamp: +new Date(d.lastIndexedDate)
-      }
-    })
-
-    state.chainIndexStatus = syncInfo
-    return syncInfo
-  }
-
-}
-
-const indexerChainIdChainMapping: any = {
+const indexerChainIdChainMapping: { [key: number]: string } = {
   1: 'ethereum',
   10: 'optimism',
   56: 'bsc',
@@ -81,15 +35,114 @@ const indexerChainIdChainMapping: any = {
   59144: 'linea',
   81457: 'blast',
   534352: 'scroll',
-  146: 'sonic'
+  146: 'sonic',
+};
+
+const indexer2ChainIdChainMapping: { [key: number]: string } = {
+  ...indexerChainIdChainMapping,
+  130: 'unichain',
+  1868: 'soneium',
+  80094: 'berachain',
+  999: 'hyperliquid'
+};
+
+type ChainIndexStatus = { [chain: string]: { block: number, timestamp: number } };
+const state: {
+  timestamp?: number;
+  chainIndexStatus: ChainIndexStatus | Promise<ChainIndexStatus>;
+} = { chainIndexStatus: {} };
+
+const cacheTime = 1 * 60 * 1000; // 1 minutes - we cache sync status for 1 minute
+
+async function getChainIndexStatus(version: 'v1' | 'v2' = 'v1'): Promise<ChainIndexStatus> {
+  checkIndexerConfig(version);
+
+  if (state.timestamp && (Date.now() - state.timestamp) < cacheTime)
+    return state.chainIndexStatus;
+
+  state.timestamp = Date.now();
+  state.chainIndexStatus = _getState();
+
+  return state.chainIndexStatus;
+
+  async function _getState() {
+    const { data: { syncStatus } } = await axiosInstances[version].get(`/sync`);
+    const syncInfo: ChainIndexStatus = {};
+
+    syncStatus.forEach((d: any) => {
+      const chain = indexerConfigs[version].chainMapping[d.chain];
+      if (chain) {
+        syncInfo[chain] = {
+          block: d.lastIndexedBlock,
+          timestamp: +new Date(d.lastIndexedDate)
+        };
+      }
+    });
+
+    state.chainIndexStatus = syncInfo;
+    return syncInfo;
+  }
 }
 
-export const supportedChainSet = new Set(Object.values(indexerChainIdChainMapping))
+interface IndexerConfig {
+  endpoint: string;
+  apiKey: string;
+  chainMapping: { [key: number]: string };
+}
+
+const indexerConfigs: Record<'v1' | 'v2', IndexerConfig> = {
+  v1: {
+    endpoint: indexerURL,
+    apiKey: LLAMA_INDEXER_API_KEY,
+    chainMapping: indexerChainIdChainMapping
+  },
+  v2: {
+    endpoint: LLAMA_INDEXER_V2_ENDPOINT,
+    apiKey: LLAMA_INDEXER_V2_API_KEY,
+    chainMapping: indexer2ChainIdChainMapping
+  }
+} as const;
+
+const axiosInstances = {
+  v1: axios.create({
+    headers: { "x-api-key": indexerConfigs.v1.apiKey },
+    baseURL: indexerConfigs.v1.endpoint,
+  }),
+  v2: axios.create({
+    headers: { "x-api-key": indexerConfigs.v2.apiKey },
+    baseURL: indexerConfigs.v2.endpoint,
+  })
+};
+
+function checkIndexerConfig(version: 'v1' | 'v2') {
+  const config = indexerConfigs[version];
+  if (!config.endpoint || !config.apiKey) 
+    throw new Error(`Llama Indexer ${version} URL/api key is not set`);
+}
+
+function getChainId(chain: string, version: 'v1' | 'v2' = 'v1'): number {
+  const chainId = Object.entries(indexerConfigs[version].chainMapping)
+    .find(([_, chainName]) => chainName === chain)?.[0];
+  if (!chainId) throw new Error('Chain not supported');
+  return +chainId;
+}
+
+function getSupportedChains(version: 'v1' | 'v2' = 'v1'): Set<string> {
+  return new Set(Object.values(indexerConfigs[version].chainMapping));
+}
+
+export const supportedChainSet = getSupportedChains('v1');
+export const supportedChainSet2 = getSupportedChains('v2');
+
 const chainToIDMapping: any = {}
-Object.entries(indexerChainIdChainMapping).forEach(([id, chain]: any) => {
+Object.entries(indexerConfigs.v1.chainMapping).forEach(([id, chain]: any) => {
   chainToIDMapping[chain] = id
 })
 
+const chainToIDMapping2: any = {}
+Object.entries(indexerConfigs.v2.chainMapping).forEach(([id, chain]: any) => {
+  chainToIDMapping2[chain] = id
+})
 
 enum TokenTypes {
   ERC20 = 'erc20',
@@ -111,7 +164,7 @@ export async function getTokens(address: string | string[], { onlyWhitelisted = 
   tokenType?: TokenTypes,
 } = {}) {
 
-  checkIndexerConfig()
+  checkIndexerConfig('v1')
   if (!address) throw new Error('Address is required either as a string or an array of strings')
   if (Array.isArray(address) && !address.length) throw new Error('Address array cannot be empty')
   if (Array.isArray(address)) address = address.join(',')
@@ -133,7 +186,7 @@ export async function getTokens(address: string | string[], { onlyWhitelisted = 
   debugLog('[Indexer] Pulling tokens for ' + address)
 
   const tokens = cache.tokens ?? {}
-  const { data: { balances } } = await axiosIndexer(`/balances`, {
+  const { data: { balances } } = await axiosInstances.v1(`/balances`, {
     params: {
       addresses: address,
       chainId,
@@ -141,7 +194,7 @@ export async function getTokens(address: string | string[], { onlyWhitelisted = 
     },
   })
   balances.filter((b: any) => +b.total_amount > 0).forEach((b: any) => {
-    const chain = indexerChainIdChainMapping[b.chain]
+    const chain = indexerConfigs.v1.chainMapping[b.chain]
     if (!chain) {
       return;
     }
@@ -202,12 +255,49 @@ export type IndexerGetTokenTransfersOptions = {
   token?: string;
 }
 
-export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, toBlock, all = true, limit = 1000, offset = 0, target, targets, eventAbi, entireLog = false, flatten = true, extraTopics, fromTimestamp, toTimestamp, debugMode = false, noTarget = false, parseLog = true, }: IndexerGetLogsOptions) {
-  checkIndexerConfig()
+async function getIndexerVersionForBlock(chain: string, blockNumber: number): Promise<'v1' | 'v2'> {
+  if (!isIndexer2Enabled(chain)) {
+    if (!isIndexerEnabled(chain)) {
+      throw new Error(`Indexer not enabled for chain ${chain}`)
+    }
+    return 'v1';
+  }
+  
+  const syncStatus = await getChainIndexStatus('v2');
+  const lastIndexedBlock = syncStatus[chain]?.block ?? 0;
+  
+  if (lastIndexedBlock >= blockNumber) {
+    return 'v2';
+  }
 
-  const chainId = chainToIDMapping[chain]
-  if (!chainId) throw new Error('Chain not supported')
+  return 'v1';
+}
+
+async function executeWithFallback<T>(
+  chain: string,
+  blockNumber: number,
+  v2Fn: () => Promise<T>,
+  v1Fn: () => Promise<T>
+): Promise<T> {
+  const version = await getIndexerVersionForBlock(chain, blockNumber);
+  try {
+    return version === 'v2' ? await v2Fn() : await v1Fn();
+  } catch (error) {
+    if (version === 'v2') {
+      console.log(`Fallback to v1 for chain ${chain} due to error:`, error);
+      return v1Fn();
+    }
+    throw error;
+  }
+}
+
+export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, toBlock, all = true, limit = 1000, offset = 0, target, targets, eventAbi, entireLog = false, flatten = true, extraTopics, fromTimestamp, toTimestamp, debugMode = false, noTarget = false, parseLog = true, }: IndexerGetLogsOptions) {
   if (!debugMode) debugMode = DEBUG_LEVEL2
+
+  const version = await getIndexerVersionForBlock(chain, toBlock ?? 0)
+  checkIndexerConfig(version)
+  const chainId = getChainId(chain, version)
+
   let topic1: string | undefined
   let topic2: string | undefined
   let topic3: string | undefined
@@ -227,14 +317,11 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
 
   if (!eventAbi) entireLog = true
 
-
-  // if (!target && !targets?.length) throw new Error('target|targets is required')
-  if (!fromBlock && !fromTimestamp) throw new Error('fromBlock or fromTimestamp is required')
-  if (!toBlock && !toTimestamp) throw new Error('toBlock or toTimestamp is required')
-
   if (!noTarget && !target && !targets?.length)
     throw new Error('target|targets is required or set the flag "noTarget" to true')
 
+  if (!fromBlock && !fromTimestamp) throw new Error('fromBlock or fromTimestamp is required')
+  if (!toBlock && !toTimestamp) throw new Error('toBlock or toTimestamp is required')
 
   if (!fromBlock)
     fromBlock = await getBlockNumber(chain, fromTimestamp)
@@ -244,6 +331,13 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
 
   if (!fromBlock || !toBlock) throw new Error('fromBlock and toBlock must be > 0')
 
+  if (version === 'v1') {
+    const chainIndexStatus = await getChainIndexStatus('v1')
+    const lastIndexedBlock = chainIndexStatus[chain]?.block ?? 0
+
+    if (lastIndexedBlock < toBlock)
+      throw new Error(`Indexer not up to date for ${chain}. Last indexed block: ${lastIndexedBlock}, requested block: ${toBlock}`)
+  }
 
   let address = target
   if (typeof target === 'string') targets = [target]
@@ -252,12 +346,6 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
   const hasAddressFilter = address && address.length
 
   if (address) address = address.toLowerCase()
-
-  const chainIndexStatus = await getChainIndexStatus()
-  const lastIndexedBlock = chainIndexStatus[chain]?.block ?? 0
-
-  if (lastIndexedBlock < toBlock)
-    throw new Error(`Indexer not up to date for ${chain}. Last indexed block: ${lastIndexedBlock}, requested block: ${toBlock}`)
 
   // Create an Interface object
   let iface: Interface
@@ -300,7 +388,12 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
         limit, offset,
         noTarget,
       }
-      const { data: { logs: _logs, totalCount } } = await axiosIndexer(`/logs`, { params, })
+      const { data: { logs: _logs, totalCount } } = await executeWithFallback(
+        chain,
+        toBlock,
+        () => axiosInstances.v2(`/logs`, { params }),
+        () => axiosInstances.v1(`/logs`, { params })
+      );
 
       // getLogs uses 'address' field to return log source, so we add the field here to make it compatible
       _logs.forEach((l: any) => {
@@ -320,7 +413,6 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
     } while (all && hasMore)
 
   }
-
 
   if (debugMode) {
     console.timeEnd(debugTimeKey)
@@ -353,7 +445,6 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
     log = !entireLog ? log.args : log
     if (entireLog && parseLog) log.parsedLog = parsedLog
 
-
     if (splitByAddress) {
       const index = addressIndexMap[source]
       mappedLogs[index].push(log)
@@ -366,25 +457,28 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
 }
 
 export function isIndexerEnabled(chain?: string) {
-  if (!indexerURL) return false
+  if (!indexerConfigs.v1.endpoint) return false
   if (chain && !supportedChainSet.has(chain)) return false
   return true
 }
 
+export function isIndexer2Enabled(chain?: string) {
+  if (!indexerConfigs.v2.endpoint) return false
+  if (chain && !supportedChainSet2.has(chain)) return false
+  return true
+}
 
 export async function getTokenTransfers({ chain = 'ethereum', fromAddressFilter, fromBlock, toBlock, all = true, limit = 1000, offset = 0, target, targets = [], flatten = true, fromTimestamp, toTimestamp, debugMode = false, transferType = 'in', token, tokens, }: IndexerGetTokenTransfersOptions) {
-  checkIndexerConfig()
-
-  const chainId = chainToIDMapping[chain]
-  if (!chainId) throw new Error('Chain not supported')
   if (!debugMode) debugMode = DEBUG_LEVEL2
 
+  const version = await getIndexerVersionForBlock(chain, toBlock ?? 0)
+  checkIndexerConfig(version)
+  const chainId = getChainId(chain, version)
 
   const fromFilterEnabled = fromAddressFilter && fromAddressFilter.length
   if (fromAddressFilter && typeof fromAddressFilter === 'string') fromAddressFilter = [fromAddressFilter]
   const fromFilterSet = new Set((fromAddressFilter ?? [] as any).map((a: string) => a.toLowerCase()))
 
-  // if (!target && !targets?.length) throw new Error('target|targets is required')
   if (!fromBlock && !fromTimestamp) throw new Error('fromBlock or fromTimestamp is required')
   if (!toBlock && !toTimestamp) throw new Error('toBlock or toTimestamp is required')
 
@@ -407,14 +501,15 @@ export async function getTokenTransfers({ chain = 'ethereum', fromAddressFilter,
   if (!targets.length) throw new Error('target|targets is required')
   targets = targets.map(t => t.toLowerCase())
 
-
   let addresses = targets.join(',')
 
-  const chainIndexStatus = await getChainIndexStatus()
-  const lastIndexedBlock = chainIndexStatus[chain]?.block ?? 0
+  if (version === 'v1') {
+    const chainIndexStatus = await getChainIndexStatus('v1')
+    const lastIndexedBlock = chainIndexStatus[chain]?.block ?? 0
 
-  if (lastIndexedBlock < toBlock)
-    throw new Error(`Indexer not up to date for ${chain}. Last indexed block: ${lastIndexedBlock}, requested block: ${toBlock}`)
+    if (lastIndexedBlock < toBlock)
+      throw new Error(`Indexer not up to date for ${chain}. Last indexed block: ${lastIndexedBlock}, requested block: ${toBlock}`)
+  }
 
   let hasMore = true
   let logs: any[] = []
@@ -453,7 +548,12 @@ export async function getTokenTransfers({ chain = 'ethereum', fromAddressFilter,
         throw new Error('Invalid transferType')
     }
 
-    const { data: { transfers: _logs, totalCount } } = await axiosIndexer(`/token-transfers`, { params, })
+    const { data: { transfers: _logs, totalCount } } = await executeWithFallback(
+      chain,
+      toBlock,
+      () => axiosInstances.v2(`/token-transfers`, { params }),
+      () => axiosInstances.v1(`/token-transfers`, { params })
+    );
 
     logs.push(..._logs)
     offset += limit
@@ -494,4 +594,111 @@ export async function getTokenTransfers({ chain = 'ethereum', fromAddressFilter,
   }
 
   return logs
+}
+
+export async function getTransactions({ chain = 'ethereum', addresses, transaction_hashes, from_block, to_block, all = true, limit = 1000, offset = 0, debugMode = false, transactionType = 'from' }: GetTransactionOptions) {
+  if (!debugMode) debugMode = DEBUG_LEVEL2;
+  checkIndexerConfig('v2');
+  const chainId = getChainId(chain, 'v2');
+
+  if ((!addresses || addresses.length === 0) && (!transaction_hashes || transaction_hashes.length === 0)) {
+    throw new Error("You must provide at least 'addresses' or 'transaction_hashes'");
+  }
+
+  if (!from_block || !to_block) {
+    throw new Error("'from_block' and 'to_block' are required to search for transactions");
+  }
+
+  const chainIndexStatus = await getChainIndexStatus('v2');
+  const lastIndexedBlock = chainIndexStatus[chain]?.block ?? 0;
+  if (to_block > lastIndexedBlock) {
+    throw new Error(`Indexer not up to date for ${chain}. Last indexed block: ${lastIndexedBlock}, requested block: ${to_block}`);
+  }
+
+  const apiParams: any = { chainId };
+  if (addresses) {
+    if (Array.isArray(addresses)) {
+      apiParams.addresses = addresses.map((a: string) => a.toLowerCase()).join(',');
+    } else {
+      apiParams.addresses = (addresses as string).toLowerCase();
+    }
+  }
+  if (transaction_hashes) {
+    if (Array.isArray(transaction_hashes)) {
+      apiParams.transaction_hashes = transaction_hashes.map((h: string) => h.toLowerCase()).join(',');
+    } else {
+      apiParams.transaction_hashes = (transaction_hashes as string).toLowerCase();
+    }
+  }
+  
+  apiParams.from_block = from_block;
+  apiParams.to_block = to_block;
+  if (offset) apiParams.offset = offset;
+
+  let from_address = false;
+  let to_address = false;
+  switch (transactionType) {
+    case 'from':
+      from_address = true;
+      break;
+    case 'to':
+      to_address = true;
+      break;
+    case 'all':
+    default:
+      from_address = true;
+      to_address = true;
+      break;
+  }
+  apiParams.from_address = from_address;
+  apiParams.to_address = to_address;
+
+  if (all) {
+    apiParams.limit = 'all';
+  } else {
+    if (limit !== 'all' && limit !== 0) {
+      apiParams.limit = limit;
+    }
+  }
+
+  const debugTimeKey = `Indexer-getTransactions-${chain}-${addresses || transaction_hashes}-${from_block}-${to_block}_${Math.random()}`;
+  if (debugMode) {
+    debugLog('[Indexer] Pulling transactions ' + debugTimeKey)
+    console.time(debugTimeKey)
+  }
+
+  const { data: { transactions } } = await axiosInstances.v2(`/transactions`, {
+    params: apiParams,
+  });
+
+  if (debugMode) {
+    console.timeEnd(debugTimeKey)
+    debugLog('Transactions pulled ' + chain, addresses || transaction_hashes, transactions?.length || 0)
+  }
+
+  if (!transactions?.length) return null;
+
+  return transactions.map((transaction: any) => ({
+    hash: transaction.hash,
+    blockNumber: parseInt(transaction.block_number),
+    transactionIndex: parseInt(transaction.transaction_index),
+    from: transaction.from_address,
+    to: transaction.to_address,
+    value: transaction.value,
+    gasPrice: transaction.gas_price,
+    gas: transaction.gas,
+    input: transaction.input,
+    nonce: parseInt(transaction.nonce),
+    data: transaction.input,
+    type: transaction.transaction_type,
+    maxFeePerGas: transaction.max_fee_per_gas,
+    maxPriorityFeePerGas: transaction.max_priority_fee_per_gas,
+    baseFeePerGas: transaction.base_fee_per_gas,
+    effectiveGasPrice: transaction.effective_gas_price,
+    gasUsed: transaction.gas_used,
+    cumulativeGasUsed: transaction.cumulative_gas_used,
+    status: transaction.status === 'success' ? 1 : 0,
+    contractCreated: transaction.contract_created || undefined,
+    timestamp: transaction.timestamp,
+  }));
 }
