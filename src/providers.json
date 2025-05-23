@@ -719,5 +719,12 @@
     ],
     "chainId": 42793,
     "explorer": "https://explorer.etherlink.com"
+  },
+  "nibiru": {
+    "rpc": [
+      "https://evm-rpc.nibiru.fi"
+    ],
+    "chainId": 6900,
+    "explorer": "https://nibiscan.io"
   }
 }
