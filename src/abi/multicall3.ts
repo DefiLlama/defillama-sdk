@@ -173,6 +173,7 @@ const DEPLOYMENT_BLOCK = {
   sseed: 1,
   lens: 1,
   basecamp: 1,
+  platon: 1,
 
 } as {
   [key: string | Chain]: number

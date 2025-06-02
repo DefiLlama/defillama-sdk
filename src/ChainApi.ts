@@ -1,16 +1,17 @@
-import { Block, CallOptions, MulticallOptions, FetchListOptions, ByteCodeCallOptions, Balances as BalancesV1 } from "./types";
+import { bytecodeCall, call, fetchList, multiCall } from './abi/abi2';
 import Balances from "./Balances";
+import { getBlockNumber } from './computeTVL/blocks';
 import { Chain, getProvider } from "./general";
-import { call, multiCall, fetchList, bytecodeCall } from './abi/abi2'
-import { getBlockNumber } from './computeTVL/blocks'
-import providerList from './providers.json'
+import providerList from './providers.json';
+import { Balances as BalancesV1, Block, ByteCodeCallOptions, CallOptions, FetchListOptions, MulticallOptions } from "./types";
 
-import { debugLog, debugTable, } from "./util/debugLog";
-import { getUniqueAddresses, } from "./generalUtil";
+import { Provider } from "ethers";
 import { getMulticallAddress } from "./abi/multicall3";
 import { getBalances } from "./eth";
-import { Provider } from "ethers";
+import { getUniqueAddresses, } from "./generalUtil";
+import { debugLog, debugTable, } from "./util/debugLog";
 import getLogs, { GetLogsOptions } from "./util/logs";
+import { GetTransactionOptions, getTransactions } from "./util/transactions";
 
 type Erc4626SumOptions = { calls: string[], tokenAbi?: string, balanceAbi?: string, balanceCalls?: any[], permitFailure?: boolean, isOG4626?: boolean }
 
@@ -257,8 +258,8 @@ export class ChainApi {
     return this._balances
   }
 
-  async getTransaction(tx: string) {
-    return this.provider.getTransaction(tx)
+  async getTransactions(params: GetTransactionOptions) {
+    return getTransactions({ ...params, chain: this.chain as string });
   }
 
   async getTransactionReceipt(tx: string) {
@@ -267,7 +268,6 @@ export class ChainApi {
 }
 
 export default ChainApi
-
 
 function getUniqueTokensAndOwners(toa: string[][], chain?: string): string[][] {
   if (!toa.length) return []
