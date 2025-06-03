@@ -216,11 +216,12 @@ async function _lookupBlock(
   try {
     let firstBlock, lastBlock
 
-    if (['evmos'].includes(chain)) {
+    if (['evmos', 'nibiru'].includes(chain)) {
       lastBlock = await getLatestBlock(chain)
       let firstBlockNum = lastBlock.number
       switch (chain) {
-        default: firstBlockNum -= 2 * 1e5// evmos hold only the last 200k block data
+        case 'nibiru': firstBlockNum -= 4 * 1e5// nibiru hold only the last 400k block data
+        case 'evmos': firstBlockNum -= 2 * 1e5// evmos hold only the last 200k block data
       }
       firstBlock = await fetchBlockFromProvider(firstBlockNum, chain)
     } else {
