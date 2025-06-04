@@ -141,15 +141,14 @@ function isSameData(data1: any, data2: any) {
   return JSON.stringify(data1) === JSON.stringify(data2)
 }
 
-const ONE_WEEK = 1000 * 60 * 60 * 24 * 7
+export const ONE_WEEK = 1000 * 60 * 60 * 24 * 7
 
-export function getTempLocalCache({ file, defaultData = {}, clearAfter = ONE_WEEK }: { file: string, defaultData?: any, clearAfter?: number }) {
-  let cache: any = defaultData
+export function getTempLocalCache({ file, defaultData = {}, clearAfter = ONE_WEEK, returnWithSaveFunction = false }: { file: string, defaultData?: any, clearAfter?: number, returnWithSaveFunction?: boolean }): any | ({ data: any, saveCacheFile: () => void }) {
   const now = Math.floor(Date.now() / 1e3)
   let emptyFile = { created: now, data: defaultData }
   let fileData = emptyFile
   const filePath = getFilePath(file)
-  let saveCacheFlag = false
+  let saveCacheFlag = false  // to ensure that we save only once on exit
   createSubPath(path.dirname(filePath)) // create folder if not exists, this is async but we don't care
   try {
     const data = _fs.readFileSync(filePath)
@@ -159,17 +158,33 @@ export function getTempLocalCache({ file, defaultData = {}, clearAfter = ONE_WEE
   } catch (error) { }
 
   // save cache on exit
-  process.on('exit', saveCache);
-  process.on('SIGTERM', saveCache)
-  process.on('SIGINT', saveCache)
+  process.on('exit', _save);
+  process.on('SIGTERM', _save)
+  process.on('SIGINT', _save)
+
+  if (returnWithSaveFunction) {
+    return {
+      data: fileData.data,
+      saveCacheFile: () => saveCache(true)
+    }
+  }
 
   return fileData.data
 
-  function saveCache() {
-    if (saveCacheFlag) return;
-    saveCacheFlag = true;
+  function _save() {
+    saveCache()
+  }
+
+  function saveCache(skipCacheFlagCheck = false) {
+
+    if (!skipCacheFlagCheck) {
+      if (saveCacheFlag) return;
+      saveCacheFlag = true;
+    }
 
     try {
+      if (!skipCacheFlagCheck)
+        debugLog('Saving cache to file:', filePath)
       removePromisesAndFunctions(fileData)
       _fs.writeFileSync(filePath, JSON.stringify(fileData))
     } catch (error) {

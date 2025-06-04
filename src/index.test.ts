@@ -1,9 +1,15 @@
 import { getTimestamp } from "./util";
+import { types } from "./index";
+type Address = types.Address;
+type Chain = types.Chain;
 
 test("imports", async () => {
   const data = await import('./index')
   const {providers, ...configCopy } = data.api2.config 
   const dataCopy = { ...data, api2: { ...data.api2, config: configCopy } }
+  let _testChainTypeImport: Chain
+  let _testAddressTypeImport: Address = '0x'
+
   expect(dataCopy).toMatchInlineSnapshot(`
     {
       "Balances": [Function],
@@ -92,8 +98,11 @@ test("imports", async () => {
         "getBlocks": [Function],
         "getChainBlocks": [Function],
         "getCurrentBlocks": [Function],
+        "getLatestBlock": [Function],
+        "lookupBlock": [Function],
       },
       "cache": {
+        "ONE_WEEK": 604800000,
         "compressCache": [Function],
         "currentVersion": "zlib-1.0",
         "deleteCache": [Function],
@@ -111,6 +120,13 @@ test("imports", async () => {
         "getClient": [Function],
         "writeLog": [Function],
       },
+      "erc20": {
+        "balanceOf": [Function],
+        "decimals": [Function],
+        "info": [Function],
+        "symbol": [Function],
+        "totalSupply": [Function],
+      },
       "getEventLogs": [Function],
       "getProvider": [Function],
       "graph": {
@@ -122,6 +138,8 @@ test("imports", async () => {
         "getLogs": [Function],
         "getTokenTransfers": [Function],
         "getTokens": [Function],
+        "getTransactions": [Function],
+        "isIndexer2Enabled": [Function],
         "isIndexerEnabled": [Function],
         "supportedChainSet": Set {
           "ethereum",
@@ -143,6 +161,30 @@ test("imports", async () => {
           "blast",
           "scroll",
         },
+        "supportedChainSet2": Set {
+          "ethereum",
+          "optimism",
+          "bsc",
+          "xdai",
+          "unichain",
+          "polygon",
+          "sonic",
+          "op_bnb",
+          "fantom",
+          "era",
+          "hyperliquid",
+          "polygon_zkevm",
+          "soneium",
+          "base",
+          "mode",
+          "arbitrum",
+          "arbitrum_nova",
+          "avax",
+          "linea",
+          "berachain",
+          "blast",
+          "scroll",
+        },
       },
       "log": [Function],
       "logTable": [Function],
@@ -154,6 +196,15 @@ test("imports", async () => {
         "startCache": [Function],
       },
       "setProvider": [Function],
+      "tron": {
+        "call": [Function],
+        "getBalance": [Function],
+        "getBalances": [Function],
+        "hexifyTarget": [Function],
+        "multiCall": [Function],
+        "unhexifyTarget": [Function],
+      },
+      "types": {},
       "util": {
         "blocks": {
           "chainsForBlocks": [
@@ -167,17 +218,22 @@ test("imports", async () => {
           "getBlocks": [Function],
           "getChainBlocks": [Function],
           "getCurrentBlocks": [Function],
+          "getLatestBlock": [Function],
+          "lookupBlock": [Function],
         },
         "convertToBigInt": [Function],
         "formError": [Function],
         "formErrorString": [Function],
         "getProviderUrl": [Function],
+        "getTimestamp": [Function],
         "getUniqueAddresses": [Function],
         "humanizeNumber": {
           "humanizeNumber": [Function],
         },
         "mergeBalances": [Function],
+        "normalizeAddress": [Function],
         "removeTokenBalance": [Function],
+        "sliceIntoChunks": [Function],
         "sumChainTvls": [Function],
         "sumMultiBalanceOf": [Function],
         "sumSingleBalance": [Function],

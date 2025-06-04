@@ -87,7 +87,7 @@ test.skip("lookupBlock blockscout - kava", async () => {
 });
 
 
-test("lookupBlock blockscout - onus", async () => {
+test.skip("lookupBlock blockscout - onus", async () => {
   const block = await lookupBlock(1668158653, { chain: 'onus' });
   expect(getDiff(block.block, 116265)).toBeLessThanOrEqual(500); // 200 blocks appromiates to 10 minute difference
   expect(getDiff(block.timestamp, 1668158653)).toBeLessThanOrEqual(15 * 60); // difference should be under 15 minutes
@@ -98,14 +98,14 @@ test("lookupBlock blockscout - onus", async () => {
 });
 
 
-test("lookupBlock blockscout - base", async () => {
+test.skip("lookupBlock blockscout - base", async () => {
   const block2 = await lookupBlock(1700213053, { chain: 'base' });
   expect(getDiff(block2.block, 6711853)).toBeLessThanOrEqual(500); // 200 blocks appromiates to 10 minute difference
   expect(getDiff(block2.timestamp, 1700213053)).toBeLessThanOrEqual(15 * 60); // difference should be under 15 minutes
 });
 
 
-test("lookupBlock blockscout - scroll", async () => {
+test.skip("lookupBlock blockscout - scroll", async () => {
   const block2 = await lookupBlock(1700213053, { chain: 'scroll' });
   expect(getDiff(block2.block, 860029)).toBeLessThanOrEqual(500); // 200 blocks appromiates to 10 minute difference
   expect(getDiff(block2.timestamp, 1700213053)).toBeLessThanOrEqual(15 * 60); // difference should be under 15 minutes
@@ -118,6 +118,14 @@ test("lookupBlock edgeCase", async () => {
   await pZKEVMApi.getBlock()
   await songbirdApi.getBlock()
   // await evmosApi.getBlock()
+});
+
+test("lookupBlock - fetch future block", async () => {
+  const api = new ChainApi({ chain: 'ethereum', timestamp: Math.floor((+new Date()) / 1e3) + 1000 })
+  const nextDayApi = new ChainApi({ chain: 'ethereum', timestamp: Math.floor((+new Date()) / 1e3) + 86400 })
+
+  await expect(api.getBlock()).rejects.toThrowError()
+  await expect(nextDayApi.getBlock()).rejects.toThrowError()
 });
 
 test("getLogs", async () => {

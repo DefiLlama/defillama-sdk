@@ -2,6 +2,7 @@ import * as blocks from "./computeTVL/blocks";
 import * as humanizeNumber from "./computeTVL/humanizeNumber";
 import type { Balances, StringNumber, Address } from "./types";
 import * as ethers from 'ethers'
+export { sliceIntoChunks, normalizeAddress, getTimestamp, } from "./util";
 
 // We ignore `sum` as it's never used (only in some SDK wrapper code)
 
@@ -196,7 +197,7 @@ export function formErrorString(e: any, errorParams: any = {}) {
 
   if (e.llamaRPCError) {
     const errorString = `Llama RPC error! method: ${e.method} `
-    const errors = e.errors.map((i: any) => `- host: ${i?.host} error: ${i?.error?.message}` )
+    const errors = e.errors.map((i: any) => `- host: ${i?.host} error: ${i?.error?.message}`)
     return errorString + '\n' + errors.join('\n')
   }
 
@@ -220,7 +221,7 @@ export function formErrorString(e: any, errorParams: any = {}) {
       method = e.requestBody?.method
     } else
 
-    if (!e.provider && errorParams.provider) e.provider = errorParams.provider
+      if (!e.provider && errorParams.provider) e.provider = errorParams.provider
 
     let providerUrl = getProviderUrl(e.provider ?? errorParams.provider)
     if (e.serverError) return `host: ${providerUrl} ${e.serverError.toString()}`

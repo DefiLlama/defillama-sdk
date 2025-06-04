@@ -1,5 +1,6 @@
 import { Client } from '@elastic/elasticsearch'
 import { getEnvValue } from './env'
+import { debugLog } from './debugLog'
 
 let _client: Client | undefined
 
@@ -37,7 +38,7 @@ export async function writeLog(index: string, log: {
   try {
     await client.index({ index, body: log })
   } catch (error) {
-    console.error(error)
+    debugLog((error as Error)?.message || 'Error writing log to Elasticsearch')
   }
 }
 

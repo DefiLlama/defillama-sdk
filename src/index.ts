@@ -14,6 +14,9 @@ export * as blocks from "./computeTVL/blocks";
 import * as humanN from "./computeTVL/humanizeNumber";
 export * as graph from "./util/graph";
 export * as indexer from "./util/indexer";
+export * as types from "./types";
+export * as tron from "./abi/tron";
+export * as erc20 from "./erc20";
 
 export const log = debugLog
 export const logTable = debugTable
