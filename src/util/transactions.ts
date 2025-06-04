@@ -8,7 +8,7 @@ export interface GetTransactionOptions {
   transaction_hashes?: string[];
   limit?: number | 'all';
   offset?: number;
-  chain: string;
+  chain?: string;  // automatically set by ChainApi
   all?: boolean;
   debugMode?: boolean;
   transactionType?: 'from' | 'to' | 'all';

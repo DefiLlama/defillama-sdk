@@ -3,7 +3,7 @@ import axios from "axios";
 import { formError, getProviderUrl, } from "../generalUtil";
 import { debugLog } from "./debugLog";
 import { isCosmosChain, getCosmosProvider } from "./cosmos";
-import { getTempLocalCache } from "./cache";
+import { getTempLocalCache, ONE_WEEK } from "./cache";
 import pLimit from 'p-limit';
 import { getParallelGetBlocksLimit } from "./env";
 
@@ -64,7 +64,7 @@ export async function getBlockNumber(chain: Chain, timestamp?: number): Promise<
   return (await getBlock(chain, timestamp)).block
 }
 
-const refreshInterval = 1000 * 60 * 1; // 5 minutes
+const refreshInterval = 1000 * 60 * 1; // 1 minute
 export function getCurrentChainBlock(chain: Chain = 'ethereum'): Promise<Block> {
   const { timestamp, } = currentChainBlockCache[chain] || {}
   const currentTimestamp = Date.now()
@@ -145,11 +145,15 @@ const intialBlocks = {
   [chain: string]: number | undefined;
 };
 
-const blockTimeCache: {
+type ChainBlockCache = {
   [chain: string]: {
     [block: number]: TimestampBlock
   }
-} = getTempLocalCache({ file: 'BlockCache.json', defaultData: {} })
+}
+let lastBlockCacheSave = Date.now()
+const blockCacheSaveInterval = 1000 * 60 * 5; // 5 minutes 
+
+const { data: blockTimeCache, saveCacheFile: saveBlockCacheFile }: { data: ChainBlockCache, saveCacheFile: Function } = getTempLocalCache({ file: 'BlockCache.json', defaultData: {}, clearAfter: ONE_WEEK, returnWithSaveFunction: true });
 
 function validateCurrentBlock(block: Block, chain: Chain = 'ethereum') {
   const provider = getExtraProvider(chain);
@@ -188,6 +192,10 @@ async function _lookupBlock(
 ): Promise<Block> {
   const { allowedTimeRange = 5 * 60, acceptableBlockImprecision = 10 } = extraParams ?? {};
   const chain = extraParams?.chain ?? "ethereum"
+  let time = Date.now()
+  if (timestamp > time / 1000) {
+    throw new Error(`Requesting for block in the future ${timestamp} is in the future, current time is ${Math.floor(time / 1000)}`);
+  }
 
   if (chain === 'waves') {
     const api = `https://nodes.wavesnodes.com/blocks/heightByTimestamp/${timestamp}`
@@ -203,13 +211,12 @@ async function _lookupBlock(
   let envLowValue = process.env[`${chain.toUpperCase()}_BLOCK_LOW`]
   if (envLowValue)
     low = parseInt(envLowValue)
-  let lowBlock: TimestampBlock|undefined = getLowBlock()
+  let lowBlock: TimestampBlock | undefined = getLowBlock()
   let highBlock: TimestampBlock = getHighBlock()
   if (lowBlock?.number < low) lowBlock = undefined
 
   let block: TimestampBlock;
   let i = 0
-  let time = Date.now()
   let blockImprecision: number
   let imprecision: number
 
@@ -226,7 +233,7 @@ async function _lookupBlock(
       firstBlock = await fetchBlockFromProvider(firstBlockNum, chain)
     } else {
       [lastBlock, firstBlock] = await Promise.all([
-        getLatestBlock(chain),
+        highBlock ? highBlock : getLatestBlock(chain),
         lowBlock ? lowBlock : fetchBlockFromProvider(low, chain),
       ])
     }
@@ -236,7 +243,7 @@ async function _lookupBlock(
     if (!highBlock)
       highBlock = lastBlock
 
-    if (Math.abs(highBlock.timestamp - timestamp) < 60 * 30) {
+    if (Math.abs(highBlock.timestamp - timestamp) < 60 * 5) {
       // Short-circuit in case we are trying to get the current block
       return {
         block: highBlock.number,
@@ -248,7 +255,7 @@ async function _lookupBlock(
 
     updateBlock()
 
-    while (imprecision! > allowedTimeRange && blockImprecision! > acceptableBlockImprecision) { // We lose some precision (max ~15 minutes) but reduce #calls needed 
+    while (imprecision! > allowedTimeRange && blockImprecision! > acceptableBlockImprecision && i < 50) { // We lose some precision (max ~15 minutes) but reduce #calls needed 
       ++i
       const blockDiff = highBlock.number - lowBlock.number
       const timeDiff = highBlock.timestamp - lowBlock.timestamp
@@ -293,8 +300,8 @@ async function _lookupBlock(
     blocks.sort((a, b) => getPrecision(a) - getPrecision(b))
     block = blocks[0]
     // find the closest upper and lower bound between 4 points
-    lowBlock = blocks.filter(i => i.timestamp < timestamp).reduce((lowestBlock, block) => (timestamp - lowestBlock.timestamp) < (timestamp - block.timestamp) ? lowestBlock : block)
-    highBlock = blocks.filter(i => i.timestamp > timestamp).reduce((highestBlock, block) => (highestBlock.timestamp - timestamp) < (block.timestamp - timestamp) ? highestBlock : block)
+    lowBlock = blocks.filter(i => i.timestamp < timestamp).reduce((lowestBlock, block) => (timestamp - lowestBlock.timestamp) < (timestamp - block.timestamp) ? lowestBlock : block, lowBlock!)
+    highBlock = blocks.filter(i => i.timestamp > timestamp).reduce((highestBlock, block) => (highestBlock.timestamp - timestamp) < (block.timestamp - timestamp) ? highestBlock : block, highBlock!)
     imprecision = getPrecision(block)
     blockImprecision = highBlock.number - lowBlock.number
     // debugLog(`chain: ${chain} block: ${block.number} #calls: ${i} imprecision: ${Number((imprecision)/60).toFixed(2)} (min) block diff: ${blockImprecision} Time Taken: ${Number((Date.now()-time)/1000).toFixed(2)} (in sec)`)
@@ -307,9 +314,16 @@ async function _lookupBlock(
     return blockTimeCache[chain]
   }
 
+
   function addBlockToCache(block: TimestampBlock) {
     const { number, timestamp } = block
-    getChainBlockTimeCache(chain)[block.number] = { number, timestamp,}
+    getChainBlockTimeCache(chain)[block.number] = { number, timestamp, }
+
+    // save the block cache every 5 minutes
+    if (Date.now() - lastBlockCacheSave > blockCacheSaveInterval) {
+      lastBlockCacheSave = Date.now()
+      saveBlockCacheFile()
+    }
   }
 
   function getLowBlock() {
@@ -343,4 +357,4 @@ const currentChainBlockCache: {
     timestamp: number
     promise: any
   };
-} = getTempLocalCache({ file: 'currentChainBlockCache.json', defaultData: {} })
+} = {}

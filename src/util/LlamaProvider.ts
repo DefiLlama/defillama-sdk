@@ -217,7 +217,9 @@ export function setProvider(
 
 export function getProvider(chain: Chain = "ethereum", _getArchivalNode = false): AbstractProvider {
   const rpcKey = chain === 'tron' ? 'tron_evm' : chain
-  if (providers[chain]) return providers[chain]
+  let chainKey = chain
+  if (getEnvValue('HISTORICAL')) chainKey = chain + '_historical' 
+  if (providers[chainKey]) return providers[chainKey]
   const pList: any = buildProviders ?? providerList
 
   // use RPC from env variable if set else use RPC from providers.json
@@ -227,9 +229,9 @@ export function getProvider(chain: Chain = "ethereum", _getArchivalNode = false)
     // @ts-ignore (throwing error here would alter function behavior and have side effects)
     return null
   }
-  if (!providers[chain])
-    providers[chain] = createProvider(chain, rpcList, (providerList as any)[chain]?.chainId, archivalRPCList) as any
-  return providers[chain]
+  if (!providers[chainKey])
+    providers[chainKey] = createProvider(chain, rpcList, (providerList as any)[chain]?.chainId, archivalRPCList) as any
+  return providers[chainKey]
 }
 
 
