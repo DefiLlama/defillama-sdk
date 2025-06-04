@@ -119,6 +119,7 @@ const chainShortNameMapping = {
   ontology: 'OntologyMainnet',
   occ: 'edu_chain',
   hyperliquid: 'hyper_evm',
+  hydradx: 'hdx',
   nibiru: 'cataclysm_1',
   elsm: 'ely',
 }
