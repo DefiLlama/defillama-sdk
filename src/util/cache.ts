@@ -172,7 +172,7 @@ export function getTempLocalCache({ file, defaultData = {}, clearAfter = ONE_WEE
   return fileData.data
 
   function _save() {
-    saveCache()
+    saveCache(false);
   }
 
   function saveCache(skipCacheFlagCheck = false) {
@@ -183,15 +183,13 @@ export function getTempLocalCache({ file, defaultData = {}, clearAfter = ONE_WEE
     }
 
     try {
-      if (!skipCacheFlagCheck)
-        debugLog('Saving cache to file:', filePath)
+      // debugLog('Saving cache to file:', filePath)
       removePromisesAndFunctions(fileData)
       _fs.writeFileSync(filePath, JSON.stringify(fileData))
     } catch (error) {
       try { debugLog('Error saving cache:', error?.toString()) }
       catch (error) { }
     }
-    process.exit(0)
   }
 
   function removePromisesAndFunctions(data: any) {
