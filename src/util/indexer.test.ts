@@ -1,4 +1,6 @@
+import { ChainApi } from "../ChainApi";
 import { getLogs, getTokens, getTokenTransfers, getTransactions } from "./indexer";
+
 const contract = '0xf33c13da4425629c3f10635e4f935d8020f97D1F'
 const eventAbi = 'event MarketCreated(uint256 indexed mIndex, address hedge, address risk, address token, string name, int256 strikePrice)'
 
@@ -112,6 +114,40 @@ test("Indexer - getLogs - noTarget with > 10k block range", async () => {
   })
   expect(Array.isArray(res)).toBe(true)
 });
+
+test("Indexer - getLogs with processor", async () => {
+  const api = new ChainApi({ chain: 'arbitrum'})
+  const processor = async (logs: any[]) => {
+    logs.forEach(({ args }) => {
+      api.add(args.token, args.amount)
+    })
+  } 
+
+  await getLogs({
+    fromBlock: 345461578,
+    toBlock: 345803768, // ~~ 300k blocks
+    chain: 'arbitrum',
+    eventAbi: 'event WithdrawFromLockupStream (uint256 indexed streamId, address indexed to, address indexed token, uint128 amount)',
+    noTarget: true,
+    processor
+  })
+
+  const balances = api.getBalances()
+  expect(Object.keys(balances).length).toBeGreaterThan(0)
+  
+  expect(balances['arbitrum:0x999FAF0AF2fF109938eeFE6A7BF91CA56f0D07e1']).toBe('225237781369731800000')
+  expect(balances['arbitrum:0x577Fd586c9E6BA7f2E85E025D5824DBE19896656']).toBe('1.2409671794946094e+22')
+  expect(balances['arbitrum:0x4e6b45BB1C7D11402faf72c2d59cAbC4085E36f2']).toBe('2.0821579300721433e+27')
+  expect(balances['arbitrum:0xe47ba52f326806559c1deC7ddd997F6957d0317D']).toBe('574795991880981700000')
+  expect(balances['arbitrum:0x83e5Ecd192eAc043B0674A16EEDf96176726A159']).toBe('9.92413672876591e+22')
+  expect(balances['arbitrum:0xA533f744B179F2431f5395978e391107DC76e103']).toBe('272211934709000000000')
+  expect(balances['arbitrum:0x4F604735c1cF31399C6E711D5962b2B3E0225AD3']).toBe('1e+21')
+  expect(balances['arbitrum:0xC760F9782F8ceA5B06D862574464729537159966']).toBe('2.9174585867738748e+22')
+  expect(balances['arbitrum:0x66E535e8D2ebf13F49F3D49e5c50395a97C137b1']).toBe('3768845891207509000')
+  expect(balances['arbitrum:0x3269a3C00AB86c753856fD135d97b87FACB0d848']).toBe('1.2449725048906123e+22')
+  expect(balances['arbitrum:0xC3323b6e71925b25943fB7369EE6769837e9C676']).toBe('8.9999999e+21')
+  expect(balances['arbitrum:0x0721b3C9f19cfeF1d622C918DcD431960f35E060']).toBe('2.2350494277261517e+22')
+})
 
 test("Indexer - getTransactions", async () => {
   const txHash = '0x1d1a14b882adf9d9c078a9868b682eba7833ebfd59ee0a93aa477c990056aa79'
