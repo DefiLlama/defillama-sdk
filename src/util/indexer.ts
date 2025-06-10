@@ -331,6 +331,11 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
 
   if (!fromBlock || !toBlock) throw new Error('fromBlock and toBlock must be > 0')
 
+  const blockRange = toBlock - fromBlock
+  if (noTarget && blockRange > 500000) {
+    throw new Error('When noTarget is true, block range must be less than 500k blocks. Please narrow down your block range.')
+  }
+
   if (version === 'v1') {
     const chainIndexStatus = await getChainIndexStatus('v1')
     const lastIndexedBlock = chainIndexStatus[chain]?.block ?? 0
@@ -365,53 +370,114 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
     debugLog('[Indexer] Pulling logs ' + debugTimeKey)
     console.time(debugTimeKey)
   }
-  const addressSet = new Set(address?.split(','))
-  const addressChunks = sliceIntoChunks(address?.split(',') ?? [], addressChunkSize)
 
-  // to ensure that we have at least one chunk to process if no target is provided
-  if (noTarget && addressChunks.length === 0) addressChunks.push(undefined as any)
+  if (noTarget && blockRange > 10000) {
+    const BATCH_SIZE = 10000
+    const batches = Math.ceil(blockRange / BATCH_SIZE)
+    const MAX_CONCURRENT_BATCHES = 5
+    
+    for (let i = 0; i < batches; i += MAX_CONCURRENT_BATCHES) {
+      const currentBatches = Math.min(MAX_CONCURRENT_BATCHES, batches - i)
+      const batchPromises = []
 
-  for (const chunk of addressChunks) {
-    if (Array.isArray(chunk) && chunk.length === 0) {
-      throw new Error('Address chunk cannot be empty')
-    }
-
-    let logCount = 0
-    do {
-      const params: any = {
-        addresses: hasAddressFilter ? chunk.join(',') : undefined,
-        chainId,
-        topic0: topic,
-        from_block: fromBlock,
-        to_block: toBlock,
-        topic1, topic2, topic3,
-        limit, offset,
-        noTarget,
-      }
-      const { data: { logs: _logs, totalCount } } = await executeWithFallback(
-        chain,
-        toBlock,
-        () => axiosInstances.v2(`/logs`, { params }),
-        () => axiosInstances.v1(`/logs`, { params })
-      );
-
-      // getLogs uses 'address' field to return log source, so we add the field here to make it compatible
-      _logs.forEach((l: any) => {
-        l.address = l.source
-        const iswhitelisted = !addressSet.size || addressSet.has(l.source.toLowerCase())
-        if (iswhitelisted) {
-          logs.push(l)
+      for (let j = 0; j < currentBatches; j++) {
+        const batchIndex = i + j
+        const batchFromBlock = fromBlock + (batchIndex * BATCH_SIZE)
+        const batchToBlock = Math.min(batchFromBlock + BATCH_SIZE - 1, toBlock)
+        
+        if (debugMode) {
+          debugLog(`[Indexer] Processing batch ${batchIndex + 1}/${batches} (blocks ${batchFromBlock}-${batchToBlock})`)
         }
-      })
-      logCount += _logs.length
 
-      offset += limit
+        const processBatch = async () => {
+          let batchLogs: any[] = []
+          let batchOffset = 0
+          let batchHasMore = true
 
-      // If we have all the logs, or we have reached the limit, or there are no logs, we stop
-      if (_logs.length < limit || totalCount <= logCount || _logs.length === 0) hasMore = false
+          do {
+            const params: any = {
+              chainId,
+              topic0: topic,
+              from_block: batchFromBlock,
+              to_block: batchToBlock,
+              topic1, topic2, topic3,
+              limit, offset: batchOffset,
+              noTarget,
+            }
 
-    } while (all && hasMore)
+            const { data: { logs: _logs, totalCount } } = await executeWithFallback(
+              chain,
+              batchToBlock,
+              () => axiosInstances.v2(`/logs`, { params }),
+              () => axiosInstances.v1(`/logs`, { params })
+            )
 
+            batchLogs.push(..._logs)
+            batchOffset += limit
+
+            if (_logs.length < limit || totalCount <= batchOffset || _logs.length === 0) {
+              batchHasMore = false
+            }
+          } while (all && batchHasMore)
+
+          return batchLogs
+        }
+
+        batchPromises.push(processBatch())
+      }
+
+      const batchResults = await Promise.all(batchPromises)
+      logs.push(...batchResults.flat())
+    }
+  } else {
+    const addressSet = new Set(address?.split(','))
+    const addressChunks = sliceIntoChunks(address?.split(',') ?? [], addressChunkSize)
+
+    // to ensure that we have at least one chunk to process if no target is provided
+    if (noTarget && addressChunks.length === 0) addressChunks.push(undefined as any)
+
+    for (const chunk of addressChunks) {
+      if (Array.isArray(chunk) && chunk.length === 0) {
+        throw new Error('Address chunk cannot be empty')
+      }
+
+      let logCount = 0
+      do {
+        const params: any = {
+          addresses: hasAddressFilter ? chunk.join(',') : undefined,
+          chainId,
+          topic0: topic,
+          from_block: fromBlock,
+          to_block: toBlock,
+          topic1, topic2, topic3,
+          limit, offset,
+          noTarget,
+        }
+        const { data: { logs: _logs, totalCount } } = await executeWithFallback(
+          chain,
+          toBlock,
+          () => axiosInstances.v2(`/logs`, { params }),
+          () => axiosInstances.v1(`/logs`, { params })
+        );
+
+        // getLogs uses 'address' field to return log source, so we add the field here to make it compatible
+        _logs.forEach((l: any) => {
+          l.address = l.source
+          const iswhitelisted = !addressSet.size || addressSet.has(l.source.toLowerCase())
+          if (iswhitelisted) {
+            logs.push(l)
+          }
+        })
+        logCount += _logs.length
+
+        offset += limit
+
+        // If we have all the logs, or we have reached the limit, or there are no logs, we stop
+        if (_logs.length < limit || totalCount <= logCount || _logs.length === 0) hasMore = false
+
+      } while (all && hasMore)
+
+    }
   }
 
   if (debugMode) {

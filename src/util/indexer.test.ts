@@ -91,6 +91,28 @@ test("Indexer - getLogs - no targets", async () => {
   expect(res.length).toBe(94)
 });
 
+test("Indexer - getLogs - noTarget with large block range should throw", async () => {
+  const res = getLogs({
+    fromBlock: 10000000,
+    toBlock: 60000000, // 50M blocks range
+    chain: 'ethereum',
+    topic: 'event Swap (address indexed sender, uint256 amount0In, uint256 amount1In, uint256 amount0Out, uint256 amount1Out, address indexed to)',
+    noTarget: true,
+  })
+  await expect(res).rejects.toThrow('When noTarget is true, block range must be less than 500k blocks')
+});
+
+test("Indexer - getLogs - noTarget with > 10k block range", async () => {
+  const res = await getLogs({
+    fromBlock: 345461578,
+    toBlock: 345803768, // ~~ 300k block
+    chain: 'arbitrum',
+    topics: ['0x40b88e5c41c5a97ffb7b6ef88a0a2d505aa0c634cf8a0275cb236ea7dd87ed4d'],
+    noTarget: true,
+  })
+  expect(Array.isArray(res)).toBe(true)
+});
+
 test("Indexer - getTransactions", async () => {
   const txHash = '0x1d1a14b882adf9d9c078a9868b682eba7833ebfd59ee0a93aa477c990056aa79'
   const res = await getTransactions({
