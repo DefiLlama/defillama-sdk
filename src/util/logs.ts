@@ -1,11 +1,11 @@
-import { getLogs as getLogsV1 } from ".";
 import { EventFragment, EventLog, Interface, id } from "ethers";
+import { getLogs as getLogsV1 } from ".";
+import { hexifyTarget } from "../abi/tron";
 import { Address } from "../types";
 import { getBlockNumber } from "./blocks";
 import { readCache, writeCache } from "./cache";
 import { DEBUG_LEVEL2, debugLog } from "./debugLog";
 import { getLogs as getIndexerLogs, isIndexerEnabled } from "./indexer";
-import { hexifyTarget } from "../abi/tron";
 
 const currentVersion = 'v3'
 
@@ -33,6 +33,8 @@ export type GetLogsOptions = {
   debugMode?: boolean;
   noTarget?: boolean;  // we sometimes want to query logs without a target, but it will an be expensive bug if target/targets were not passed by mistake, so this is a safety check
   parseLog?: boolean;
+  processor?: (logs: any[]) => Promise<void> | void;
+  maxBlockRange?: number;
 }
 
 export async function getLogs(options: GetLogsOptions): Promise<EventLog[] | EventLog[][] | any[]> {
@@ -60,14 +62,15 @@ export async function getLogs(options: GetLogsOptions): Promise<EventLog[] | Eve
     debugMode = false,
     noTarget = false,  // we sometimes want to query logs without a target, but it will an be expensive bug if target/targets were not passed by mistake, so this is a safety check
     parseLog = false,
+    processor,
+    maxBlockRange,
   } = options
 
   if (!skipIndexer && isIndexerEnabled(chain)) {
     try {
-
       const response = await getIndexerLogs({
         ...options,
-        all: true,
+        all: true
       })
       return response
     } catch (e) {

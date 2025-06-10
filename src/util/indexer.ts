@@ -8,6 +8,7 @@ import { getBlockNumber } from "./blocks"
 import { readCache, writeCache } from "./cache"
 import { DEBUG_LEVEL2, debugLog } from "./debugLog"
 import { getEnvValue } from "./env"
+import { parseRawLogs } from './logParser'
 import { toFilterTopic } from "./logs"
 import { GetTransactionOptions } from "./transactions"
 
@@ -394,10 +395,8 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
 
   if (address) address = address.toLowerCase()
 
-  // Create an Interface object
-  let iface: Interface
-  if (eventAbi)
-    iface = new Interface([eventAbi])
+  let iface: Interface | undefined
+  if (eventAbi) iface = new Interface([eventAbi])
 
   if (topic)
     topic = toFilterTopic(topic)
@@ -454,17 +453,7 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
 
       // Process logs in batches if processor is provided
       if (processor && _logs.length > 0) {
-        const logsToProcess = _logs.map((log: any) => {
-          const topics = [log.topic0, log.topic1, log.topic2, log.topic3].filter(t => t !== '')
-          const parsedLog = iface?.parseLog({ 
-            data: log.data, 
-            topics: topics.map(i => ethers.zeroPadValue(i, 32))
-          })
-          return {
-            ...log,
-            args: parsedLog?.args
-          }
-        })
+        const logsToProcess = parseRawLogs(_logs, iface)
         await processor(logsToProcess)
       }
 
@@ -482,14 +471,18 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
     debugLog('Logs pulled ' + chain, address, logs.length)
   }
 
-  const mappedLogs = [] as any[]
-  let addressIndexMap: any = {}
+  if (parseLog && entireLog) {
+    logs = parseRawLogs(logs, iface)
+  }
+
+  const mappedLogs: any[] = []
   const splitByAddress = targets?.length && !flatten
+  let addressIndexMap: any = {}
   if (splitByAddress) {
-    for (let i = 0; i < targets!.length; i++) {
-      addressIndexMap[targets![i].toLowerCase()] = i
+    targets!.forEach((t, i) => {
+      addressIndexMap[t.toLowerCase()] = i
       mappedLogs.push([])
-    }
+    })
   }
 
   logs = logs.map((log: any) => {
@@ -498,15 +491,14 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
     log.index = log.log_index
     log.transactionHash = log.transaction_hash
     log.blockNumber = log.block_number
-    log.topics = [log.topic0, log.topic1, log.topic2, log.topic3,].filter(t => t !== '').map(i => ethers.zeroPadValue(i, 32))
+    log.topics = [log.topic0, log.topic1, log.topic2, log.topic3]
+      .filter(Boolean)
+      .map((t: string) => ethers.zeroPadValue(t, 32))
 
     const deleteKeys = ['chain', 'block_number', 'log_index', 'topic0', 'topic1', 'topic2', 'topic3', 'decodedArgs', 'transaction_hash',]
     deleteKeys.forEach(k => delete log[k])
-    const parsedLog = iface?.parseLog({ data: log.data, topics: log.topics, });
 
-    log.args = parsedLog?.args
     log = !entireLog ? log.args : log
-    if (entireLog && parseLog) log.parsedLog = parsedLog
 
     if (splitByAddress) {
       const index = addressIndexMap[source]
