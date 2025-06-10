@@ -105,7 +105,7 @@ test("Indexer - getLogs - noTarget with large block range should throw", async (
 test("Indexer - getLogs - noTarget with > 10k block range", async () => {
   const res = await getLogs({
     fromBlock: 345461578,
-    toBlock: 345803768, // ~~ 300k block
+    toBlock: 345803768, // ~~ 300k blocks
     chain: 'arbitrum',
     topics: ['0x40b88e5c41c5a97ffb7b6ef88a0a2d505aa0c634cf8a0275cb236ea7dd87ed4d'],
     noTarget: true,
