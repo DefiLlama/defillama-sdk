@@ -412,7 +412,12 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
               () => axiosInstances.v1(`/logs`, { params })
             )
 
-            batchLogs.push(..._logs)
+            // getLogs uses 'address' field to return log source, so we add the field here to make it compatible
+            _logs.forEach((l: any) => {
+              l.address = l.source
+              batchLogs.push(l)
+            })
+
             batchOffset += limit
 
             if (_logs.length < limit || totalCount <= batchOffset || _logs.length === 0) {
