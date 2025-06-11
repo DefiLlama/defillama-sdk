@@ -1,5 +1,5 @@
-import { getLogs, toFilterTopic, } from "./logs";
 import ChainApi from "../ChainApi";
+import { getLogs, toFilterTopic, } from "./logs";
 
 const baseApi = new ChainApi({ chain: 'base' })
 
@@ -85,3 +85,38 @@ test('toFilterTopic', () => {
     expect(toFilterTopic(event)).toBe(expected)
   })
 })
+
+test("logs - maxBlockRange and processor", async () => {
+  const event_swap = 'event Swap(address indexed sender,address indexed to,uint256 amount0In,uint256 amount1In,uint256 amount0Out,uint256 amount1Out)'
+
+  const processor = async (logs: any[]) => {
+    logs.forEach(log => {
+      log.processed = true;
+      log.sender = log.args[0];
+      log.to = log.args[1];
+      log.amount0In = log.args[2];
+      log.amount1In = log.args[3];
+      log.amount0Out = log.args[4];
+      log.amount1Out = log.args[5];
+    });
+  }
+
+  const logs = await getLogs({
+    chain: 'base',
+    target: "0x723aef6543aece026a15662be4d3fb3424d502a9",
+    eventAbi: event_swap,
+    fromBlock: 9003820,
+    toBlock: 9004822,
+    maxBlockRange: 100,
+    processor
+  });
+
+  expect(logs.length).toBe(1);
+  expect(logs[0].processed).toBe(true);
+  expect(logs[0].sender).toBe("0xcF77a3Ba9A5CA399B7c97c74d54e5b1Beb874E43");
+  expect(logs[0].to).toBe("0x1111111254EEB25477B68fb85Ed929f73A960582");
+  expect(logs[0].amount0In).toBe(BigInt(0));
+  expect(logs[0].amount1In).toBe(BigInt(1000));
+  expect(logs[0].amount0Out).toBe(BigInt(21463255605));
+  expect(logs[0].amount1Out).toBe(BigInt(0));
+});

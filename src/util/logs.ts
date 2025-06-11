@@ -6,6 +6,7 @@ import { getBlockNumber } from "./blocks";
 import { readCache, writeCache } from "./cache";
 import { DEBUG_LEVEL2, debugLog } from "./debugLog";
 import { getLogs as getIndexerLogs, isIndexerEnabled } from "./indexer";
+import { parseRawLogs } from "./logParser";
 
 const currentVersion = 'v3'
 
@@ -82,7 +83,6 @@ export async function getLogs(options: GetLogsOptions): Promise<EventLog[] | Eve
 
   if (onlyIndexer) throw new Error('onlyIndexer is true, but indexer is not enabled or threw an error')
 
-  // if (!target && !targets?.length) throw new Error('target|targets is required')
   if (!fromBlock && !fromTimestamp) throw new Error('fromBlock or fromTimestamp is required')
   if (!toBlock && !toTimestamp) throw new Error('toBlock or toTimestamp is required')
 
@@ -98,6 +98,17 @@ export async function getLogs(options: GetLogsOptions): Promise<EventLog[] | Eve
     throw new Error('target|targets is required or set the flag "noTarget" to true')
   }
 
+  const blockRange = toBlock - fromBlock
+  if (maxBlockRange && blockRange > maxBlockRange) {
+    const results: any[][] = []
+    for (let currentFromBlock = fromBlock; currentFromBlock <= toBlock; currentFromBlock += maxBlockRange) {
+      const currentToBlock = Math.min(currentFromBlock + maxBlockRange - 1, toBlock)
+      const chunk = await getLogs({ ...options, fromBlock: currentFromBlock, toBlock: currentToBlock })
+      results.push(chunk)
+    }
+    return flatten ? results.flat() : results
+  }
+
   if (targets?.length) {
     const newOptions = { ...options, fromBlock, toBlock }
     delete newOptions.targets
@@ -109,11 +120,9 @@ export async function getLogs(options: GetLogsOptions): Promise<EventLog[] | Eve
   if (chain === 'tron')
     target = hexifyTarget(target!)
 
-
   let iface: Interface | undefined
   if (eventAbi)
     iface = new Interface([eventAbi])
-
 
   if ((!topics || !topics.length)) {
     if (topic)
@@ -167,12 +176,18 @@ export async function getLogs(options: GetLogsOptions): Promise<EventLog[] | Eve
   }
 
   if (!eventAbi || entireLog) {
+    let finalLogs = logs
     if (iface && parseLog) {
-      logs.forEach((i: any) => i.parsedLog = iface?.parseLog(i))
+      finalLogs = parseRawLogs(logs as any[], iface)
     }
-    return logs
+    if (processor) await processor(parseRawLogs(logs as any[], iface))
+    return finalLogs
   }
-  return logs.map((i: any) => iface!.parseLog(i)).map((i: any) => onlyArgs ? i.args : i)
+
+  const parsedLogs = parseRawLogs(logs as any[], iface!)
+  if (processor) await processor(parsedLogs)
+  if (onlyArgs && !processor) return parsedLogs.map((i: any) => i.args)
+  return parsedLogs
 
   async function addLogsToCache(fromBlock: number, toBlock: number) {
     const debugTimeKey = `getLogs-${chain}-${topic}-${target}_${Math.random()}-${fromBlock}-${toBlock}`

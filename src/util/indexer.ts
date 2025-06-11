@@ -294,14 +294,13 @@ async function executeWithFallback<T>(
   }
 }
 
-export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, toBlock, all = true, limit = 1000, offset = 0, target, targets, eventAbi, entireLog = false, flatten = true, extraTopics, fromTimestamp, toTimestamp, debugMode = false, noTarget = false, parseLog = true, maxBlockRange, processor  }: IndexerGetLogsOptions): Promise<any[]> {
+export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, toBlock, all = true, limit = 1000, offset = 0, target, targets, eventAbi, entireLog = false, flatten = true, extraTopics, fromTimestamp, toTimestamp, debugMode = false, noTarget = false, parseLog = true, onlyArgs = false, maxBlockRange, processor }: IndexerGetLogsOptions): Promise<any[]> {
   if (!debugMode) debugMode = DEBUG_LEVEL2
 
   const version = await getIndexerVersionForBlock(chain, toBlock ?? 0)
   checkIndexerConfig(version)
 
   if (processor) {
-    if (version !== 'v2') throw new Error('Processor can only be used with indexer v2')
     if (!eventAbi) throw new Error('eventAbi is required when using processor')
   }
 
@@ -340,19 +339,13 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
 
   if (!fromBlock || !toBlock) throw new Error('fromBlock and toBlock must be > 0')
 
+  if (!topic && !eventAbi && !(topics?.length)) throw new Error('eventAbi | topic | topics are required')
+
   const blockRange = toBlock - fromBlock
   const effectiveMaxBlockRange = maxBlockRange ?? (noTarget ? 10000 : Infinity)
 
   if (noTarget) {
     if (blockRange > 500000) throw new Error('When noTarget is true, block range must be less than 500k blocks. Please narrow down your block range.')
-  }
-
-  if (version === 'v1') {
-    const chainIndexStatus = await getChainIndexStatus('v1')
-    const lastIndexedBlock = chainIndexStatus[chain]?.block ?? 0
-
-    if (lastIndexedBlock < toBlock)
-      throw new Error(`Indexer not up to date for ${chain}. Last indexed block: ${lastIndexedBlock}, requested block: ${toBlock}`)
   }
 
   if (blockRange > effectiveMaxBlockRange) {
@@ -379,12 +372,21 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
         debugMode,
         noTarget,
         parseLog,
+        onlyArgs,
         processor,
         maxBlockRange
       })
       results.push(result)
     }
     return flatten ? results.flat() : results
+  }
+
+  if (version === 'v1') {
+    const chainIndexStatus = await getChainIndexStatus('v1')
+    const lastIndexedBlock = chainIndexStatus[chain]?.block ?? 0
+
+    if (lastIndexedBlock < toBlock)
+      throw new Error(`Indexer not up to date for ${chain}. Last indexed block: ${lastIndexedBlock}, requested block: ${toBlock}`)
   }
 
   let address = target
@@ -405,6 +407,7 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
 
   let hasMore = true
   let logs: any[] = []
+  let alreadyParsed = false
 
   const debugTimeKey = `Indexer-getLogs-${chain}-${topic}-${address}_${Math.random()}`
   if (debugMode) {
@@ -442,25 +445,23 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
         () => axiosInstances.v1(`/logs`, { params })
       );
 
-      // getLogs uses 'address' field to return log source, so we add the field here to make it compatible
-      _logs.forEach((l: any) => {
-        l.address = l.source
-        const iswhitelisted = !addressSet.size || addressSet.has(l.source.toLowerCase())
-        if (iswhitelisted) {
-          logs.push(l)
-        }
-      })
+      _logs.forEach((l: any) => l.address = l.source)
 
-      // Process logs in batches if processor is provided
-      if (processor && _logs.length > 0) {
-        const logsToProcess = parseRawLogs(_logs, iface)
-        await processor(logsToProcess)
+      const batch = iface ? parseRawLogs(_logs, iface) : _logs
+      alreadyParsed = alreadyParsed || !!iface
+
+      if (processor && batch.length > 0) {
+        await processor(batch)
       }
+
+      batch.forEach((l: any) => {
+        const iswhitelisted = !addressSet.size || addressSet.has(l.source.toLowerCase())
+        if (iswhitelisted) logs.push(l)
+      })
 
       logCount += _logs.length
       offset += limit
 
-      // If we have all the logs, or we have reached the limit, or there are no logs, we stop
       if (_logs.length < limit || totalCount <= logCount || _logs.length === 0) hasMore = false
 
     } while (all && hasMore)
@@ -471,7 +472,7 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
     debugLog('Logs pulled ' + chain, address, logs.length)
   }
 
-  if (parseLog && entireLog) {
+  if (!alreadyParsed && iface && (parseLog || !entireLog || onlyArgs)) {
     logs = parseRawLogs(logs, iface)
   }
 
@@ -498,7 +499,7 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
     const deleteKeys = ['chain', 'block_number', 'log_index', 'topic0', 'topic1', 'topic2', 'topic3', 'decodedArgs', 'transaction_hash',]
     deleteKeys.forEach(k => delete log[k])
 
-    log = !entireLog ? log.args : log
+    log = onlyArgs ? log.args : log
 
     if (splitByAddress) {
       const index = addressIndexMap[source]
