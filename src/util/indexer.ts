@@ -8,8 +8,7 @@ import { getBlockNumber } from "./blocks"
 import { readCache, writeCache } from "./cache"
 import { DEBUG_LEVEL2, debugLog } from "./debugLog"
 import { getEnvValue } from "./env"
-import { parseRawLogs } from './logParser'
-import { toFilterTopic } from "./logs"
+import { getLogParams, } from "./logs"
 import { GetTransactionOptions } from "./transactions"
 
 const indexerURL = getEnvValue('LLAMA_INDEXER_ENDPOINT')
@@ -117,7 +116,7 @@ const axiosInstances = {
 
 function checkIndexerConfig(version: 'v1' | 'v2') {
   const config = indexerConfigs[version];
-  if (!config.endpoint || !config.apiKey) 
+  if (!config.endpoint || !config.apiKey)
     throw new Error(`Llama Indexer ${version} URL/api key is not set`);
 }
 
@@ -237,6 +236,7 @@ export type IndexerGetLogsOptions = {
   parseLog?: boolean;
   processor?: (logs: any[]) => Promise<void> | void;
   maxBlockRange?: number;
+  allowParseFailure?: boolean,
 }
 
 export type IndexerGetTokenTransfersOptions = {
@@ -265,10 +265,10 @@ async function getIndexerVersionForBlock(chain: string, blockNumber: number): Pr
     }
     return 'v1';
   }
-  
+
   const syncStatus = await getChainIndexStatus('v2');
   const lastIndexedBlock = syncStatus[chain]?.block ?? 0;
-  
+
   if (lastIndexedBlock >= blockNumber) {
     return 'v2';
   }
@@ -294,52 +294,18 @@ async function executeWithFallback<T>(
   }
 }
 
-export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, toBlock, all = true, limit = 1000, offset = 0, target, targets, eventAbi, entireLog = false, flatten = true, extraTopics, fromTimestamp, toTimestamp, debugMode = false, noTarget = false, parseLog = true, onlyArgs = false, maxBlockRange, processor }: IndexerGetLogsOptions): Promise<any[]> {
+export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
+  let { all = true, limit = 1000, offset = 0, target, targets = [], flatten = true, debugMode = false, noTarget = false,  maxBlockRange, processor, } = options
+
+
+  const { chain, fromBlock, toBlock, topic, topic1, topic2, topic3, transformLog, } = await getLogParams(options, true)
+
   if (!debugMode) debugMode = DEBUG_LEVEL2
 
   const version = await getIndexerVersionForBlock(chain, toBlock ?? 0)
   checkIndexerConfig(version)
 
-  if (processor) {
-    if (!eventAbi) throw new Error('eventAbi is required when using processor')
-  }
-
   const chainId = getChainId(chain, version)
-
-  let topic1: string | undefined
-  let topic2: string | undefined
-  let topic3: string | undefined
-
-  if ((topics?.length && topics.length > 1)) {
-    if (topics?.length) {
-      topic1 = topics[1] as string
-      topic2 = topics[2] as string
-      topic3 = topics[3] as string
-    }
-  } else if (extraTopics?.length) {
-    topic1 = extraTopics[0] as string
-    topic2 = extraTopics[1] as string
-    topic3 = extraTopics[2] as string
-  }
-  if (topics?.length) topic = topics[0] as string
-
-  if (!eventAbi) entireLog = true
-
-  if (!noTarget && !target && !targets?.length)
-    throw new Error('target|targets is required or set the flag "noTarget" to true')
-
-  if (!fromBlock && !fromTimestamp) throw new Error('fromBlock or fromTimestamp is required')
-  if (!toBlock && !toTimestamp) throw new Error('toBlock or toTimestamp is required')
-
-  if (!fromBlock)
-    fromBlock = await getBlockNumber(chain, fromTimestamp)
-
-  if (!toBlock)
-    toBlock = await getBlockNumber(chain, toTimestamp)
-
-  if (!fromBlock || !toBlock) throw new Error('fromBlock and toBlock must be > 0')
-
-  if (!topic && !eventAbi && !(topics?.length)) throw new Error('eventAbi | topic | topics are required')
 
   const blockRange = toBlock - fromBlock
   const effectiveMaxBlockRange = maxBlockRange ?? (noTarget ? 10000 : Infinity)
@@ -353,32 +319,18 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
     for (let currentFromBlock = fromBlock; currentFromBlock < toBlock; currentFromBlock += effectiveMaxBlockRange) {
       const currentToBlock = Math.min(currentFromBlock + effectiveMaxBlockRange - 1, toBlock)
       const result = await getLogs({
-        chain,
-        topic,
-        topics,
+        ...options,
         fromBlock: currentFromBlock,
         toBlock: currentToBlock,
-        all,
-        limit,
-        offset,
-        target,
-        targets,
-        eventAbi,
-        entireLog,
-        flatten,
-        extraTopics,
-        fromTimestamp,
-        toTimestamp,
-        debugMode,
-        noTarget,
-        parseLog,
-        onlyArgs,
-        processor,
-        maxBlockRange
       })
-      results.push(result)
+      if (!processor)   // if we have a processor, we can ignore the response
+        results.push(result)
     }
-    return flatten ? results.flat() : results
+    if (flatten || !targets?.length)
+      return results.flat()
+
+    // results are split by address, so we need to merge them
+    return targets?.map((_: any, i: number) => results.map(r => r[i]).flat())
   }
 
   if (version === 'v1') {
@@ -397,17 +349,8 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
 
   if (address) address = address.toLowerCase()
 
-  let iface: Interface | undefined
-  if (eventAbi) iface = new Interface([eventAbi])
-
-  if (topic)
-    topic = toFilterTopic(topic)
-  else if (eventAbi)
-    topic = toFilterTopic(eventAbi)
-
   let hasMore = true
   let logs: any[] = []
-  let alreadyParsed = false
 
   const debugTimeKey = `Indexer-getLogs-${chain}-${topic}-${address}_${Math.random()}`
   if (debugMode) {
@@ -445,13 +388,12 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
         () => axiosInstances.v1(`/logs`, { params })
       );
 
-      _logs.forEach((l: any) => l.address = l.source)
 
-      const batch = iface ? parseRawLogs(_logs, iface) : _logs
-      alreadyParsed = alreadyParsed || !!iface
+      let batch = _logs
 
-      if (processor && batch.length > 0) {
-        await processor(batch)
+      if (processor) {
+        await processor(batch.map(transformLog))
+        batch = []  // reset batch after processing
       }
 
       batch.forEach((l: any) => {
@@ -472,10 +414,7 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
     debugLog('Logs pulled ' + chain, address, logs.length)
   }
 
-  if (!alreadyParsed && iface && (parseLog || !entireLog || onlyArgs)) {
-    logs = parseRawLogs(logs, iface)
-  }
-
+  // if we are fetching logs for multiple addresses, we need to map them to the correct source
   const mappedLogs: any[] = []
   const splitByAddress = targets?.length && !flatten
   let addressIndexMap: any = {}
@@ -488,18 +427,7 @@ export async function getLogs({ chain = 'ethereum', topic, topics, fromBlock, to
 
   logs = logs.map((log: any) => {
     const source = log.source.toLowerCase()
-    log.logIndex = log.log_index
-    log.index = log.log_index
-    log.transactionHash = log.transaction_hash
-    log.blockNumber = log.block_number
-    log.topics = [log.topic0, log.topic1, log.topic2, log.topic3]
-      .filter(Boolean)
-      .map((t: string) => ethers.zeroPadValue(t, 32))
-
-    const deleteKeys = ['chain', 'block_number', 'log_index', 'topic0', 'topic1', 'topic2', 'topic3', 'decodedArgs', 'transaction_hash',]
-    deleteKeys.forEach(k => delete log[k])
-
-    log = onlyArgs ? log.args : log
+    log = transformLog(log)
 
     if (splitByAddress) {
       const index = addressIndexMap[source]
@@ -686,7 +614,7 @@ export async function getTransactions({ chain = 'ethereum', addresses, transacti
       apiParams.transaction_hashes = (transaction_hashes as string).toLowerCase();
     }
   }
-  
+
   apiParams.from_block = from_block;
   apiParams.to_block = to_block;
   if (offset) apiParams.offset = offset;
