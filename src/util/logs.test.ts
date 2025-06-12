@@ -45,7 +45,6 @@ test("logs - base - aerodrome2", async () => {
   expect(logs[0].sender).toBe("0xcF77a3Ba9A5CA399B7c97c74d54e5b1Beb874E43")
 });
 
-
 test("logs - base - aerodrome 3", async () => {
   const event_swap = 'event Swap(address indexed sender,address indexed to,uint256 amount0In,uint256 amount1In,uint256 amount0Out,uint256 amount1Out)'
   const logs = await baseApi.getLogs({
@@ -58,7 +57,6 @@ test("logs - base - aerodrome 3", async () => {
   expect(logs.length).toBe(1)
   expect(logs[0].sender).toBe("0xcF77a3Ba9A5CA399B7c97c74d54e5b1Beb874E43")
 });
-
 
 test.skip("logs - rate limit eth_getLogs", async () => {
   const api = new ChainApi({ chain: 'fantom' })
@@ -111,7 +109,6 @@ test("logs - maxBlockRange and processor", async () => {
     processor
   });
 
-  console.log(logs, 'indexer');
   expect(logs.length).toBe(1);
   expect(logs[0].processed).toBe(true);
   expect(logs[0].sender).toBe("0xcF77a3Ba9A5CA399B7c97c74d54e5b1Beb874E43");
@@ -121,7 +118,6 @@ test("logs - maxBlockRange and processor", async () => {
   expect(logs[0].amount0Out).toBe(BigInt(21463255605));
   expect(logs[0].amount1Out).toBe(BigInt(0));
 });
-
 
 test("logs - base - aerodrome", async () => {
   const event_swap = 'event Swap(address indexed sender,address indexed to,uint256 amount0In,uint256 amount1In,uint256 amount0Out,uint256 amount1Out)'
@@ -244,8 +240,6 @@ test("logs - maxBlockRange and processor", async () => {
     processor
   });
 
-  console.log(logs);
-
   expect(logs.length).toBe(1);
   expect(logs[0].processed).toBe(true);
   expect(logs[0].sender).toBe("0xcF77a3Ba9A5CA399B7c97c74d54e5b1Beb874E43");
@@ -254,4 +248,50 @@ test("logs - maxBlockRange and processor", async () => {
   expect(logs[0].amount1In).toBe(BigInt(1000));
   expect(logs[0].amount0Out).toBe(BigInt(21463255605));
   expect(logs[0].amount1Out).toBe(BigInt(0));
+});
+
+test("entireLog keeps the raw log (topics) and does NOT reduce to args", async () => {
+  const eventSwap = "event Swap(address indexed sender,address indexed to,uint256 amount0In,uint256 amount1In,uint256 amount0Out,uint256 amount1Out)";
+
+  const logs = await getLogs({
+    chain: "base",
+    target: "0x723aef6543aece026a15662be4d3fb3424d502a9",
+    eventAbi: eventSwap,
+    fromBlock: 9003822,
+    toBlock: 9004022,
+    parseLog: false,
+    entireLog: true,
+    skipCache: true,
+    skipIndexer: true,
+  });
+
+  expect(logs.length).toBe(1);
+  const l = logs[0];
+
+  expect(l.topics).toBeDefined();
+  expect(l.args).toBeUndefined();
+  expect(l.blockNumber).toBe(9003822);
+});
+
+test("onlyArgs=true returns ONLY the decoded arguments", async () => {
+  const eventSwap = "event Swap(address indexed sender,address indexed to,uint256 amount0In,uint256 amount1In,uint256 amount0Out,uint256 amount1Out)";
+
+  const logs = await getLogs({
+    chain: "base",
+    target: "0x723aef6543aece026a15662be4d3fb3424d502a9",
+    eventAbi: eventSwap,
+    fromBlock: 9003822,
+    toBlock: 9004022,
+    onlyArgs: true,
+    skipCache: true,
+    skipIndexer: true, // force the RPC path
+  });
+
+  expect(logs.length).toBe(1);
+
+  expect(typeof logs[0]).toBe("object");
+  expect(Object.keys(logs[0]).length > 0 || logs[0].length > 0).toBe(true);
+
+  expect((logs[0] as any).transactionHash).toBeUndefined();
+  expect((logs[0] as any).blockNumber).toBeUndefined();
 });
