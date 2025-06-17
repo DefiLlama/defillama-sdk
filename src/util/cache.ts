@@ -130,14 +130,18 @@ export async function writeCache(file: string, data: any, options: WriteCacheOpt
 export async function parseCache(dataString: string | Buffer, options: ReadCacheOptions = {}) {
   let dataBuffer: Buffer
   if (typeof dataString === 'string') dataBuffer = Buffer.from(dataString, 'base64')
+  else {
+    dataBuffer = dataString as Buffer
+    dataString = dataBuffer.toString('utf8')
+  }
   let decompressed: any
 
-  let _unzipAsync = (str: Buffer) => options.skipCompression ?  dataString : unzipAsync(str)  // if skipCompression is true, we don't decompress the data
+  let _unzipAsync = (str: Buffer) => options.skipCompression ? dataString : unzipAsync(str)  // if skipCompression is true, we don't decompress the data
 
   try {
     decompressed = await _unzipAsync(dataBuffer! ?? dataString)
   } catch (e) {
-    dataString = dataString.toString('utf8')
+    // dataString = dataString.toString('utf8')
     const convertedDataString = Buffer.from(dataString, 'base64')
     decompressed = await _unzipAsync(convertedDataString)
   }
