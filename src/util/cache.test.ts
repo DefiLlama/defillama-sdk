@@ -23,7 +23,7 @@ test("Cache - parseCache & compressCache", async () => {
 test("Cache r2 - Write Object", async () => {
   const testFile = 'unit-test/object.json'
   const inputData = { test: 'this is a string' }
-  deleteCacheSwallowError(testFile)
+  await deleteCacheSwallowError(testFile)
 
   await writeCache(testFile, inputData)
 
@@ -34,7 +34,7 @@ test("Cache r2 - Write Object", async () => {
 
 test("Cache - Read R2 Object", async () => {
   const testFile = 'unit-test/object.json'
-  deleteCacheSwallowError(testFile)
+  await deleteCacheSwallowError(testFile)
   const data = await getR2JSONString(currentVersion + '/' + testFile)
   const parsedData = await parseCache(data)
   expect(parsedData.test).toEqual('this is a string')
@@ -42,7 +42,7 @@ test("Cache - Read R2 Object", async () => {
 
 test("Cache - write string", async () => {
   const testFile = 'unit-test/string.json'
-  deleteCacheSwallowError(testFile)
+  await deleteCacheSwallowError(testFile)
   const stringData = 'this is a string; Lopum ipsum dolor sit amet, consectetur adipiscing elit. Nulla euismod, nisl eget aliquam ultricies, nisl nisl aliquet nisl, nec aliquam nisl nisl nec.'
 
   await writeCache(testFile, stringData)
@@ -55,7 +55,7 @@ test("Cache - write string", async () => {
 
 test("Cache - write large file", async () => {
   const testFile = 'unit-test/large-file.json'
-  deleteCacheSwallowError(testFile)
+  await deleteCacheSwallowError(testFile)
   const largeData = [0, 1, 2, 3, 4, 5].map(_ => largeMulticall)
 
   await writeCache(testFile, largeData)
@@ -69,7 +69,7 @@ test("Cache - write large file", async () => {
 
 test("write cache: empty object", async () => {
   const testFile = 'unit-test/empty-file.json'
-  deleteCacheSwallowError(testFile)
+  await deleteCacheSwallowError(testFile)
 
   await writeCache(testFile, {})
   let data = await readCache(testFile)
@@ -103,7 +103,7 @@ test("write cache: empty object", async () => {
 
 test("Cache - write string - uncompressed", async () => {
   const testFile = 'unit-test/string.json'
-  deleteCacheSwallowError(testFile)
+  await deleteCacheSwallowError(testFile)
   const stringData = 'this is a string; Lopum ipsum dolor sit amet, consectetur adipiscing elit. Nulla euismod, nisl eget aliquam ultricies, nisl nisl aliquet nisl, nec aliquam nisl nisl nec.'
 
   await writeCache(testFile, stringData, { skipCompression: true })
@@ -114,7 +114,7 @@ test("Cache - write string - uncompressed", async () => {
 
 test("Cache - write large file - uncompressed", async () => {
   const testFile = 'unit-test/large-file-uncompressed.json'
-  deleteCacheSwallowError(testFile)
+  await deleteCacheSwallowError(testFile)
   const largeData = [0, 1, 2, 3, 4, 5].map(_ => largeMulticall)
 
   await writeCache(testFile, largeData, { skipCompression: true })
