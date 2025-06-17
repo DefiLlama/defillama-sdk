@@ -51,22 +51,25 @@ async function createSubPath(folderPath: string) {
 const ONE_DAY_IN_MS = 1000 * 60 * 60 * 24
 
 export async function readCache(file: string, options: ReadCacheOptions = {}): Promise<any> {
+  if (options.skipCompression)
+    file = `${file}-uncompressed`
+
   try {
-    const data = await readFile(file, options)
-    return await parseCache(data)
+    const data = await readFile()
+    return await parseCache(data, options)
   } catch (error) {
     // debugLog('Error reading cache:', error)
     return {}
   }
 
 
-  async function readFile(file: string, options: ReadCacheOptions = {}) {
+  async function readFile() {
     const filePath = getFilePath(file)
     try {
       if (options.checkIfRecent) {
         const stats = await fs.stat(filePath)
         if (Date.now() - stats.mtimeMs > ONE_DAY_IN_MS)
-          throw new Error('File too old, read from R2 isntead')
+          throw new Error('File too old, read from R2 instead')
       }
       if (options.readFromR2Cache) throw new Error('Read from R2 cache')
       const data = await fs.readFile(filePath)
@@ -77,7 +80,7 @@ export async function readCache(file: string, options: ReadCacheOptions = {}): P
       const r2Data = await getR2JSONString(currentVersion + '/' + file)
 
       if (r2Data) {
-        await writeCache(file, r2Data, { alreadyCompressed: true, skipR2CacheWrite: true })
+        await writeCache(file, r2Data, { alreadyCompressed: true, skipR2CacheWrite: true, skipCompression: options.skipCompression })
         return r2Data
       }
     }
@@ -87,24 +90,29 @@ export async function readCache(file: string, options: ReadCacheOptions = {}): P
 interface WriteCacheOptions {
   skipR2CacheWrite?: boolean,
   alreadyCompressed?: boolean
+  skipCompression?: boolean // if true, data will not be compressed before writing to cache, more suited for local cache, it is faster but takes more space
 }
 
 interface ReadCacheOptions {
   checkIfRecent?: boolean, // if the file is older than a day, read from R2 cache
   readFromR2Cache?: boolean,
-  skipR2Cache?: boolean
+  skipR2Cache?: boolean,
+  skipCompression?: boolean // if true, data will not be decompressed after reading from cache
 }
 
 export async function writeCache(file: string, data: any, options: WriteCacheOptions = {}): Promise<string | undefined> {
 
   try {
-    const fileData = options.alreadyCompressed ? data : await compressCache(data)
+    const fileData = options.alreadyCompressed ? data : await compressCache(data, options)
 
     if (!data || (typeof data === 'string' && data.length < 20) || fileData.length < 20) {
       debugLog('Data too small to cache: ', file);
       return;
     }
-    if (isSameData(data, await readCache(file, { skipR2Cache: true }))) return;
+    if (isSameData(data, await readCache(file, { skipR2Cache: true, skipCompression: options.skipCompression, }))) return;
+
+    if (options.skipCompression)
+      file = `${file}-uncompressed`
 
     const filePath = getFilePath(file)
     await createSubPath(path.dirname(filePath))
@@ -119,21 +127,30 @@ export async function writeCache(file: string, data: any, options: WriteCacheOpt
   }
 }
 
-export async function parseCache(dataString: string | Buffer) {
-  if (typeof dataString === 'string') dataString = Buffer.from(dataString, 'base64')
+export async function parseCache(dataString: string | Buffer, options: ReadCacheOptions = {}) {
+  let dataBuffer: Buffer
+  if (typeof dataString === 'string') dataBuffer = Buffer.from(dataString, 'base64')
   let decompressed: any
+
+  let _unzipAsync = (str: Buffer) => options.skipCompression ?  dataString : unzipAsync(str)  // if skipCompression is true, we don't decompress the data
+
   try {
-    decompressed = await unzipAsync(dataString)
+    decompressed = await _unzipAsync(dataBuffer! ?? dataString)
   } catch (e) {
     dataString = dataString.toString('utf8')
-    dataString = Buffer.from(dataString, 'base64')
-    decompressed = await unzipAsync(dataString)
+    const convertedDataString = Buffer.from(dataString, 'base64')
+    decompressed = await _unzipAsync(convertedDataString)
   }
   return JSON.parse(decompressed).llamaWrapped
 }
 
-export async function compressCache(data: any) {
-  const comressedCache = await zipAsync(JSON.stringify({ version: currentVersion, llamaWrapped: data }))
+export async function compressCache(data: any, options: WriteCacheOptions = {}) {
+  const dataString = JSON.stringify({ version: currentVersion, llamaWrapped: data })
+
+  if (options.skipCompression)
+    return dataString
+
+  const comressedCache = await zipAsync(dataString)
   return comressedCache
 }
 
@@ -227,6 +244,6 @@ export async function writeExpiringJsonCache(file: string, data: any, {
 }: { expireAfter?: number, expiryTimestamp?: number }): Promise<void> {
   file = 'expiring/' + file
   if (!expiryTimestamp) expiryTimestamp = Math.floor(Date.now() / 1e3) + expireAfter
-  const options: WriteCacheOptions = { skipR2CacheWrite: true }
+  const options: WriteCacheOptions = { skipR2CacheWrite: true, skipCompression: true }
   await writeCache(file, { data, expiryTimestamp }, options)
 }
