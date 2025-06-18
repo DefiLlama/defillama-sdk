@@ -209,8 +209,8 @@ export async function getLogs(options: GetLogsOptions): Promise<EventLog[] | Eve
     })
     caches = mergedCaches
 
-    if (!skipCache)
-      await writeCache(getFile(), { caches, version: currentVersion }, { skipR2CacheWrite: !cacheInCloud })
+    if (!skipCache)  // we are skipping compression by default, so reads & writes are faster
+      await writeCache(getFile(), { caches, version: currentVersion }, { skipR2CacheWrite: !cacheInCloud, skipCompression: !cacheInCloud })
   }
 
   function dedupLogs(...logs: EventLog[][]) {
@@ -233,7 +233,7 @@ export async function getLogs(options: GetLogsOptions): Promise<EventLog[] | Eve
 
     if (skipCache) return defaultRes
 
-    let cache = await readCache(key, { skipR2Cache: !cacheInCloud })
+    let cache = await readCache(key, { skipR2Cache: !cacheInCloud, skipCompression: !cacheInCloud, })
 
     if (!cache.caches || !cache.caches.length || cache.version !== currentVersion)
       return defaultRes
