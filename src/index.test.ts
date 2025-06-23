@@ -46,6 +46,7 @@ test("imports", async () => {
           "normalizePrefixes": [Function],
           "runInPromisePool": [Function],
           "sliceIntoChunks": [Function],
+          "tableToString": [Function],
         },
       },
       "api2": {
@@ -84,6 +85,7 @@ test("imports", async () => {
           "normalizePrefixes": [Function],
           "runInPromisePool": [Function],
           "sliceIntoChunks": [Function],
+          "tableToString": [Function],
         },
       },
       "blocks": {
@@ -237,6 +239,7 @@ test("imports", async () => {
         "sumChainTvls": [Function],
         "sumMultiBalanceOf": [Function],
         "sumSingleBalance": [Function],
+        "tableToString": [Function],
       },
     }
   `);
