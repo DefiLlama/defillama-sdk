@@ -1,18 +1,27 @@
+import { ethers, EventFragment, EventLog, id, Interface } from "ethers";
 import { getLogs as getLogsV1 } from ".";
-import { EventFragment, EventLog, Interface, id } from "ethers";
+import { hexifyTarget } from "../abi/tron";
 import { Address } from "../types";
 import { getBlockNumber } from "./blocks";
 import { readCache, writeCache } from "./cache";
 import { DEBUG_LEVEL2, debugLog } from "./debugLog";
-import { getLogs as getIndexerLogs, isIndexerEnabled } from "./indexer";
-import { hexifyTarget } from "../abi/tron";
+import {
+  getLogs as getIndexerLogs,
+  IndexerGetLogsOptions,
+  isIndexerEnabled,
+} from "./indexer";
+import runInPromisePool from "./promisePool";
 
-const currentVersion = 'v3'
+const currentVersion = "v3";
+
+/* -------------------------------------------------------------------------- */
+/*                                   Types                                    */
+/* -------------------------------------------------------------------------- */
 
 export type GetLogsOptions = {
   target?: Address;
   topic?: string;
-  keys?: string[]; // This is just used to select only part of the logs
+  keys?: string[];
   fromBlock?: number;
   toBlock?: number;
   topics?: (string | null)[];
@@ -31,14 +40,294 @@ export type GetLogsOptions = {
   skipIndexer?: boolean;
   onlyIndexer?: boolean;
   debugMode?: boolean;
-  noTarget?: boolean;  // we sometimes want to query logs without a target, but it will an be expensive bug if target/targets were not passed by mistake, so this is a safety check
+  noTarget?: boolean;
   parseLog?: boolean;
-}
+  processor?: (logs: any[]) => Promise<void> | void;
+  maxBlockRange?: number;
+  allowParseFailure?: boolean;
+};
 
-export async function getLogs(options: GetLogsOptions): Promise<EventLog[] | EventLog[][] | any[]> {
+/* -------------------------------------------------------------------------- */
+/*                                   getLogs                                  */
+/* -------------------------------------------------------------------------- */
+
+export async function getLogs(
+  options: GetLogsOptions
+): Promise<EventLog[] | EventLog[][] | any[]> {
   let {
     target,
-    chain = 'ethereum',
+    skipCache = false,
+    skipCacheRead = false,
+    cacheInCloud = false,
+    keys = [],
+    targets,
+    flatten = true,
+    skipIndexer = false,
+    onlyIndexer = false,
+    debugMode = false,
+    processor,
+    maxBlockRange,
+  } = options;
+
+  const { fromBlock, toBlock, topics, topic, transformLog, chain } =
+    await getLogParams(options, false);
+
+  /* ----------------------------- Indexer path ----------------------------- */
+
+  // If the caller demands indexer only but it is disabled, fail fast
+  if (onlyIndexer && !isIndexerEnabled(chain))
+    throw new Error("onlyIndexer is true, but indexer is not enabled");
+
+  if (!skipIndexer && isIndexerEnabled(chain)) {
+    try {
+      const response = await getIndexerLogs({
+        ...options,
+        all: true, // internal service – always fetch full set
+        parseLog: options.parseLog,
+        eventAbi: options.eventAbi,
+        onlyArgs: options.onlyArgs,
+      });
+      return response;
+    } catch (e) {
+      debugLog("Error in indexer getLogs", (e as Error).message);
+      // If caller insisted on indexer only, propagate the error
+      if (onlyIndexer) throw e;
+      // Otherwise continue with RPC fallback
+    }
+  }
+
+  if (!debugMode) debugMode = DEBUG_LEVEL2;
+
+  /* ----------------------- Split by maxBlockRange ------------------------- */
+
+  const blockRange = toBlock - fromBlock;
+  if (maxBlockRange && blockRange > maxBlockRange) {
+    const results: any[][] = [];
+    for (
+      let currentFromBlock = fromBlock;
+      currentFromBlock <= toBlock;
+      currentFromBlock += maxBlockRange
+    ) {
+      const currentToBlock = Math.min(
+        currentFromBlock + maxBlockRange - 1,
+        toBlock
+      );
+      const chunk = await getLogs({
+        ...options,
+        fromBlock: currentFromBlock,
+        toBlock: currentToBlock,
+      });
+      results.push(chunk);
+    }
+    return flatten ? results.flat() : results;
+  }
+
+  /* ------------------------ Multi-target parallel ------------------------- */
+
+  if (targets?.length) {
+    const baseOpts = { ...options, fromBlock, toBlock, skipIndexer: true };
+    delete baseOpts.targets;
+
+    const jobs = targets.map((address, idx) => ({ idx, address }));
+
+    const proc = async (job: { idx: number; address: Address }) => {
+      const logs = await getLogs({ ...baseOpts, target: job.address });
+      return { idx: job.idx, logs };
+    };
+
+    const results = await runInPromisePool({ items: jobs, concurrency: 5, processor: proc });
+
+    const ordered: any[][] = new Array(targets.length);
+    for (const { idx, logs } of results) ordered[idx] = logs;
+
+    return flatten ? ordered.flat() : ordered;
+  }
+
+  /* ----------------------------- RPC fallback ----------------------------- */
+
+  if (chain === "tron") target = hexifyTarget(target!);
+
+  let caches = (await _getCache()) as logCache[];
+  const firstRun = !caches.length;
+
+  if (firstRun || skipCacheRead) {
+    await addLogsToCache(fromBlock!, toBlock!);
+  } else {
+    // try to fill gaps compared to what is already cached
+    let _from = fromBlock;
+    let _to = toBlock;
+    const firstCache = caches[0];
+    const lastCache = caches[caches.length - 1];
+
+    for (const c of caches) {
+      const { fromBlock: cStart, toBlock: cEnd } = c.metadata;
+
+      if (_to < firstCache.metadata.fromBlock || _from > lastCache.metadata.toBlock) {
+        await addLogsToCache(_from, _to);
+        break;
+      }
+
+      if (_from >= cEnd) continue;
+      if (_from <= cStart) {
+        await addLogsToCache(_from, Math.min(_to, cStart - 1));
+      }
+      if (_to <= cEnd) {
+        _from = cEnd;
+        break;
+      }
+      _from = cEnd;
+    }
+    if (_from < _to) await addLogsToCache(_from, _to);
+  }
+
+  /* ---------------------------- Return result ----------------------------- */
+
+const out: any[] = [];
+for (const c of caches) {
+  const { fromBlock: cStart, toBlock: cEnd } = c.metadata;
+  if (fromBlock! > cEnd || toBlock! < cStart) continue;
+
+  const filtered = c.logs
+    .filter((i: EventLog) => i.blockNumber >= fromBlock! && i.blockNumber <= toBlock!)
+    .map(transformLog);
+
+  if (processor) await processor(filtered);
+  // Always include filtered logs in the return value, even when a processor is provided
+  out.push(...filtered);
+}
+
+return out;
+
+  /* ----------------------------------------------------------------------- */
+  /*                         Internal helper functions                       */
+  /* ----------------------------------------------------------------------- */
+
+  async function addLogsToCache(fromBlock: number, toBlock: number) {
+    const dbgKey = `getLogs-${chain}-${topic}-${target}_${Math.random()}-${fromBlock}-${toBlock}`;
+    if (debugMode) debugLog("adding logs to cache:", fromBlock, toBlock);
+
+    if (fromBlock > toBlock) return;
+    fromBlock = Math.max(fromBlock - 10, 0); // avoid negative block
+    toBlock = toBlock + 10;
+
+    if (debugMode) console.time(dbgKey);
+
+    const { output: newLogs } = await getLogsV1({
+      chain,
+      target: target!,
+      topic: topic as string,
+      keys,
+      topics,
+      fromBlock,
+      toBlock,
+    });
+
+    if (debugMode) {
+      console.timeEnd(dbgKey);
+      debugLog("Logs pulled", chain, target, newLogs.length);
+    }
+
+    caches.push({ logs: newLogs, metadata: { fromBlock, toBlock } });
+    caches.sort((a, b) => a.metadata.fromBlock - b.metadata.fromBlock);
+
+    // merge overlapping ranges
+    const merged: logCache[] = [caches[0]];
+    caches.slice(1).forEach((c) => {
+      const last = merged[merged.length - 1];
+      if (last.metadata.toBlock + 1 > c.metadata.fromBlock) {
+        last.metadata.toBlock = c.metadata.toBlock;
+        last.logs = dedupLogs(last.logs, c.logs);
+      } else merged.push(c);
+    });
+    caches = merged;
+    
+    if (!skipCache)  // we are skipping compression by default, so reads & writes are faster
+      await writeCache(getFile(), { caches, version: currentVersion }, { skipR2CacheWrite: !cacheInCloud, skipCompression: !cacheInCloud })
+  }
+
+  function dedupLogs(...arr: EventLog[][]) {
+    const seen = new Set();
+    return arr.flat().filter((i: EventLog) => {
+      const key = `${i.transactionHash}-${(i as any).logIndex ?? i.index}`;
+      if (
+        !(
+          i.hasOwnProperty("logIndex") ||
+          i.hasOwnProperty("index")
+        ) ||
+        !i.hasOwnProperty("transactionHash")
+      ) {
+        debugLog("Missing crucial field", i);
+        throw new Error("Missing crucial field: logIndex/index");
+      }
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
+
+  async function _getCache(): Promise<logCache[]> {
+    const key = getFile();
+    const def: logCache[] = [];
+    if (skipCache) return def;
+
+    let cache = await readCache(key, { skipR2Cache: !cacheInCloud, skipCompression: !cacheInCloud, })
+
+    if (!cache.caches || !cache.caches.length || cache.version !== currentVersion)
+      return def
+
+    return cache.caches
+  }
+
+  function getFile() {
+    let extraKey = topics?.join("-").toLowerCase();
+    if (!extraKey) throw new Error("extraKey is required");
+    if (keys.length) extraKey += "-" + keys.join("-").toLowerCase();
+    return `event-logs/${chain}/${target?.toLowerCase() ?? null}-${extraKey}`;
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/*                           Utility helpers exported                         */
+/* -------------------------------------------------------------------------- */
+
+export function toFilterTopic(topic: string): string {
+  if (topic.startsWith("0x")) return topic;
+  const fragment = EventFragment.from(topic);
+  return id(fragment.format());
+}
+
+export type logCache = {
+  logs: EventLog[];
+  metadata: { fromBlock: number; toBlock: number };
+};
+
+export default getLogs;
+
+/* -------------------------------------------------------------------------- */
+/*                         getLogParams                                       */
+/* -------------------------------------------------------------------------- */
+
+type GetLogsParamsResponse = {
+  chain: string;
+  fromBlock: number;
+  toBlock: number;
+  target?: Address;
+  topic: string;
+  iface?: Interface;
+  transformLog: (log: any) => any;
+  topics?: (string | null)[];
+  topic1?: string;
+  topic2?: string;
+  topic3?: string;
+};
+
+export async function getLogParams(
+  options: GetLogsOptions | IndexerGetLogsOptions,
+  isIndexerCall = false
+): Promise<GetLogsParamsResponse> {
+  let {
+    target,
+    chain = "ethereum",
     fromBlock,
     toBlock,
     fromTimestamp,
@@ -46,226 +335,141 @@ export async function getLogs(options: GetLogsOptions): Promise<EventLog[] | Eve
     eventAbi,
     topic,
     topics,
-    extraTopics, // can be passed as input as extra filter arguments
-    skipCache = false,
-    skipCacheRead = false,
+    extraTopics,
     entireLog = false,
-    cacheInCloud = false,
     onlyArgs = false,
-    keys = [], //  [Deprecated] This is just used to select only part of the logs
-    targets,
-    flatten = true,
-    skipIndexer = false,
-    onlyIndexer = false,
-    debugMode = false,
-    noTarget = false,  // we sometimes want to query logs without a target, but it will an be expensive bug if target/targets were not passed by mistake, so this is a safety check
+    targets = [],
+    noTarget = false,
     parseLog = false,
-  } = options
+    allowParseFailure = false,
+    processor,
+    flatten = false,
+  } = options;
 
-  if (!skipIndexer && isIndexerEnabled(chain)) {
-    try {
+  if (eventAbi && !Object.prototype.hasOwnProperty.call(options, "parseLog"))
+    parseLog = true;
 
-      const response = await getIndexerLogs({
-        ...options,
-        all: true,
-      })
-      return response
-    } catch (e) {
-      let message = (e as any)?.message
-      debugLog('Error in  indexer getLogs', message)
-    }
+  // keep raw log if entireLog=true
+  if (entireLog) onlyArgs = false;
+
+  if (processor && targets.length > 1 && !flatten)
+    throw new Error("processor is not supported with multiple targets when flatten=false");
+
+  if (!fromBlock && !fromTimestamp)
+    throw new Error("fromBlock or fromTimestamp is required");
+  if (!toBlock && !toTimestamp)
+    throw new Error("toBlock or toTimestamp is required");
+
+  if (!fromBlock) fromBlock = await getBlockNumber(chain, fromTimestamp);
+  if (!toBlock) toBlock = await getBlockNumber(chain, toTimestamp);
+  if (!fromBlock || !toBlock)
+    throw new Error("fromBlock and toBlock must be > 0");
+
+  if (!noTarget && !target && !targets.length)
+    throw new Error(
+      'target|targets is required or set the flag "noTarget" to true'
+    );
+
+  let iface: Interface | undefined;
+  if (eventAbi) iface = new Interface([eventAbi]);
+
+  if (!topics?.length) {
+    if (topic) topic = toFilterTopic(topic);
+    else if (eventAbi) topic = toFilterTopic(eventAbi);
+    else
+      throw new Error("eventAbi | topic | topics are required");
+    topics = [topic];
+    if (extraTopics) topics.push(...extraTopics);
   }
-  if (!debugMode) debugMode = DEBUG_LEVEL2
+  if (topics?.length) topic = topics[0] as string;
 
-  if (onlyIndexer) throw new Error('onlyIndexer is true, but indexer is not enabled or threw an error')
+  function transformLog(log: any) {
+    // normalize indexer payload
+    if (isIndexerCall) {
+      log.address = log.source;
+      log.logIndex = log.log_index;
+      log.index = log.log_index;
+      log.transactionHash = log.transaction_hash;
+      log.blockNumber = parseInt(log.block_number);
 
-  // if (!target && !targets?.length) throw new Error('target|targets is required')
-  if (!fromBlock && !fromTimestamp) throw new Error('fromBlock or fromTimestamp is required')
-  if (!toBlock && !toTimestamp) throw new Error('toBlock or toTimestamp is required')
-
-  if (!fromBlock)
-    fromBlock = await getBlockNumber(chain, fromTimestamp)
-
-  if (!toBlock)
-    toBlock = await getBlockNumber(chain, toTimestamp)
-
-  if (!fromBlock || !toBlock) throw new Error('fromBlock and toBlock must be > 0')
-
-  if (!noTarget && !target && !targets?.length) {
-    throw new Error('target|targets is required or set the flag "noTarget" to true')
-  }
-
-  if (targets?.length) {
-    const newOptions = { ...options, fromBlock, toBlock }
-    delete newOptions.targets
-    const res = await Promise.all(targets.map(i => getLogs({ ...newOptions, target: i, skipIndexer: true })))
-    if (flatten) return res.flat()
-    return res
-  }
-
-  if (chain === 'tron')
-    target = hexifyTarget(target!)
-
-
-  let iface: Interface | undefined
-  if (eventAbi)
-    iface = new Interface([eventAbi])
-
-
-  if ((!topics || !topics.length)) {
-    if (topic)
-      topic = toFilterTopic(topic)
-    else if (eventAbi)
-      topic = toFilterTopic(eventAbi)
-    else {
-      throw new Error('eventAbi | topic | topics are required')
-    }
-    topics = [topic]
-    if (extraTopics) topics.push(...extraTopics)
-  }
-
-  let caches = (await _getCache() as logCache[])
-
-  const isFirstRun = !caches.length
-
-  if (isFirstRun || skipCacheRead) {
-    await addLogsToCache(fromBlock!, toBlock!)
-  } else {
-    let _fromBlock = fromBlock // we need to keep a copy of fromBlock as it will be modified
-    let _toBlock = toBlock // we need to keep a copy of toBlock as it will be modified
-    const firstCache = caches[0]
-    const lastCache = caches[caches.length - 1]
-    for (const cacheData of caches) {
-      const { fromBlock: cFirstBlock, toBlock: cToBlock } = cacheData.metadata
-      if (_toBlock < firstCache.metadata.fromBlock || _fromBlock > lastCache.metadata.toBlock) {  // no intersection with any cache
-        await addLogsToCache(_fromBlock, _toBlock)
-        break;
+      // Ensure topics are properly formatted
+      const topics = [log.topic0, log.topic1, log.topic2, log.topic3]
+        .filter(Boolean)
+        .map((t: string) => {
+          if (!t) return null;
+          const topic = t.startsWith("0x") ? t : `0x${t}`;
+          return ethers.zeroPadValue(topic, 32);
+        });
+      
+      // Ensure first topic (event signature) is present
+      if (!topics[0]) {
+        return log;
       }
+      
+      log.topics = topics;
 
-      if (_fromBlock >= cToBlock) continue; // request is after cache end
-      if (_fromBlock <= cFirstBlock) { // request is before cache start
-        await addLogsToCache(_fromBlock, Math.min(_toBlock, cFirstBlock - 1))
-      }
-      if (_toBlock <= cToBlock) { // request ends before cache end
-        _fromBlock = cToBlock;
-        break;
-      }
-      _fromBlock = cToBlock
-    }
-    if (_fromBlock < _toBlock)
-      await addLogsToCache(_fromBlock, _toBlock);
-  }
+      // Store original topics for later use
+      log._originalTopics = {
+        topic0: log.topic0,
+        topic1: log.topic1,
+        topic2: log.topic2,
+        topic3: log.topic3
+      };
 
-  const logs = []
-  for (const cacheData of caches) {
-    const { fromBlock: cFirstBlock, toBlock: cToBlock } = cacheData.metadata
-    if (fromBlock! > cToBlock || toBlock! < cFirstBlock) continue; // no intersection with cache
-    logs.push(...cacheData.logs.filter((i: EventLog) => i.blockNumber >= fromBlock! && i.blockNumber <= toBlock!))
-  }
+      // Store original transaction hash
+      log._originalTransactionHash = log.transaction_hash;
 
-  if (!eventAbi || entireLog) {
-    if (iface && parseLog) {
-      logs.forEach((i: any) => i.parsedLog = iface?.parseLog(i))
-    }
-    return logs
-  }
-  return logs.map((i: any) => iface!.parseLog(i)).map((i: any) => onlyArgs ? i.args : i)
-
-  async function addLogsToCache(fromBlock: number, toBlock: number) {
-    const debugTimeKey = `getLogs-${chain}-${topic}-${target}_${Math.random()}-${fromBlock}-${toBlock}`
-    if (debugMode)
-      debugLog('adding logs to cache: ', fromBlock, toBlock, target, topic, chain,)
-
-    if (fromBlock > toBlock) return; // no data to add
-    fromBlock = fromBlock - 10
-    toBlock = toBlock + 10
-
-    if (debugMode)
-      console.time(debugTimeKey)
-
-    let { output: logs } = await getLogsV1({
-      chain, target: target!, topic: topic as string, keys, topics, fromBlock, toBlock,
-    })
-
-    if (debugMode) {
-      console.timeEnd(debugTimeKey)
-      debugLog('Logs pulled ' + chain, target, logs.length)
+      // Only delete fields that are not needed for parsing
+      [
+        "chain",
+        "log_index",
+      ].forEach((k) => delete log[k]);
     }
 
-    caches.push({
-      logs,
-      metadata: { fromBlock, toBlock, }
-    })
-    caches.sort((a, b) => a.metadata.fromBlock - b.metadata.fromBlock)
-    const mergedCaches = [caches[0]] as logCache[]
-    caches.slice(1).forEach(i => {
-      const last = mergedCaches[mergedCaches.length - 1]
-      if (last.metadata.toBlock + 1 > i.metadata.fromBlock) {
-        last.metadata.toBlock = i.metadata.toBlock
-        last.logs = dedupLogs(last.logs, i.logs)
-      } else {
-        mergedCaches.push(i)
-      }
-    })
-    caches = mergedCaches
+    if (log.blockNumber === undefined && log.block_number !== undefined)
+      log.blockNumber = parseInt(log.block_number);
 
-    if (!skipCache)  // we are skipping compression by default, so reads & writes are faster
-      await writeCache(getFile(), { caches, version: currentVersion }, { skipR2CacheWrite: !cacheInCloud, skipCompression: !cacheInCloud })
+    if ((entireLog && !parseLog) || !iface) {
+      return log;
+    }
+
+    // Restore topics if they were lost
+    if (!log.topics && log._originalTopics) {
+      log.topics = [log._originalTopics.topic0, log._originalTopics.topic1, log._originalTopics.topic2, log._originalTopics.topic3]
+        .filter(Boolean)
+        .map((t: string) => {
+          if (!t) return null;
+          const topic = t.startsWith("0x") ? t : `0x${t}`;
+          return ethers.zeroPadValue(topic, 32);
+        });
+    }
+
+    // Restore transaction hash if it was lost
+    if (!log.transactionHash && log._originalTransactionHash) {
+      log.transactionHash = log._originalTransactionHash;
+    }
+
+    const parsed = iface.parseLog(log);
+    if (!parsed && !allowParseFailure)
+      throw new Error(`Failed to parse log: ${JSON.stringify(log.transactionHash)}`);
+    
+    log.args = parsed?.args;
+    if (entireLog) log.parsedLog = parsed;
+    
+    return onlyArgs ? log.args : log;
   }
 
-  function dedupLogs(...logs: EventLog[][]) {
-    const logIndices = new Set()
-    return logs.flat().filter((i: EventLog) => {
-      let key = i.transactionHash + ((i as any).logIndex ?? i.index) // ethers v5 had logIndex, ethers v6 has index
-      if (!(i.hasOwnProperty('logIndex') || i.hasOwnProperty('index')) || !i.hasOwnProperty('transactionHash')) {
-        debugLog(i, (i as any).logIndex, i.index, i.transactionHash)
-        throw new Error('Missing crucial field: logIndex/index')
-      }
-      if (logIndices.has(key)) return false
-      logIndices.add(key)
-      return true
-    })
-  }
-
-  async function _getCache(): Promise<logCache[]> {
-    const key = getFile()
-    const defaultRes = [] as logCache[]
-
-    if (skipCache) return defaultRes
-
-    let cache = await readCache(key, { skipR2Cache: !cacheInCloud, skipCompression: !cacheInCloud, })
-
-    if (!cache.caches || !cache.caches.length || cache.version !== currentVersion)
-      return defaultRes
-
-    return cache.caches
-  }
-
-  function getFile() {
-    let extraKey = topics?.join('-').toLowerCase()
-    if (!extraKey) throw new Error('extraKey is required')
-    if (keys.length) extraKey += '-' + keys.join('-').toLowerCase()
-
-    return `event-logs/${chain}/${target?.toLowerCase() ?? null}-${extraKey}`
-  }
-
+  return {
+    chain,
+    fromBlock,
+    toBlock,
+    target,
+    topic: topic!,
+    topic1: topics[1] as string,
+    topic2: topics[2] as string,
+    topic3: topics[3] as string,
+    iface,
+    transformLog,
+    topics,
+  };
 }
-
-export function toFilterTopic(topic: string): string {
-  if (typeof topic === 'string' && topic.startsWith('0x')) {
-    return topic
-  }
-
-  const fragment = EventFragment.from(topic)
-  return id(fragment.format())
-}
-
-export type logCache = {
-  logs: EventLog[],
-  metadata: {
-    fromBlock: number,
-    toBlock: number,
-  }
-}
-
-export default getLogs
