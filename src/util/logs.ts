@@ -270,12 +270,10 @@ return out;
     const def: logCache[] = [];
     if (skipCache) return def;
 
-    if (skipCache) return defaultRes
-
     let cache = await readCache(key, { skipR2Cache: !cacheInCloud, skipCompression: !cacheInCloud, })
 
     if (!cache.caches || !cache.caches.length || cache.version !== currentVersion)
-      return defaultRes
+      return def
 
     return cache.caches
   }
