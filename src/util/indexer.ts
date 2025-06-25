@@ -366,7 +366,7 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
   // -------------------------------------------------------------------------
   // Pull logs
   // -------------------------------------------------------------------------
-  const rawLogs: any[] = [];
+  const allLogs: any[] = [];
   const debugTimeKey = `Indexer-getLogs-${chain}-${topic}-${address}_${Math.random()}`;
   if (debugMode) {
     debugLog("[Indexer] Pulling logs " + debugTimeKey);
@@ -411,11 +411,12 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
         return true;
       });
 
-      const transformed = filtered.map(transformLog);
+      // we need to the { raw, transformed } structure to allow for post‑processing like clustering based on `source` field
+      const transformed = filtered.map((log: any) => ({ raw: log, transformed: transformLog(log)}));
 
-      if (processor) await processor(transformed);
+      if (processor) await processor(transformed.map((i: any) => i.transformed));
 
-      rawLogs.push(...transformed);
+      allLogs.push(...transformed);
 
       logCount += _logs.length;
       chunkOffset += limit;
@@ -425,7 +426,7 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
 
   if (debugMode) {
     console.timeEnd(debugTimeKey);
-    debugLog("Logs pulled " + chain, address, rawLogs.length);
+    debugLog("Logs pulled " + chain, address, allLogs.length);
   }
 
   // -------------------------------------------------------------------------
@@ -437,15 +438,15 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
     const indexMap: Record<string, number> = {};
     targets.forEach((t, i) => (indexMap[t.toLowerCase()] = i));
 
-    rawLogs.forEach((log) => {
-      const idx = indexMap[log.source.toLowerCase()];
+    allLogs.forEach(({ raw, transformed}) => {
+      const idx = indexMap[raw.source.toLowerCase()];
       if (idx === undefined) return; // ignore unknown sources
-      mapped[idx].push(log);
+      mapped[idx].push(transformed);
     });
     return mapped;
   }
 
-  return rawLogs;
+  return allLogs.map(i => i.transformed)
 }
 
 // ---------------------------------------------------------------------------
@@ -578,7 +579,7 @@ export async function getTokenTransfers({
   if (splitByAddress) {
     const mapped: any[] = targets.map(() => []);
     const indexMap: Record<string, number> = {};
-    targets.forEach((t, i) => (indexMap[t] = i));
+    targets.forEach((t, i) => (indexMap[t.toLowerCase()] = i));
 
     filteredTransfers.forEach((log: any) => {
       const sourceField = transferType === "in" ? "to_address" : "from_address";

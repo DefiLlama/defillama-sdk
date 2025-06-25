@@ -18,7 +18,7 @@ test("Indexer - getLogs", async () => {
     target: contract,
     eventAbi,
     fromBlock: 16310967,
-    toBlock: 20021179,
+    toBlock: 16610967,
     chain: 'ethereum',
     entireLog: true,
   })
@@ -27,12 +27,29 @@ test("Indexer - getLogs", async () => {
 });
 
 
+test("Indexer - getLogs - flatten false", async () => {
+
+  const res = await getLogs({
+    targets: [contract, '0x0000000000000000000000000000000000055555'],
+    eventAbi,
+    fromBlock: 16310967,
+    toBlock: 16610967,
+    chain: 'ethereum',
+    flatten: false,
+    onlyArgs: true,
+  })
+  expect(res[0].length).toBe(2)
+  expect(res[0][0].mIndex).toBe(BigInt(1))
+});
+
+
+
 test("Indexer - getLogs - block not synced", async () => {
   const res = getLogs({
     target: contract,
     eventAbi,
-    fromBlock: 16310967,
-    toBlock: 208211790,
+    fromBlock: 508211790,
+    toBlock: 508211791,
     chain: 'ethereum',
   })
   await expect(res).rejects.toThrowError()
@@ -116,12 +133,12 @@ test("Indexer - getLogs - noTarget with > 10k block range", async () => {
 });
 
 test("Indexer - getLogs with processor", async () => {
-  const api = new ChainApi({ chain: 'arbitrum'})
+  const api = new ChainApi({ chain: 'arbitrum' })
   const processor = async (logs: any[]) => {
     logs.forEach(({ args }) => {
       api.add(args.token, args.amount)
     })
-  } 
+  }
 
   await getLogs({
     fromBlock: 345461578,
@@ -134,7 +151,7 @@ test("Indexer - getLogs with processor", async () => {
 
   const balances = api.getBalances()
   expect(Object.keys(balances).length).toBeGreaterThan(0)
-  
+
   expect(balances['arbitrum:0x999FAF0AF2fF109938eeFE6A7BF91CA56f0D07e1']).toBe('225237781369731800000')
   expect(balances['arbitrum:0x577Fd586c9E6BA7f2E85E025D5824DBE19896656']).toBe('1.2409671794946094e+22')
   expect(balances['arbitrum:0x4e6b45BB1C7D11402faf72c2d59cAbC4085E36f2']).toBe('2.0821579300721433e+27')
