@@ -174,6 +174,7 @@ const DEPLOYMENT_BLOCK = {
   lens: 1,
   basecamp: 1,
   platon: 1,
+  xrplevm: 1,
 
 } as {
   [key: string | Chain]: number
@@ -275,6 +276,7 @@ export function getMulticallAddress(chain: Chain, block?: string | number) {
     case 'zero_network': multicallAddress = '0x0307F341a18f1FC1f63a7Ceeac970245A08C5a80'; break;
     case 'saga': multicallAddress = '0x864DDc9B50B9A0dF676d826c9B9EDe9F8913a160'; break;
     case 'hedera': multicallAddress = '0x18fa376d92511dd04090566ab6144847c03557d8'; break;
+    case 'xrplevm': multicallAddress = '0xaB3a12b26e72F4D6D9B579aCb5027a0918eF1114'; break;
   }
   return multicallAddress
 }
