@@ -175,7 +175,8 @@ const DEPLOYMENT_BLOCK = {
   basecamp: 1,
   platon: 1,
   xrplevm: 1,
-
+  katana: 1,
+  mint: 1,
 } as {
   [key: string | Chain]: number
 }
