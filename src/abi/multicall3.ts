@@ -177,6 +177,7 @@ const DEPLOYMENT_BLOCK = {
   xrplevm: 1,
   katana: 1,
   mint: 1,
+  btnx: 1,
 } as {
   [key: string | Chain]: number
 }

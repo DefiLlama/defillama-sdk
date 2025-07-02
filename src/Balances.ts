@@ -5,10 +5,40 @@ import { sumSingleBalance, } from "./generalUtil";
 import computeTVL from "./util/computeTVL";
 
 const nullAddress = '0x0000000000000000000000000000000000000000'
+
+type BalancesOptions = {
+  skipChain?: boolean;
+  label?: string;
+}
+
+type BalancesOptionsWithLabel = BalancesOptions | string
+
+
+// the last parameter of add function can be either a string or an object with options (or both as last two parameters)
+function getOptions({ optionsOrLabel = {}, options = {} }: { optionsOrLabel?: BalancesOptionsWithLabel; options?: BalancesOptions } = {}): BalancesOptions {
+  let label: any
+
+  if (optionsOrLabel) {
+    if (typeof optionsOrLabel === 'string') {
+      label = optionsOrLabel
+    } else {
+      options = optionsOrLabel as BalancesOptions
+      label = options.label;
+    }
+  }
+
+  return {
+    ...options,
+    skipChain: options?.skipChain ?? false,
+    label,
+  }
+}
+
 export class Balances {
   chain: Chain | string;
   timestamp?: number;
   _balances: BalancesV1;
+  _breakdownBalances: { [key: string]: Balances };
 
   constructor(params: {
     chain?: Chain | string;
@@ -17,9 +47,11 @@ export class Balances {
     this.chain = params.chain ?? 'ethereum'
     this.timestamp = params.timestamp
     this._balances = {}
+    this._breakdownBalances = {}
   }
 
-  _add(token: string, balance: any, { skipChain = false } = {}) {
+  _add(token: string, balance: any, optionsOrLabel?: BalancesOptionsWithLabel, options?: BalancesOptions) {
+    const { label, skipChain } = getOptions({ optionsOrLabel, options })
     token = token.replace(/\//g, ':')
     const isIBCToken = token.startsWith('ibc:')
     let chain: string | undefined = this.chain
@@ -36,62 +68,96 @@ export class Balances {
       token = token.replace('0x', '0x0')
     }
     sumSingleBalance(this._balances, token, balance, chain)
+
+    if (label) {
+      this._breakdownBalances[label] = this._breakdownBalances[label] ?? new Balances({ chain: this.chain, timestamp: this.timestamp })
+      this._breakdownBalances[label]._add(token, balance, { skipChain })
+    }
   }
 
 
-  add(token: string | string[], balance: any, { skipChain = false } = {}) {
+  add(token: string | string[] | Balances, balance?: any, optionsOrLabel?: BalancesOptionsWithLabel, options?: BalancesOptions) {
+
+    if (token instanceof Balances) {
+      if (typeof optionsOrLabel === 'string') throw new Error('When adding a Balances instance, optionsOrLabel must be an object with options, not a string')
+      this.addBalances(token, balance as BalancesOptionsWithLabel, optionsOrLabel as BalancesOptions)
+      return;
+    }
+
+    options = getOptions({ optionsOrLabel, options })
+
     if (!token) throw new Error('token is required')
     if (!balance) return;
 
     if (Array.isArray(balance)) {
       if (Array.isArray(token)) {
-        this.addTokens(token, balance, { skipChain })
+        this.addTokens(token, balance, options)
         return;
       } else if (typeof token === 'string') {
-        balance.forEach((v) => this._add(token, v, { skipChain }))
+        balance.forEach((v) => this._add(token, v, options))
         return;
       }
     }
 
     if (typeof token !== 'string') throw new Error('token must be a string')
-    this._add(token, balance, { skipChain })
+    this._add(token, balance, options)
   }
 
-  addToken(token: string, balance: any, { skipChain = false } = {}) {
-    this._add(token, balance, { skipChain })
+  addToken(token: string, balance: any, optionsOrLabel?: BalancesOptionsWithLabel, options?: BalancesOptions) {
+    options = getOptions({ optionsOrLabel, options })
+    this._add(token, balance, options)
   }
 
-  addGasToken(balance: any) {
-    this._add(nullAddress, balance)
+  addGasToken(balance: any, optionsOrLabel?: BalancesOptionsWithLabel, options?: BalancesOptions) {
+    options = getOptions({ optionsOrLabel, options })
+    this._add(nullAddress, balance, options)
   }
 
-  addCGToken(token: string, balance: any) {
-    this.addTokenVannila('coingecko:' + token, balance)
+  addCGToken(token: string, balance: any, optionsOrLabel?: BalancesOptionsWithLabel, options?: BalancesOptions) {
+    options = getOptions({ optionsOrLabel, options })
+    this.addTokenVannila('coingecko:' + token, balance, options)
   }
 
-  addTokenVannila(token: string, balance: any) {
-    this._add(token, balance, { skipChain: true })
+  addTokenVannila(token: string, balance: any, optionsOrLabel?: BalancesOptionsWithLabel, options?: BalancesOptions) {
+    options = getOptions({ optionsOrLabel, options })
+    this._add(token, balance, { ...options, skipChain: true })
   }
 
-  addUSDValue(balance: any) {
-    this.addCGToken('tether', balance)
+  addUSDValue(balance: any, optionsOrLabel?: BalancesOptionsWithLabel, options?: BalancesOptions) {
+    options = getOptions({ optionsOrLabel, options })
+    this.addCGToken('tether', balance, { ...options, skipChain: true })
   }
 
-  addTokens(tokens: string[], balances: any[], { skipChain = false } = {}) {
+  addTokens(tokens: string[], balances: any[], optionsOrLabel?: BalancesOptionsWithLabel, options?: BalancesOptions) {
+    options = getOptions({ optionsOrLabel, options })
     if (!Array.isArray(tokens)) throw new Error('tokens must be an array')
     if (!Array.isArray(balances)) throw new Error('balances must be an array')
     if (tokens.length !== balances.length) throw new Error('token and balance must have the same length')
 
-    tokens.forEach((v, i) => this._add(v, balances[i], { skipChain }))
+    tokens.forEach((v, i) => this._add(v, balances[i], options))
   }
 
-  addBalances(balances: BalancesV1 | Balances) {
+  addBalances(balances: BalancesV1 | Balances, optionsOrLabel?: BalancesOptionsWithLabel, options?: (BalancesOptions & { skipBreakdown?: boolean })) {
+    options = getOptions({ optionsOrLabel, options })
     if (balances instanceof Balances) {
       if (balances === this) return;
+
+
+      // if balances object has breakdown by label, and overall label is not set, we copy existing breakdown balances into this instance
+      if (balances.hasBreakdownBalances() && !options.skipBreakdown && !options.label) {
+        this._breakdownBalances = this._breakdownBalances ?? {}
+        const { label, ...restOptions } = options
+        Object.entries(balances.getBreakdownBalances()).forEach(([label, breakdown]) => {
+          this._breakdownBalances[label] = this._breakdownBalances[label] ?? new Balances({ chain: this.chain, timestamp: this.timestamp })
+          this._breakdownBalances[label].addBalances(breakdown, restOptions)
+        })
+      }
+
       balances = balances.getBalances()
+
     }
     if (balances === this._balances) return;
-    Object.entries(balances).forEach(([token, balance]) => this._add(token, balance, { skipChain: true }))
+    Object.entries(balances).forEach(([token, balance]) => this._add(token, balance, { ...options, skipChain: true }))
   }
 
   getBalances(): BalancesV1 {
@@ -103,6 +169,8 @@ export class Balances {
     Object.keys(this._balances).forEach((i: string) => {
       if (regex.test(i)) delete this._balances[i]
     })
+
+    this._breakdownBalancesAction('removeTokenBalance', [token])
   }
 
   async getUSDValue() {
@@ -123,6 +191,8 @@ export class Balances {
     Object.keys(this._balances).forEach((token) => {
       this._balances[token] = Number(this._balances[token]) * ratio
     })
+
+    this._breakdownBalancesAction('resizeBy', [ratio])
     return this
   }
 
@@ -168,6 +238,37 @@ export class Balances {
     Object.keys(this._balances).forEach((token) => {
       if (Number(this._balances[token]) <= 0) delete this._balances[token]
     })
+
+    if (this._breakdownBalances) {
+      Object.values(this._breakdownBalances).forEach((breakdown: Balances) => breakdown.removeNegativeBalances())
+    }
+  }
+
+  async _breakdownBalancesAction(action: string, args: any[] = []) {
+
+    if (!this._breakdownBalances)
+      return {};
+
+    const response: { [key: string]: any } = {}
+    const entries = Object.entries(this._breakdownBalances)
+    for (const [label, breakdown] of entries) {
+      if (typeof (breakdown as any)[action] === 'function') {
+        response[label] = (breakdown as any)[action](...args)
+        if (response[label] instanceof Promise) {
+          response[label] = await response[label];
+        }
+      }
+    }
+
+    return response
+  }
+
+  hasBreakdownBalances() {
+    return Object.keys(this._breakdownBalances).length > 0;
+  }
+
+  getBreakdownBalances() {
+    return this._breakdownBalances;
   }
 }
 
