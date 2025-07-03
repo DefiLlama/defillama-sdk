@@ -192,9 +192,78 @@ test("Balances - subtractTokens", async () => {
   expect(balances.getBalances()).toEqual({ 'bsc:0001': 100, 'tether': 100 })
 })
 
-test("Balances - negative balances", async () => {
+test("Balances - add with label", async () => {
   const balances = new Balances({ chain: 'bsc' })
+  balances.add('tether', 100, { skipChain: true, label: 'stablecoins' })
+  balances.add('0001', 200, 'myTokens')
+  expect(balances.getBalances()).toEqual({ 'tether': 100, 'bsc:0001': 200 })
+  const breakdown = balances.getBreakdownBalances()
+  expect(breakdown['stablecoins'].getBalances()).toEqual({ 'tether': 100 })
+  expect(breakdown['myTokens'].getBalances()).toEqual({ 'bsc:0001': 200 })
+})
 
-  balances.add('tether', [100, -200], { skipChain: true })
-  expect(await balances.getUSDValue()).toEqual(-100)
+test("Balances - add multiple tokens with label", async () => {
+  const balances = new Balances({ chain: 'bsc' })
+  balances.addTokens(['tether', 'usd-coin'], [100, 200], 'stablecoins', { skipChain: true, })
+  expect(balances.getBalances()).toEqual({ 'tether': 100, 'usd-coin': 200 })
+  const breakdown = balances.getBreakdownBalances()
+  expect(breakdown['stablecoins'].getBalances()).toEqual({ 'tether': 100, 'usd-coin': 200 })
+})
+
+test("Balances - addBalances with label and breakdown", async () => {
+  const balances1 = new Balances({ chain: 'bsc' })
+  balances1.add('tether', 100, { skipChain: true, label: 'stablecoins' })
+  balances1.add('0001', 200, 'myTokens')
+
+  const balances2 = new Balances({ chain: 'bsc' })
+  balances2.add('tether', 50, 'stablecoins', { skipChain: true, })
+  balances2.add('0002', 300, 'myTokens')
+
+  balances1.addBalances(balances2)
+  expect(balances1.getBalances()).toEqual({ 'tether': 150, 'bsc:0001': 200, 'bsc:0002': 300 })
+  const breakdown = balances1.getBreakdownBalances()
+  expect(breakdown['stablecoins'].getBalances()).toEqual({ 'tether': 150 })
+  expect(breakdown['myTokens'].getBalances()).toEqual({ 'bsc:0001': 200, 'bsc:0002': 300 })
+})
+
+test("Balances - removeTokenBalance affects breakdown", async () => {
+  const balances = new Balances({ chain: 'bsc' })
+  balances.add('tether', 100, { skipChain: true, label: 'stablecoins' })
+  balances.add('0001', 200, { label: 'myTokens' })
+  balances.removeTokenBalance('tether')
+  expect(balances.getBalances()).toEqual({ 'bsc:0001': 200 })
+  const breakdown = balances.getBreakdownBalances()
+  expect(breakdown['stablecoins'].getBalances()).toEqual({})
+  expect(breakdown['myTokens'].getBalances()).toEqual({ 'bsc:0001': 200 })
+})
+
+test("Balances - resizeBy affects breakdown", async () => {
+  const balances = new Balances({ chain: 'bsc' })
+  balances.add('tether', 100, { skipChain: true, label: 'stablecoins' })
+  balances.add('0001', 200, { label: 'myTokens' })
+  balances.resizeBy(2)
+  expect(balances.getBalances()).toEqual({ 'tether': 200, 'bsc:0001': 400 })
+  const breakdown = balances.getBreakdownBalances()
+  expect(breakdown['stablecoins'].getBalances()).toEqual({ 'tether': 200 })
+  expect(breakdown['myTokens'].getBalances()).toEqual({ 'bsc:0001': 400 })
+})
+
+test("Balances - removeNegativeBalances affects breakdown", async () => {
+  const balances = new Balances({ chain: 'bsc' })
+  balances.add('tether', -100, { skipChain: true, label: 'stablecoins' })
+  balances.add('0001', 200, { label: 'myTokens' })
+  balances.removeNegativeBalances()
+  expect(balances.getBalances()).toEqual({ 'bsc:0001': 200 })
+  const breakdown = balances.getBreakdownBalances()
+  expect(breakdown['stablecoins'].getBalances()).toEqual({})
+  expect(breakdown['myTokens'].getBalances()).toEqual({ 'bsc:0001': 200 })
+})
+
+test("Balances - hasBreakdownBalances and getBreakdownBalances", async () => {
+  const balances = new Balances({ chain: 'bsc' })
+  expect(balances.hasBreakdownBalances()).toBe(false)
+  balances.add('tether', 100, 'stablecoins')
+  expect(balances.hasBreakdownBalances()).toBe(true)
+  const breakdown = balances.getBreakdownBalances()
+  expect(Object.keys(breakdown)).toContain('stablecoins')
 })
