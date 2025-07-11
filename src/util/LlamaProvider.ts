@@ -155,13 +155,13 @@ export class LlamaProvider extends FallbackProvider {
       try {
         const result = await (httpRPC as any)[method](runner.url, params)
         return result
-      } catch (e) {
+      } catch (e: any) {
         // console.log('failed', runner.url, (e as any).message)
-        errors.push({ host: runner.url, error: e })
+        errors.push({ host: runner.url, error: (e?.message ?? e) })
       }
     }
 
-    throw { llamaRPCError: true, errors }
+    throw { llamaRPCError: true, errors, method, }
   }
 
 }
@@ -218,7 +218,7 @@ export function setProvider(
 export function getProvider(chain: Chain = "ethereum", _getArchivalNode = false): AbstractProvider {
   const rpcKey = chain === 'tron' ? 'tron_evm' : chain
   let chainKey = chain
-  if (getEnvValue('HISTORICAL')) chainKey = chain + '_historical' 
+  if (getEnvValue('HISTORICAL')) chainKey = chain + '_historical'
   if (providers[chainKey]) return providers[chainKey]
   const pList: any = buildProviders ?? providerList
 
@@ -352,10 +352,11 @@ function getMedianBlockValue(blocks: number[]) {
 let lastPrintTimeMS = Date.now()
 
 function printRPCCallStats() {
-  if (Object.keys(rpcRequestCounter).length > 7) {
-    debugLog('RPC request count per chain',)
-    debugTable(rpcRequestCounter)
+  const entries = Object.entries(rpcRequestCounter).map(([chain, count]) => ({ chain, count })).filter(i => i.count > 50)
+  if (entries.length > 7) {
+    debugLog('RPC request count per chain (only over 100)')
+    debugTable(entries)
   }
 }
 
-process.on('exit',printRPCCallStats)
+process.on('exit', printRPCCallStats)

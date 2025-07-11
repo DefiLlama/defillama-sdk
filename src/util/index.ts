@@ -56,7 +56,7 @@ export async function getLogs(options: GetLogsOptions): Promise<{ output: EventL
     } catch (e) {
       options.provider = getProvider(options.chain!, false)
       // if (provider === options.provider) throw e // the provider for archival and non-archival request is the same
-      debugLog(`Error fetching logs for chain ${options.chain} ${formError(e, { chain: options.chain, target: options.target,  })}, retrying...`)
+      debugLog(`Error fetching logs for chain ${options.chain} ${formError(e, { chain: options.chain, target: options.target, })}, retrying...`)
       return getLimiter()(() => _getLogs(options));
     }
   }
@@ -166,15 +166,19 @@ export function normalizeBalances(balances: { [address: string]: string }) {
   return balances;
 }
 
-export function tableToString(data: any, columns?: any) {
+export function tableToString(data: any, columns?: any, { title }: { title?: string } = {}) {
   let tableString = '';
   if (!data || !Array.isArray(data) || data.length === 0) {
     return '';
   }
+  data = [...data]; // Ensure we don't modify the original data
   if (!columns || !Array.isArray(columns) || columns.length === 0) {
     columns = Object.keys(data[0] || {});
   }
 
+  if (title)
+    tableString += `# ${title}\n\n`;
+  
   // Add the header row
   const headerObject: any = {}
   const headerObject1: any = {}
@@ -185,7 +189,7 @@ export function tableToString(data: any, columns?: any) {
   data.unshift(headerObject1)
   data.unshift(headerObject)
   // Calculate the maximum width for each column
-  const columnWidths = columns.map((col: any) => 
+  const columnWidths = columns.map((col: any) =>
     Math.max(col.length, ...data.map((row: any) => (row[col] !== undefined ? String(row[col]).length : 0)))
   );
 
