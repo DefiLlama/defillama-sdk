@@ -494,6 +494,7 @@ export async function getTokenTransfers({
   if (token) tokens = [token];
   if (tokens) {
     if (typeof tokens === "string") tokens = [tokens];
+    if (!Array.isArray(tokens)) throw new Error("tokens must be a string or an array of strings");
     tokens = tokens.join(",").toLowerCase();
   }
 
