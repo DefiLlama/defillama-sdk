@@ -719,5 +719,12 @@
     ],
     "chainId": 42793,
     "explorer": "https://explorer.etherlink.com"
+  },
+  "immutable-zkevm": {
+    "rpc": [
+      "https://rpc.immutable.com"
+    ],
+    "chainId": 13371,
+    "explorer": "https://explorer.immutable.com"
   }
 }
