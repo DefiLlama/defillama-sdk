@@ -15,6 +15,19 @@ import { GetTransactionOptions, getTransactions } from "./util/transactions";
 
 type Erc4626SumOptions = { calls: string[], tokenAbi?: string, balanceAbi?: string, balanceCalls?: any[], permitFailure?: boolean, isOG4626?: boolean }
 
+
+const callStatsByProject: Record<string, DebugStats> = {}
+
+type DebugStats = {
+  total: number,
+  [key: string]: any,
+}
+
+type BalancesV2Options = {
+  skipChain?: boolean,
+  label?: string,
+}
+
 const nullAddress = '0x0000000000000000000000000000000000000000'
 export class ChainApi {
   block?: Block;
@@ -24,6 +37,7 @@ export class ChainApi {
   provider: Provider;
   _balances: Balances;
   storedKey?: string;
+  stats: DebugStats;
   api: ChainApi
 
   constructor(params: {
@@ -31,6 +45,7 @@ export class ChainApi {
     chain?: Chain | string;
     storedKey?: string;
     timestamp?: number;
+    protocol?: string;
   }) {
     this.block = params.block
     this.chain = params.chain ?? 'ethereum'
@@ -41,9 +56,28 @@ export class ChainApi {
     this.chainId = providerList[this.chain]?.chainId
     this.storedKey = params.storedKey
     this.api = this
+    const uKey = `${params.protocol}:${this.storedKey}`
+    const stats = {
+      meta: {
+        chain: this.chain as string,
+        storedKey: this.storedKey,
+        protocol: params.protocol,
+      },
+      label: uKey,
+      total: 0,
+    }
+    callStatsByProject[uKey] = stats
+    this.stats = stats
+  }
+
+  addStat(method: string, value: any = 1, skipTotal = false) {
+    if (!skipTotal) this.stats.total += value
+    if (!this.stats[method]) this.stats[method] = 0
+    this.stats[method] += value
   }
 
   call(params: CallOptions) {
+    this.addStat('call')
     return call({
       ...params,
       block: this.block,
@@ -56,6 +90,9 @@ export class ChainApi {
   }
 
   multiCall(params: MulticallOptions) {
+    this.addStat('multiCall', params.calls.length, true)
+    this.addStat('call')
+
     return multiCall({
       ...params,
       block: this.block,
@@ -64,6 +101,7 @@ export class ChainApi {
   }
 
   fetchList(params: FetchListOptions) {
+    this.addStat('fetchList')
     return fetchList({
       ...params,
       block: this.block,
@@ -80,6 +118,7 @@ export class ChainApi {
   }
 
   async getBlock(): Promise<number> {
+    this.addStat('getBlock')
     if (!this.block) this.block = await getBlockNumber(this.chain as Chain, this.timestamp)
     return this.block as number
   }
@@ -92,36 +131,36 @@ export class ChainApi {
     debugTable(...args)
   }
 
-  add(token: any, balance: any, { skipChain = false } = {}) {
-    this._balances.add(token, balance, { skipChain })
+  add(token: any, balance: any, options: BalancesV2Options = {}) {
+    this._balances.add(token, balance, options)
   }
 
-  addToken(token: string, balance: any, { skipChain = false } = {}) {
-    this.add(token, balance, { skipChain })
+  addToken(token: string, balance: any, options: BalancesV2Options = {}) {
+    this.add(token, balance, options)
   }
 
-  addGasToken(balance: any) {
-    this.add(nullAddress, balance)
+  addGasToken(balance: any, options: BalancesV2Options = {}) {
+    this.add(nullAddress, balance, options)
   }
 
-  addUSDValue(balance: any) {
-    this._balances.addUSDValue(balance)
+  addUSDValue(balance: any, options: BalancesV2Options = {}) {
+    this._balances.addUSDValue(balance, options)
   }
 
-  addTokens(tokens: string[], balances: any[], { skipChain = false } = {}) {
-    this.add(tokens, balances, { skipChain })
+  addTokens(tokens: string[], balances: any[], options: BalancesV2Options = {}) {
+    this.add(tokens, balances, options)
   }
 
-  addBalances(balances: Balances | BalancesV1) {
-    this._balances.addBalances(balances)
+  addBalances(balances: Balances | BalancesV1, options: BalancesV2Options = {}) {
+    this._balances.addBalances(balances, options)
   }
 
-  addCGToken(token: string, balance: any) {
-    this._balances.addCGToken(token, balance)
+  addCGToken(token: string, balance: any, options: BalancesV2Options = {}) {
+    this._balances.addCGToken(token, balance, options)
   }
 
-  addTokenVannila(token: string, balance: any) {
-    this._balances.addTokenVannila(token, balance)
+  addTokenVannila(token: string, balance: any, options: BalancesV2Options = {}) {
+    this._balances.addTokenVannila(token, balance, options)
   }
 
   getBalances(): BalancesV1 {
@@ -179,6 +218,7 @@ export class ChainApi {
     blacklistedTokens = [],
     blacklistedOwners = [],
     ownerTokens = [],
+    balancesV2Options = {},
   }: {
     token?: string,
     tokens?: string[],
@@ -189,6 +229,7 @@ export class ChainApi {
     ownerTokens?: any[],
     blacklistedTokens?: string[],
     blacklistedOwners?: string[],
+    balancesV2Options?: BalancesV2Options,
   }): Promise<BalancesV1> {
 
     if (tokensAndOwners2.length)
@@ -212,11 +253,13 @@ export class ChainApi {
     const ethBalOwners = tokensAndOwners.filter(i => i[0] === nullAddress).map(i => i[1])
     tokensAndOwners = tokensAndOwners.filter(i => i[0] !== nullAddress)
 
+    this.addStat('sumTokens', tokensAndOwners.length + ethBalOwners.length, true)
+
     const bals = await this.multiCall({
       calls: tokensAndOwners.map(i => ({ target: i[0], params: [i[1]] })),
       abi: 'erc20:balanceOf',
     })
-    this.addTokens(tokensAndOwners.map(i => i[0]), bals)
+    this.addTokens(tokensAndOwners.map(i => i[0]), bals, balancesV2Options)
 
     if (ethBalOwners.length) {
       let ethBals: string[] = []
@@ -231,7 +274,7 @@ export class ChainApi {
         const res = await getBalances({ chain: this.chain as string, targets: ethBalOwners, block: this.block as number })
         ethBals = res.output.map((i: any) => i.balance)
       }
-      ethBals.map(i => this.addToken(nullAddress, i))
+      ethBals.map(i => this.addToken(nullAddress, i, balancesV2Options))
     }
 
     return this.getBalances()
@@ -250,6 +293,7 @@ export class ChainApi {
   }
 
   async getLogs(params: GetLogsOptions) {
+    this.addStat('getLogs', params.targets?.length || 1)
     params.chain = this.chain
     return getLogs(params)
   }
@@ -259,10 +303,12 @@ export class ChainApi {
   }
 
   async getTransactions(params: GetTransactionOptions) {
+    this.addStat('getTransactions')
     return getTransactions({ ...params, chain: this.chain as string });
   }
 
   async getTransactionReceipt(tx: string) {
+    this.addStat('getTransactionReceipt')
     return this.provider.getTransactionReceipt(tx)
   }
 }
@@ -274,4 +320,8 @@ function getUniqueTokensAndOwners(toa: string[][], chain?: string): string[][] {
   const mergedToa = toa.map(i => i.join('~'))
   const uniqueMerged = getUniqueAddresses(mergedToa, chain)
   return uniqueMerged.map(i => i.split('~'))
+}
+
+export function getDebugStats() {
+  return callStatsByProject
 }

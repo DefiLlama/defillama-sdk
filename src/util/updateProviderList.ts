@@ -122,6 +122,7 @@ const chainShortNameMapping = {
   hydradx: 'hdx',
   nibiru: 'cataclysm_1',
   elsm: 'ely',
+  tac: 'tacchain_239_1',
 }
 
 async function filterForWorkingRPCs(rpc: string[], chain: string, chainId: number): Promise<string[]> {

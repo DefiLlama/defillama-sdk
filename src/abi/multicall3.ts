@@ -179,6 +179,7 @@ const DEPLOYMENT_BLOCK = {
   mint: 1,
   btnx: 1,
   vechain: 22103870,
+  tac: 1,
 } as {
   [key: string | Chain]: number
 }
