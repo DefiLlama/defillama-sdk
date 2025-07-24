@@ -228,7 +228,7 @@ export class Balances {
       balances = balances.getBalances()
     }
     Object.entries(balances).forEach(([token, balance]) => {
-      this._add(token, Number(balance) * -1, { skipChain: true, label: options.label })
+      this._add(token, Number(balance) * -1, { skipChain: true, label: options!.label })
     })
   }
 
