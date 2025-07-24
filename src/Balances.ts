@@ -213,25 +213,28 @@ export class Balances {
     return { usdTvl, usdTokenBalances, rawTokenBalances: balances }
   }
 
-  clone(ratio = 1) {
+  clone(ratio = 1, optionsOrLabel?: BalancesOptionsWithLabel, options?: BalancesOptions) {
+    options = getOptions({ optionsOrLabel, options })
     const newBalances = new Balances({ chain: this.chain, timestamp: this.timestamp })
-    newBalances.addBalances(this)
+    newBalances.addBalances(this, options)
     if (ratio !== 1) newBalances.resizeBy(ratio)
     return newBalances
   }
 
-  subtract(balances: BalancesV1 | Balances) {
+  subtract(balances: BalancesV1 | Balances, optionsOrLabel?: BalancesOptionsWithLabel, options?: BalancesOptions) {
+    options = getOptions({ optionsOrLabel, options })
     if (balances instanceof Balances) {
       if (balances === this) return;
       balances = balances.getBalances()
     }
     Object.entries(balances).forEach(([token, balance]) => {
-      this._add(token, Number(balance) * -1, { skipChain: true })
+      this._add(token, Number(balance) * -1, { skipChain: true, label: options.label })
     })
   }
 
-  subtractToken(token: string, balance: any, { skipChain = false } = {}) {
-    this._add(token, Number(balance) * -1, { skipChain })
+  subtractToken(token: string, balance: any, optionsOrLabel?: BalancesOptionsWithLabel, options?: BalancesOptions) {
+    options = getOptions({ optionsOrLabel, options })
+    this._add(token, Number(balance) * -1, options)
   }
 
   removeNegativeBalances() {
