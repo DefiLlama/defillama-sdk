@@ -180,6 +180,7 @@ const DEPLOYMENT_BLOCK = {
   btnx: 1,
   vechain: 22103870,
   tac: 1,
+  eventum: 1,
 } as {
   [key: string | Chain]: number
 }
@@ -282,6 +283,7 @@ export function getMulticallAddress(chain: Chain, block?: string | number) {
     case 'hedera': multicallAddress = '0x18fa376d92511dd04090566ab6144847c03557d8'; break;
     case 'xrplevm': multicallAddress = '0xaB3a12b26e72F4D6D9B579aCb5027a0918eF1114'; break;
     case 'vechain': multicallAddress = '0x8B2fF167683c5e1DFD6717d934B560F20cf9F2a3'; break;
+    case 'eventum': multicallAddress = '0xc7dEfc896E1Dd9D98AEa402d928C78c0FD1dc36C'; break;
   }
   return multicallAddress
 }
