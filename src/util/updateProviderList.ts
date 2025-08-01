@@ -112,6 +112,7 @@ function filterRPCs(rpc: string[]): string[] {
 
 const chainShortNameMapping = {
   real: 're-al',
+  karura: 'karura_evm',
   taiko: 'tko-mainnet',
   bsquared: 'b2-mainnet',
   ox_chain: 'ox-chain',
