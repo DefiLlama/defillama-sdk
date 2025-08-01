@@ -166,19 +166,48 @@ export function normalizeBalances(balances: { [address: string]: string }) {
   return balances;
 }
 
-export function tableToString(data: any, columns?: any, { title }: { title?: string } = {}) {
+export function tableToString(data: any, columns?: any, { title, columns: _columns }: { title?: string, columns?: string[] } = {}) {
+  // If only two arguments are passed and the second is not an array, treat it as options
+  if (arguments.length === 2 && !Array.isArray(columns) && typeof columns === 'object') {
+    ({ title, columns: _columns } = columns ?? {});
+    columns = undefined;
+  }
+
+  if (_columns && Array.isArray(_columns))
+    columns = _columns;
+
   let tableString = '';
+  if (!Array.isArray(data) && typeof data === 'object') {
+    data = Object.entries(data).map(([key, value]: any) => {
+      const row: any = { key };
+      if (typeof value === 'object' && !Array.isArray(value)) {
+        Object.entries(value).forEach(([subKey, subValue]) => {
+          row[subKey] = subValue;
+        });
+      } else {
+        row.value = value;
+      }
+      return row;
+    });
+
+  }
   if (!data || !Array.isArray(data) || data.length === 0) {
     return '';
   }
   data = [...data]; // Ensure we don't modify the original data
   if (!columns || !Array.isArray(columns) || columns.length === 0) {
-    columns = Object.keys(data[0] || {});
+    const columnsSet = new Set();
+    data.forEach((row: any) => {
+      Object.keys(row).forEach((col: any) => {
+        columnsSet.add(col);
+      });
+    });
+    columns = Array.from(columnsSet);
   }
 
   if (title)
     tableString += `# ${title}\n\n`;
-  
+
   // Add the header row
   const headerObject: any = {}
   const headerObject1: any = {}

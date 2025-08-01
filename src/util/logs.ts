@@ -182,7 +182,7 @@ export async function getLogs(
 
   /* ---------------------------- Return result ----------------------------- */
 
-const out: any[] = [];
+let out: any[] = [];
 for (const c of caches) {
   const { fromBlock: cStart, toBlock: cEnd } = c.metadata;
   if (fromBlock! > cEnd || toBlock! < cStart) continue;
@@ -193,7 +193,7 @@ for (const c of caches) {
 
   if (processor) await processor(filtered);
   // Always include filtered logs in the return value, even when a processor is provided
-  out.push(...filtered);
+  out = out.concat(filtered); // use concat instead of ... to avoid running into issues with large arrays (RangeError: Maximum call stack size exceeded)
 }
 
 return out;
