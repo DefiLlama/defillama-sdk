@@ -122,6 +122,7 @@ const chainShortNameMapping = {
   hyperliquid: 'hyper_evm',
   hydradx: 'hdx',
   nibiru: 'cataclysm_1',
+  fraxtal: 'frax',
   elsm: 'ely',
   tac: 'tacchain',
 }
