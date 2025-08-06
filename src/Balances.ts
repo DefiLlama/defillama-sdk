@@ -182,9 +182,23 @@ export class Balances {
     return Number(await this.getUSDValue()).toFixed(0)
   }
 
-  async getUSDJSONs() {
+  async getUSDJSONs(): Promise<{
+    usdTvl: number;
+    usdTokenBalances: BalancesV1;
+    rawTokenBalances: BalancesV1;
+    labelBreakdown?: { [key: string]: number };
+  }> {
     const { usdTvl, usdTokenBalances } = await computeTVL(this.getBalances(), this.timestamp)
-    return { usdTvl, usdTokenBalances, rawTokenBalances: this.getBalances() }
+    const response = { usdTvl, usdTokenBalances, rawTokenBalances: this.getBalances(), labelBreakdown: {} }
+
+    if (!this.hasBreakdownBalances()) return response
+
+    for (const [label, breakdown] of Object.entries(this.getBreakdownBalances())) {
+      const breakdownUSD = await breakdown.getUSDValue();
+      (response as any).labelBreakdown[label] = breakdownUSD
+    }
+
+    return response
   }
 
   resizeBy(ratio: number) {
