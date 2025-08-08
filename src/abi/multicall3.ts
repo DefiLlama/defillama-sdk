@@ -255,35 +255,34 @@ export function isMulticallV3Supported(chain: Chain, block?: string | number) {
 
 export function getMulticallAddress(chain: Chain, block?: string | number) {
   if (!isMulticallV3Supported(chain, block)) return null
-  let multicallAddress = MULTICALL_V3_ADDRESS
-  switch (chain) {
-    case 'onus': multicallAddress = '0x748c384f759cc596f0d9fa96dcabe8a11e443b30'; break;
-    case 'era': multicallAddress = '0xF9cda624FBC7e059355ce98a31693d299FACd963'; break;
-    case 'tron': multicallAddress = 'TEazPvZwDjDtFeJupyo7QunvnrnUjPH8ED'; break;
-    case 'op_bnb': multicallAddress = '0x5eF9501fE659b97C45f3A7efD298c14405b454D1'; break;
-    case 'beam': multicallAddress = '0x4956f15efdc3dc16645e90cc356eafa65ffc65ec'; break;
-    case 'nos': multicallAddress = '0x337F5fBB75007e59cC4A6132017Bd96748b09F7F'; break;
-    case 'chz': multicallAddress = '0x0E6a1Df694c4be9BFFC4D76f2B936bB1A1df7fAC'; break;
-    case 'lightlink_phoenix': multicallAddress = '0xb9a543d7B7dF05C8845AeA6627dE4a6622Ac863C'; break;
-    case 'eon': multicallAddress = '0x4ea6779581bDAcd376724A52070bE89FfB74eC39'; break;
-    case 'svm': multicallAddress = '0x40a3a97ac5d9acadF9F96cB8283a912dDFd05dc8'; break;
-    case 'degen': multicallAddress = '0xFBF562a98aB8584178efDcFd09755FF9A1e7E3a2'; break;
-    case 'karak': multicallAddress = '0x73331e33f1552E706D56aa453ce19BCE314B4F59'; break;
-    case 'taiko': multicallAddress = '0xcb2436774C3e191c85056d248EF4260ce5f27A9D'; break;
-    case 'qom': multicallAddress = '0x7A52370716ea730585884F5BDB0f6E60C39b8C64'; break;
-    case 'matchain': multicallAddress = '0xDa91510Bd8c50bfa54FC2BE2dD6dAbE03eA8496c'; break;
-    case 'morph': multicallAddress = '0x33A213b1049D5AD2eeE6e61dAe040955e60383D4'; break;
-    case 'ace': multicallAddress = '0x025A2B4fCE1E0bD736D5cebe6C8a52229795376B'; break;
-    case 'sophon': multicallAddress = '0x5f4867441d2416cA88B1b3fd38f21811680CD2C8'; break;
-    case 'vana': multicallAddress = '0xFe92b91F3326e58557478c28EeAe1936E0c7148a'; break;
-    case 'odyssey': multicallAddress = '0xD5F04861e1249F488ef8898607cF7ad0F334d823'; break;
-    case 'abstract': multicallAddress = '0xaa4de41dba0ca5dcbb288b7cc6b708f3aac759e7'; break;
-    case 'zero_network': multicallAddress = '0x0307F341a18f1FC1f63a7Ceeac970245A08C5a80'; break;
-    case 'saga': multicallAddress = '0x864DDc9B50B9A0dF676d826c9B9EDe9F8913a160'; break;
-    case 'hedera': multicallAddress = '0x18fa376d92511dd04090566ab6144847c03557d8'; break;
-    case 'xrplevm': multicallAddress = '0xaB3a12b26e72F4D6D9B579aCb5027a0918eF1114'; break;
-    case 'vechain': multicallAddress = '0x8B2fF167683c5e1DFD6717d934B560F20cf9F2a3'; break;
-    case 'eventum': multicallAddress = '0xc7dEfc896E1Dd9D98AEa402d928C78c0FD1dc36C'; break;
-  }
-  return multicallAddress
+  return CUSTOM_MULTICALL_ADDRESSES[chain] ?? MULTICALL_V3_ADDRESS
+}
+
+const CUSTOM_MULTICALL_ADDRESSES: { [key: string]: string } = {
+  'onus': '0x748c384f759cc596f0d9fa96dcabe8a11e443b30',
+  'era': '0xF9cda624FBC7e059355ce98a31693d299FACd963',
+  'tron': 'TEazPvZwDjDtFeJupyo7QunvnrnUjPH8ED',
+  'op_bnb': '0x5eF9501fE659b97C45f3A7efD298c14405b454D1',
+  'beam': '0x4956f15efdc3dc16645e90cc356eafa65ffc65ec',
+  'nos': '0x337F5fBB75007e59cC4A6132017Bd96748b09F7F',
+  'chz': '0x0E6a1Df694c4be9BFFC4D76f2B936bB1A1df7fAC',
+  'lightlink_phoenix': '0xb9a543d7B7dF05C8845AeA6627dE4a6622Ac863C',
+  'eon': '0x4ea6779581bDAcd376724A52070bE89FfB74eC39',
+  'svm': '0x40a3a97ac5d9acadF9F96cB8283a912dDFd05dc8',
+  'degen': '0xFBF562a98aB8584178efDcFd09755FF9A1e7E3a2',
+  'karak': '0x73331e33f1552E706D56aa453ce19BCE314B4F59',
+  'taiko': '0xcb2436774C3e191c85056d248EF4260ce5f27A9D',
+  'qom': '0x7A52370716ea730585884F5BDB0f6E60C39b8C64',
+  'matchain': '0xDa91510Bd8c50bfa54FC2BE2dD6dAbE03eA8496c',
+  'morph': '0x33A213b1049D5AD2eeE6e61dAe040955e60383D4',
+  'ace': '0x025A2B4fCE1E0bD736D5cebe6C8a52229795376B',
+  'sophon': '0x5f4867441d2416cA88B1b3fd38f21811680CD2C8',
+  'vana': '0xFe92b91F3326e58557478c28EeAe1936E0c7148a',
+  'odyssey': '0xD5F04861e1249F488ef8898607cF7ad0F334d823',
+  'zero_network': '0x0307F341a18f1FC1f63a7Ceeac970245A08C5a80',
+  'saga': '0x864DDc9B50B9A0dF676d826c9B9EDe9F8913a160',
+  'hedera': '0x18fa376d92511dd04090566ab6144847c03557d8',
+  'xrplevm': '0xaB3a12b26e72F4D6D9B579aCb5027a0918eF1114',
+  'vechain': '0x8B2fF167683c5e1DFD6717d934B560F20cf9F2a3',
+  'eventum': '0xc7dEfc896E1Dd9D98AEa402d928C78c0FD1dc36C',
 }
