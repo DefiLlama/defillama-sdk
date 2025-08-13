@@ -91,6 +91,7 @@ interface WriteCacheOptions {
   skipR2CacheWrite?: boolean,
   alreadyCompressed?: boolean
   skipCompression?: boolean // if true, data will not be compressed before writing to cache, more suited for local cache, it is faster but takes more space
+  splitCache?: boolean
 }
 
 interface ReadCacheOptions {
@@ -103,6 +104,8 @@ interface ReadCacheOptions {
 export async function writeCache(file: string, data: any, options: WriteCacheOptions = {}): Promise<string | undefined> {
 
   try {
+    if (options.splitCache) return await splitUniV4Cache(file, data, options)
+
     const fileData = options.alreadyCompressed ? data : await compressCache(data, options)
 
     if (!data || (typeof data === 'string' && data.length < 20) || fileData.length < 20) {
@@ -125,6 +128,20 @@ export async function writeCache(file: string, data: any, options: WriteCacheOpt
   } catch (error) {
     debugLog('Error writing cache:', error)
   }
+
+  async function splitUniV4Cache(file: string, data: any, options: WriteCacheOptions): Promise<string | undefined> {
+    const { fromBlock, toBlock, logs } = data
+    const half = Math.ceil(logs.length / 2);    
+    const logs0 = logs.slice(0,half);
+    const logs1 = logs.slice(half, logs.length)
+    const filewoJson = file.split('.')[0]
+    await Promise.all([ 
+        writeCache(`${filewoJson}-0.json`, { fromBlock, toBlock, logs: logs0 }, { ...options, skipCompression: true, alreadyCompressed: true }),
+        writeCache(`${filewoJson}-1.json`, { fromBlock, toBlock, logs: logs1 }, { ...options, skipCompression: true, alreadyCompressed: true }),
+    ])
+
+    return
+}
 }
 
 export async function parseCache(dataString: string | Buffer, options: ReadCacheOptions = {}) {
