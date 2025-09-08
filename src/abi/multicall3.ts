@@ -181,6 +181,9 @@ const DEPLOYMENT_BLOCK = {
   vechain: 22103870,
   tac: 1,
   eventum: 1,
+  somnia: 1,
+  camp: 1,
+  bitci: 1,
 } as {
   [key: string | Chain]: number
 }
@@ -285,4 +288,6 @@ const CUSTOM_MULTICALL_ADDRESSES: { [key: string]: string } = {
   'xrplevm': '0xaB3a12b26e72F4D6D9B579aCb5027a0918eF1114',
   'vechain': '0x8B2fF167683c5e1DFD6717d934B560F20cf9F2a3',
   'eventum': '0xc7dEfc896E1Dd9D98AEa402d928C78c0FD1dc36C',
+  'somnia': '0x5e44F178E8cF9B2F5409B6f18ce936aB817C5a11',
+  'bitci': '0x777238B119cD07e6849b0817f284532DC0F9F8D9',
 }
