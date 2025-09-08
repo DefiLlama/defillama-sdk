@@ -125,7 +125,9 @@ export class LlamaProvider extends FallbackProvider {
     } else
       runners = runners.slice(1).sort(() => Math.random() - 0.5) // randomize order of runners
     const isArchivalRequest = ['call', 'getBalance'].includes(method) && params[1] !== 'latest'
-    let noPlayingAround = getEnvValue('RPC_NO_PLAYING_AROUND') === 'true' || primaryRunner.url.includes('llama.fi') || method === 'getLogs' || isArchivalRequest
+    // check if domain name of primaryRunner.url is llama
+    const isLlamaRPC = primaryRunner.url.includes('llama')
+    let noPlayingAround = getEnvValue('RPC_NO_PLAYING_AROUND') === 'true' || isLlamaRPC || method === 'getLogs' || isArchivalRequest
 
     if (noPlayingAround) {
       // if primary runner is llama.fi or alchemy, then try it first
