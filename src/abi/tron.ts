@@ -109,7 +109,10 @@ export async function getBalance(params: {
   decimals?: number;
 }) {
   const data = await limitRPCCalls(() => post({ address: params.target, visible: true, }, '/wallet/getaccount'))
-  const balance = ((data.balance ?? 0) + (data.frozen?.reduce((t: any, { frozen_balance }: any) => t + frozen_balance, 0) ?? 0)).toString()
+  const frozenBalance = data.frozen?.reduce((t: any, { frozen_balance }: any) => t + frozen_balance, 0) ?? 0
+  const frozenBalanceV2 = data.frozenV2?.reduce((t: any, { amount = 0 }: any) => t + amount, 0) ?? 0
+  const freeBalance = data.balance ?? 0
+  const balance = (freeBalance + frozenBalance + frozenBalanceV2).toString()
 
   return {
     output: handleDecimals(balance, params.decimals),
