@@ -1,6 +1,9 @@
 import { Address, LogArray } from "../types";
 import { Chain, ETHER_ADDRESS, getProvider, handleDecimals } from "../general";
 import * as Tron from "../abi/tron";
+import { getMulticallAddress, } from "../abi/multicall3";
+import { multiCall } from "../abi/abi2";
+import { debugLog } from "../util/debugLog";
 
 export async function getBalance(params: {
   target: Address;
@@ -36,17 +39,41 @@ export async function getBalances(params: {
   decimals?: number;
   chain?: Chain;
   logArray?: LogArray;
+  skipMultiCall?: boolean
 }) {
   if (params.chain === 'tron') return Tron.getBalances(params)
-  const balances = params.targets.map(async (target) => ({
-    target,
-    balance: handleDecimals(
-      await getProvider(params.chain).getBalance(target, params.block),
-      params.decimals
-    ),
-  }));
+  let output: any
 
-  const output = await Promise.all(balances)
+  try {
+    const multicallContract = getMulticallAddress(params.chain ?? "ethereum", params.block)
+    if (!params.skipMultiCall && multicallContract) {
+      const multicallResults = await multiCall({
+        calls: params.targets as any[],
+        target: multicallContract as string,
+        abi: 'function getEthBalance(address addr) view returns (uint256)',
+        chain: params.chain,
+        block: params.block,
+      })
+      output = multicallResults.map((value: any, i: any) => ({
+        target: params.targets[i],
+        balance: handleDecimals(value, params.decimals)
+      }));
+    }
+  } catch (e) {
+    debugLog('Multicall failed, falling back to single calls for fetching eth balances', e)
+  }
+
+  if (!output) {
+    const balances = params.targets.map(async (target) => ({
+      target,
+      balance: handleDecimals(
+        await getProvider(params.chain).getBalance(target, params.block),
+        params.decimals
+      ),
+    }));
+
+    output = await Promise.all(balances)
+  }
 
   if (params.logArray)
     params.logArray.push(
