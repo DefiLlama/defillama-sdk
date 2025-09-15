@@ -19,7 +19,7 @@ async function getChainData() {
     const { data: chainData } = await axios('https://chainlist.org/rpcs.json')
     // fix for zksync era name clash
     const eteriaListing = chainData.find((i: any) => i.chainId === 140)
-    if (eteriaListing) eteriaListing.shorName = 'eteria'
+    if (eteriaListing) eteriaListing.shortName = 'eteria'
 
     return chainData
   } catch (e) {
