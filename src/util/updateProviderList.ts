@@ -17,6 +17,10 @@ const providerList = _providerList as {
 async function getChainData() {
   try {
     const { data: chainData } = await axios('https://chainlist.org/rpcs.json')
+    // fix for zksync era name clash
+    const eteriaListing = chainData.find((i: any) => i.chainId === 140)
+    if (eteriaListing) eteriaListing.shorName = 'eteria'
+
     return chainData
   } catch (e) {
     console.log('Failed to fetch chainlist.org, falling back to local copy')
