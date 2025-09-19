@@ -184,6 +184,8 @@ const DEPLOYMENT_BLOCK = {
   somnia: 1,
   camp: 1,
   bitci: 1,
+  plasma: 1,
+  eteria: 918,
 } as {
   [key: string | Chain]: number
 }
@@ -290,4 +292,5 @@ const CUSTOM_MULTICALL_ADDRESSES: { [key: string]: string } = {
   'eventum': '0xc7dEfc896E1Dd9D98AEa402d928C78c0FD1dc36C',
   'somnia': '0x5e44F178E8cF9B2F5409B6f18ce936aB817C5a11',
   'bitci': '0x777238B119cD07e6849b0817f284532DC0F9F8D9',
+  'eteria': '0x8cC688B1F99b651ee00bB0Cb0aae61F416F8384b',
 }
