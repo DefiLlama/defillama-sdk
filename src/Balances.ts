@@ -281,7 +281,11 @@ export class Balances {
   }
 
   hasBreakdownBalances() {
-    return Object.keys(this._breakdownBalances).length > 0;
+    return Object.keys(this._breakdownBalances).length > 0 && Object.values(this._breakdownBalances).some(b => !b.isEmpty())
+  }
+
+  isEmpty() {
+    return Object.keys(this._balances).length === 0
   }
 
   getBreakdownBalances() {

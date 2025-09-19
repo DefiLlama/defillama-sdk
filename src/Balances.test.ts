@@ -267,3 +267,10 @@ test("Balances - hasBreakdownBalances and getBreakdownBalances", async () => {
   const breakdown = balances.getBreakdownBalances()
   expect(Object.keys(breakdown)).toContain('stablecoins')
 })
+
+test("Balances - isEmpty", async () => {
+  const balances = new Balances({ chain: 'bsc' })
+  expect(balances.isEmpty()).toBe(true)
+  balances.add('tether', 100, 'stablecoins')
+  expect(balances.isEmpty()).toBe(false)
+})
