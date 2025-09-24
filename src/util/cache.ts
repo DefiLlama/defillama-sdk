@@ -231,7 +231,7 @@ export async function deleteCache(file: string) {
 }
 
 export async function readExpiringJsonCache(file: string): Promise<any> {
-  const options: ReadCacheOptions = { readFromR2Cache: false, skipR2Cache: true }
+  const options: ReadCacheOptions = { readFromR2Cache: false, skipR2Cache: true, skipCompression: true }
   file = 'expiring/' + file
   const data = await readCache(file, options)
   if (!data || Object.keys(data).length === 0) return null
