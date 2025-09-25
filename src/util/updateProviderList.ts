@@ -93,6 +93,8 @@ async function main() {
     throw new Error(`Following chains used to be included but is not anymore, can the devs fix please?\n${droppedChains.join('\n')}`)
   }
 
+  delete providerList.bitcoin // what were they smoking?
+
   fs.writeFileSync(__dirname + '/../providers.json', JSON.stringify(providerList));
 }
 
