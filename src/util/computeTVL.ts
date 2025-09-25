@@ -19,8 +19,15 @@ let lastPriceUpdate = 0;
 const confidenceThreshold = 0.5
 const priceUpdateTime = 1000 * 60 * 30 // 30 minutes
 
-export default async function computeTVL(balances: Balances, timestamp?: number) {
+export default async function computeTVL(balances: Balances, timestamp?: number, {
+  debug = false
+}: {
+  debug?: boolean
+} = {}) {
   const usdTokenBalances: Balances = {}
+  const debugData = {
+    tokenData: [] as { balance: string | number, price: number, decimals: number, value: number, confidence: number, token: string, symbol: string }[]
+  }
 
   let usdTvl = 0;
   const keys = Object.keys(balances)
@@ -39,8 +46,10 @@ export default async function computeTVL(balances: Balances, timestamp?: number)
     usdTvl += value
     if (symbol === 'ETH') symbol = 'WETH'
     sumSingleBalance(usdTokenBalances, symbol, value)
+    if (debug && !isNaN(+value)) debugData.tokenData.push({ symbol, value, token, price, confidence,  balance, decimals, })
   })
-  return { usdTvl, usdTokenBalances }
+
+  return { usdTvl, usdTokenBalances, debugData, }
 }
 
 function tokenToKey(token: string) {

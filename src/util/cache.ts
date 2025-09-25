@@ -14,7 +14,7 @@ function zipAsync(data: string) {
 }
 
 function unzipAsync(data: Buffer) {
-  return promisify(brotliDecompress)(data, brotliOptions).then(r => r.toString())
+  return promisify(brotliDecompress)(data as any, brotliOptions).then(r => r.toString())
 }
 
 const _fs = require('fs');

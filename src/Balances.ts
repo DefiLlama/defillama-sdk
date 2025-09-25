@@ -1,8 +1,9 @@
 import { Balances as BalancesV1 } from "./types";
 import { Chain, } from "./general";
 
-import { sumSingleBalance, } from "./generalUtil";
+import { sumSingleBalance, tableToString, } from "./generalUtil";
 import computeTVL from "./util/computeTVL";
+import { humanizeNumber } from "./computeTVL/humanizeNumber";
 
 const nullAddress = '0x0000000000000000000000000000000000000000'
 
@@ -182,14 +183,49 @@ export class Balances {
     return Number(await this.getUSDValue()).toFixed(0)
   }
 
-  async getUSDJSONs(): Promise<{
+  async getUSDJSONs({ debug = false, debugOptions: {
+    printTokenTable = true,
+    minTokenUSDValue
+  } = {} }: {
+    debug?: boolean, debugOptions?: {
+      printTokenTable?: boolean
+      minTokenUSDValue?: number
+    }
+  } = {}): Promise<{
     usdTvl: number;
     usdTokenBalances: BalancesV1;
     rawTokenBalances: BalancesV1;
     labelBreakdown?: { [key: string]: number };
+    debugData?: { tokenData: { balance: string | number, price: number, decimals: number, value: number, confidence: number, token: string, symbol: string }[] }
   }> {
-    const { usdTvl, usdTokenBalances } = await computeTVL(this.getBalances(), this.timestamp)
+    const { usdTvl, usdTokenBalances, debugData } = await computeTVL(this.getBalances(), this.timestamp, { debug })
     const response = { usdTvl, usdTokenBalances, rawTokenBalances: this.getBalances(), labelBreakdown: {} }
+
+    if (debug) {
+      (response as any).debugData = debugData
+      if (!minTokenUSDValue && minTokenUSDValue !== 0) {
+        minTokenUSDValue = usdTvl / 100 // default to 1% of total TVL
+      }
+      let tokenData = (debugData as any).tokenData
+
+      // filter out tokens with value less than minTokenUSDValue
+      if (minTokenUSDValue) tokenData = tokenData.filter((i: any) => +i.value >= minTokenUSDValue!)
+
+      tokenData.sort((a: any, b: any) => b.value - a.value)  // sort descending by value
+
+      if (printTokenTable) {
+        const dataClone = tokenData.map((i: any) => ({ ...i, value: humanizeNumber(i.value), }))
+        console.log(tableToString(dataClone))
+      }
+
+
+      // add a humanized value field so it's easier to read big numbers
+      tokenData.forEach((i: any) => {
+        i.valueHN = humanizeNumber(i.value)  
+      })
+
+      debugData.tokenData = tokenData
+    }
 
     if (!this.hasBreakdownBalances()) return response
 

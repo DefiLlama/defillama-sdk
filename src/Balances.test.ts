@@ -274,3 +274,11 @@ test("Balances - isEmpty", async () => {
   balances.add('tether', 100, 'stablecoins')
   expect(balances.isEmpty()).toBe(false)
 })
+
+test("Balances - debug", async () => {
+  const balances = new Balances({ chain: 'bsc' })
+  balances.addCGToken('tether', 1e6)
+  balances.addCGToken('ethereum', 0.01)
+  const { debugData: { tokenData } }: any = await balances.getUSDJSONs({ debug: true, debugOptions: { printTokenTable: false } })
+  expect(tokenData.length).toBe(1)  // it should skip ethereum as it's less than 1% of total (10,000 USDT)
+})
