@@ -237,6 +237,10 @@ export class Balances {
     return response
   }
 
+  async debug({ printTokenTable = true, minTokenUSDValue }: { printTokenTable?: boolean, minTokenUSDValue?: number } = {}) {
+    return this.getUSDJSONs({ debug: true, debugOptions: { printTokenTable, minTokenUSDValue } })
+  }
+
   resizeBy(ratio: number) {
     Object.keys(this._balances).forEach((token) => {
       this._balances[token] = Number(this._balances[token]) * ratio
