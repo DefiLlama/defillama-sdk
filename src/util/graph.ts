@@ -43,8 +43,8 @@ export function modifyEndpoint(endpoint: string, network = 'arbitrum') {
   if (!endpoint.includes('thegraph.com')) return endpoint
   else if (!graphKey) {
     graphKey = "5a1340b49fa9efe00" + "21452daa260564e"
-    if (!graphKeyWarned)
-      console.log("GRAPH_API_KEY env variable is not set, using the default api key")
+    // if (!graphKeyWarned)
+    //   console.log("GRAPH_API_KEY env variable is not set, using the default api key")
     graphKeyWarned = true
   }
 
