@@ -131,6 +131,7 @@ const chainShortNameMapping = {
   fraxtal: 'frax',
   elsm: 'ely',
   tac: 'tacchain',
+  xone: 'xoc',
 }
 
 async function filterForWorkingRPCs(rpc: string[], chain: string, chainId: number): Promise<string[]> {

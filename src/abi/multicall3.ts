@@ -177,7 +177,7 @@ const DEPLOYMENT_BLOCK = {
   xrplevm: 1,
   katana: 1,
   mint: 1,
-  btnx: 1,
+  btnx: 516999,
   vechain: 22103870,
   tac: 1,
   eventum: 1,
@@ -186,6 +186,12 @@ const DEPLOYMENT_BLOCK = {
   bitci: 1,
   plasma: 1,
   eteria: 918,
+  gatelayer: 1,
+  xone: 3752043,
+  mezo: 351760,
+  edu_chain: 16410660,
+  stratis: 1420372,
+  '0g': 6546802,
 } as {
   [key: string | Chain]: number
 }
@@ -293,4 +299,5 @@ const CUSTOM_MULTICALL_ADDRESSES: { [key: string]: string } = {
   'somnia': '0x5e44F178E8cF9B2F5409B6f18ce936aB817C5a11',
   'bitci': '0x777238B119cD07e6849b0817f284532DC0F9F8D9',
   'eteria': '0x8cC688B1F99b651ee00bB0Cb0aae61F416F8384b',
+  'xone': '0xe39d7BCDdaBBD0526D143185Fb7b459099Fd40c9',
 }
