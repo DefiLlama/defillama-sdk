@@ -7,7 +7,7 @@ import { getBlockNumber } from "./blocks";
 import { readCache, writeCache } from "./cache";
 import { DEBUG_LEVEL2, debugLog } from "./debugLog";
 import { getEnvValue } from "./env";
-import { getLogParams } from "./logs";
+import { getLogParams, getLogs as getLogsParent } from "./logs";
 import { GetTransactionOptions } from "./transactions";
 
 const indexerURL = getEnvValue("LLAMA_INDEXER_ENDPOINT");
@@ -327,9 +327,27 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
   const chainIndexStatus = await getChainIndexStatus("v2");
   const lastIndexedBlock = chainIndexStatus[chain]?.block ?? 0;
   if (lastIndexedBlock < toBlock) {
-    throw new Error(
-      `Indexer not up to date for ${chain}. Last indexed block: ${lastIndexedBlock}, requested block: ${toBlock}`
-    );
+
+    const percentageMissing = ((toBlock - lastIndexedBlock) / (toBlock - fromBlock)) * 100
+
+
+
+    if (percentageMissing > 50)  // more than 50% of the requested range is missing, throw an error and so we pull the logs through rpc calls
+      throw new Error(
+        `Indexer not up to date for ${chain}. Last indexed block: ${lastIndexedBlock}, requested block: ${toBlock}`
+      );
+
+    debugLog(`Indexer only partially up to date for ${chain}. Last indexed block: ${lastIndexedBlock}, requested block: ${toBlock}, missing ${percentageMissing}%. Pulling part of the logs through RPC calls.`);
+
+    // now we split the request into two parts, one that goes to the indexer and one that goes through rpc calls
+
+    const breakBlock = lastIndexedBlock - 50 // we add a small buffer to avoid missing logs due to reorgs
+
+    const indexerLogs = await getLogs({ ...options, fromBlock, toBlock: breakBlock })
+    const rpcLogs = await getLogsParent({ ...options, fromBlock: breakBlock + 1, toBlock, skipIndexer: true })
+
+
+    return indexerLogs.concat(rpcLogs)
   }
 
   // Re‑curse if the requested range is too large ------------------------------------------------
@@ -412,7 +430,7 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
       });
 
       // we need to the { raw, transformed } structure to allow for post‑processing like clustering based on `source` field
-      const transformed = filtered.map((log: any) => ({ raw: log, transformed: transformLog(log)}));
+      const transformed = filtered.map((log: any) => ({ raw: log, transformed: transformLog(log) }));
 
       if (processor) await processor(transformed.map((i: any) => i.transformed));
 
@@ -438,7 +456,7 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
     const indexMap: Record<string, number> = {};
     targets.forEach((t, i) => (indexMap[t.toLowerCase()] = i));
 
-    allLogs.forEach(({ raw, transformed}) => {
+    allLogs.forEach(({ raw, transformed }) => {
       const idx = indexMap[raw.source.toLowerCase()];
       if (idx === undefined) return; // ignore unknown sources
       mapped[idx].push(transformed);
@@ -628,7 +646,7 @@ export async function getTransactions({
 
   const params: any = { chainId };
   if (addresses) {
-    params.addresses = Array.isArray(addresses) 
+    params.addresses = Array.isArray(addresses)
       ? addresses.map((a: string) => a.toLowerCase()).join(",")
       : (addresses as string).toLowerCase();
   }

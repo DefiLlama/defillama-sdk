@@ -191,7 +191,7 @@ test("Indexer - getTransactions", async () => {
   expect(tx.type).toBe(2)
   expect(tx.maxFeePerGas).toBe('24000000000')
   expect(tx.maxPriorityFeePerGas).toBe('2000000000')
-  expect(tx.baseFeePerGas).toBe(0)
+  expect(tx.baseFeePerGas).toBe('0')
   expect(tx.effectiveGasPrice).toBe('17883340967')
   expect(tx.gasUsed).toBe(21000)
   expect(tx.cumulativeGasUsed).toBe(6678791)
