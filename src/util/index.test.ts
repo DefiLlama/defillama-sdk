@@ -171,6 +171,7 @@ test("getLogs supports it's old API", async () => {
   ).output.slice(0, 2)
   logs.forEach((log: any) => {
     log.address = log.address.toLowerCase()
+    delete log.blockTimestamp
     // delete log.index
     // delete log.logIndex
   })
