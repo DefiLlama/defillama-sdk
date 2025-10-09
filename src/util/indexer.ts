@@ -337,7 +337,7 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
         `Indexer not up to date for ${chain}. Last indexed block: ${lastIndexedBlock}, requested block: ${toBlock}`
       );
 
-    debugLog(`Indexer only partially up to date for ${chain}. Last indexed block: ${lastIndexedBlock}, requested block: ${toBlock}, missing ${percentageMissing}%. Pulling part of the logs through RPC calls.`);
+    debugLog(`Indexer only partially up to date for ${chain}. Last indexed block: ${lastIndexedBlock}, requested block: ${toBlock}, missing ${Number(percentageMissing).toFixed(2)}%. Pulling part of the logs through RPC calls.`);
 
     // now we split the request into two parts, one that goes to the indexer and one that goes through rpc calls
 
