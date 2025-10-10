@@ -223,7 +223,8 @@ export async function multiCall(params: MulticallOptions): Promise<any> {
   const results = await runInPromisePool({
     items: sliceIntoChunks(contractCalls, chunkSize),
     concurrency: 10,
-    processor: (calls: any) => makeMultiCall(abi, calls, chain as Chain, params.block)
+    processor: (calls: any) => makeMultiCall(abi, calls, chain as Chain, params.block),
+    permitFailure: params.permitFailure,
   })
 
   const flatResults = [].concat.apply([], results) as any[]

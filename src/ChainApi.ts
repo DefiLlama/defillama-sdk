@@ -7,7 +7,7 @@ import { Balances as BalancesV1, Block, ByteCodeCallOptions, CallOptions, FetchL
 
 import { Provider } from "ethers";
 import { getMulticallAddress } from "./abi/multicall3";
-import { getBalances } from "./eth";
+import { getBalance, getBalances } from "./eth";
 import { getUniqueAddresses, } from "./generalUtil";
 import { debugLog, debugTable, } from "./util/debugLog";
 import getLogs, { GetLogsOptions } from "./util/logs";
@@ -15,6 +15,24 @@ import { GetTransactionOptions, getTransactions } from "./util/transactions";
 
 type Erc4626SumOptions = { calls: string[], tokenAbi?: string, balanceAbi?: string, balanceCalls?: any[], permitFailure?: boolean, isOG4626?: boolean }
 
+type GetTokenBalancesOptions = {
+  token?: string,
+  tokens?: string[],
+  owner?: string,
+  owners?: string[],
+  tokensAndOwners?: [string, string][],
+  tokensAndOwners2?: [string[], string[]],
+  ownerTokens?: [string[], string][],
+  blacklistedTokens?: string[],
+  blacklistedOwners?: string[],
+  skipDuplicates?: boolean,
+  permitFailure?: boolean,
+  withTokenData?: boolean,
+}
+
+type SumTokensOptions = GetTokenBalancesOptions & {
+  balancesV2Options?: BalancesV2Options,
+}
 
 const callStatsByProject: Record<string, DebugStats> = {}
 
@@ -208,76 +226,111 @@ export class ChainApi {
     return this.getBalances()
   }
 
-  async sumTokens({
+  async getTokenBalances({
     token,
     tokens = [],
     owners = [],
     owner,
     tokensAndOwners = [],
-    tokensAndOwners2 = [],
+    tokensAndOwners2 = [] as any,
     blacklistedTokens = [],
     blacklistedOwners = [],
     ownerTokens = [],
-    balancesV2Options = {},
-  }: {
-    token?: string,
-    tokens?: string[],
-    owner?: string,
-    owners?: string[],
-    tokensAndOwners?: string[][],
-    tokensAndOwners2?: string[][],
-    ownerTokens?: any[],
-    blacklistedTokens?: string[],
-    blacklistedOwners?: string[],
-    balancesV2Options?: BalancesV2Options,
-  }): Promise<BalancesV1> {
+    skipDuplicates = false,
+    permitFailure = false,
+    withTokenData = false,
+  }: GetTokenBalancesOptions) {
 
     if (tokensAndOwners2.length)
-      tokensAndOwners.push(...tokensAndOwners2[0].map((i: string, j: number) => [i, tokensAndOwners2[1][j]]))
+      tokensAndOwners.push(...tokensAndOwners2[0].map((i: string, j: number) => [i, tokensAndOwners2[1][j]]) as any)
 
     if (token) tokens.push(token)
 
     if (tokens.length) {
       if (owner) owners.push(owner)
-      tokensAndOwners.push(...tokens.map(i => owners.map(j => [i, j])).flat())
+      tokensAndOwners.push(...tokens.map(i => owners.map(j => [i, j])).flat() as any)
     }
 
     for (const [tokens, owner] of ownerTokens)
       tokens.forEach((i: any) => tokensAndOwners.push([i, owner]))
 
-    tokensAndOwners = getUniqueTokensAndOwners(tokensAndOwners, this.chain as string)
+    if (skipDuplicates)
+      tokensAndOwners = getUniqueTokensAndOwners(tokensAndOwners, this.chain as string) as any
     blacklistedOwners = getUniqueAddresses(blacklistedOwners)
     blacklistedTokens = getUniqueAddresses(blacklistedTokens)
 
     tokensAndOwners = tokensAndOwners.filter(i => !blacklistedTokens.includes(i[0]) && !blacklistedOwners.includes(i[1]))
-    const ethBalOwners = tokensAndOwners.filter(i => i[0] === nullAddress).map(i => i[1])
-    tokensAndOwners = tokensAndOwners.filter(i => i[0] !== nullAddress)
 
-    this.addStat('sumTokens', tokensAndOwners.length + ethBalOwners.length, true)
+
+    const tokenBalances = [] as [token: string, balance: string][]
+    const erc20TokensResponseIndex = [] as number[]
+    const ethBalanceResponseIndex = [] as number[]
+    const erc20TokensAndOwners = [] as any
+    const ethBalOwners = [] as string[]
+
+    tokensAndOwners.forEach((i, j) => {
+      if (i[0] !== nullAddress) {
+        erc20TokensAndOwners.push(i)
+        erc20TokensResponseIndex.push(j)
+      } else {
+        ethBalOwners.push(i[1])
+        ethBalanceResponseIndex.push(j)
+      }
+    })
+
+    this.addStat('sumTokens', erc20TokensAndOwners.length + ethBalOwners.length, true)
 
     const bals = await this.multiCall({
-      calls: tokensAndOwners.map(i => ({ target: i[0], params: [i[1]] })),
+      calls: erc20TokensAndOwners.map(([token, owner]: any) => ({ target: token, params: [owner] })),
       abi: 'erc20:balanceOf',
+      permitFailure,
     })
-    this.addTokens(tokensAndOwners.map(i => i[0]), bals, balancesV2Options)
+    bals.forEach((i: any, j: number) => {
+      if (!i) i = '0'
+      const token = erc20TokensAndOwners[j][0]
+      const responseIndex = erc20TokensResponseIndex[j]
+      tokenBalances[responseIndex] = [token, i]
+    })
 
     if (ethBalOwners.length) {
-      let ethBals: string[] = []
-      const multicallAddress = getMulticallAddress(this.chain as string, this.block)
-      if (multicallAddress) {
-        ethBals = await this.multiCall({
-          calls: ethBalOwners,
-          target: multicallAddress,
-          abi: 'function getEthBalance(address) view returns (uint256)',
-        })
-      } else {
-        const res = await getBalances({ chain: this.chain as string, targets: ethBalOwners, block: this.block as number })
-        ethBals = res.output.map((i: any) => i.balance)
-      }
-      ethBals.map(i => this.addToken(nullAddress, i, balancesV2Options))
+      let ethBals: string[] = (await getBalances({ chain: this.chain as string, targets: ethBalOwners, block: this.block as number, permitFailure })).output.map((i: any) => i.balance)
+
+      ethBals.map((i, idx) => tokenBalances[ethBalanceResponseIndex[idx]] = [nullAddress, i])
     }
 
+    if (!withTokenData) return tokenBalances.map(i => i[1])
+
+    return tokenBalances
+  }
+
+  async sumTokens({
+    balancesV2Options = {},
+    ...tokenBalanceOptions
+  }: SumTokensOptions): Promise<BalancesV1> {
+    const tokenBalances = await this.getTokenBalances({ ...tokenBalanceOptions, skipDuplicates: true, withTokenData: true })
+    tokenBalances.forEach(([token, balance]) => this.addToken(token, balance, balancesV2Options))
+
     return this.getBalances()
+  }
+
+  async getERC20TokenBalances(options: GetTokenBalancesOptions) {
+    return this.getTokenBalances(options)
+  }
+
+  async getGasTokenBalance(owner: string, options?: GetTokenBalancesOptions) {
+    return (await this.getGasTokenBalances({ ...options, owner,}))[0]
+  }
+
+  async getGasTokenBalances(options: GetTokenBalancesOptions) {
+    return this.getTokenBalances({ ...options, token: nullAddress })
+  }
+
+  async getEthBalance(owner: string, options?: GetTokenBalancesOptions) {
+    return this.getGasTokenBalance(owner, options ?? {})
+  }
+
+  async getEthBalances(options: GetTokenBalancesOptions) {
+    return this.getGasTokenBalances(options)
   }
 
   async getUSDValue() {
