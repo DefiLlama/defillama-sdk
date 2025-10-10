@@ -3,7 +3,7 @@ import * as humanizeNumber from "./computeTVL/humanizeNumber";
 import type { Balances, StringNumber, Address } from "./types";
 import * as ethers from 'ethers'
 export { sliceIntoChunks, normalizeAddress, getTimestamp, tableToString, } from "./util";
-
+export { runInPromisePool } from "./util/promisePool";
 // We ignore `sum` as it's never used (only in some SDK wrapper code)
 
 

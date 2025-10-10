@@ -4,6 +4,7 @@ import * as Tron from "../abi/tron";
 import { getMulticallAddress, } from "../abi/multicall3";
 import { multiCall } from "../abi/abi2";
 import { debugLog } from "../util/debugLog";
+import { runInPromisePool } from "../generalUtil";
 
 export async function getBalance(params: {
   target: Address;
@@ -40,6 +41,7 @@ export async function getBalances(params: {
   chain?: Chain;
   logArray?: LogArray;
   skipMultiCall?: boolean
+  permitFailure?: boolean
 }) {
   if (params.chain === 'tron') return Tron.getBalances(params)
   let output: any
@@ -53,10 +55,11 @@ export async function getBalances(params: {
         abi: 'function getEthBalance(address addr) view returns (uint256)',
         chain: params.chain,
         block: params.block,
+        permitFailure: params.permitFailure,
       })
       output = multicallResults.map((value: any, i: any) => ({
         target: params.targets[i],
-        balance: handleDecimals(value, params.decimals)
+        balance: handleDecimals(value ?? '0', params.decimals)
       }));
     }
   } catch (e) {
@@ -64,15 +67,25 @@ export async function getBalances(params: {
   }
 
   if (!output) {
-    const balances = params.targets.map(async (target) => ({
-      target,
-      balance: handleDecimals(
-        await getProvider(params.chain).getBalance(target, params.block),
-        params.decimals
-      ),
-    }));
+    output = await runInPromisePool({
+      items: params.targets,
+      concurrency: 7,
+      processor: async (target: string) => ({
+        target,
+        balance: handleDecimals(
+          await getProvider(params.chain).getBalance(target, params.block),
+          params.decimals
+        ),
+      }),
+      permitFailure: params.permitFailure
+    })
 
-    output = await Promise.all(balances)
+    // If some calls failed, fill their balance with 0
+    if (params.permitFailure)
+      output.forEach((o: any, idx: number) => {
+        if (!o?.balance) output[idx] = { target: params.targets[idx], balance: '0' }
+      })
+
   }
 
   if (params.logArray)

@@ -235,6 +235,7 @@ test("imports", async () => {
         "mergeBalances": [Function],
         "normalizeAddress": [Function],
         "removeTokenBalance": [Function],
+        "runInPromisePool": [Function],
         "sliceIntoChunks": [Function],
         "sumChainTvls": [Function],
         "sumMultiBalanceOf": [Function],
