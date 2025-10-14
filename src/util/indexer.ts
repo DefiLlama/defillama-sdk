@@ -6,7 +6,7 @@ import { Address } from "../types";
 import { getBlockNumber } from "./blocks";
 import { readCache, writeCache } from "./cache";
 import { DEBUG_LEVEL2, debugLog } from "./debugLog";
-import { getEnvValue } from "./env";
+import { getEnvValue, logGetLogsIndexer } from "./env";
 import { getLogParams, getLogs as getLogsParent } from "./logs";
 import { GetTransactionOptions } from "./transactions";
 
@@ -308,7 +308,7 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
     transformLog,
   } = await getLogParams(options, true);
 
-  if (!debugMode) debugMode = DEBUG_LEVEL2;
+  if (!debugMode) debugMode = DEBUG_LEVEL2 && logGetLogsIndexer
 
   const blockRange = toBlock - fromBlock;
   const effectiveMaxBlockRange = maxBlockRange ?? (noTarget ? 10_000 : Infinity);
@@ -489,7 +489,7 @@ export async function getTokenTransfers({
   token,
   tokens,
 }: IndexerGetTokenTransfersOptions) {
-  if (!debugMode) debugMode = DEBUG_LEVEL2;
+  if (!debugMode) debugMode = DEBUG_LEVEL2 && logGetLogsIndexer;
 
   checkIndexerConfig("v2");
   const chainId = getChainId(chain, "v2");
@@ -628,7 +628,7 @@ export async function getTransactions({
   debugMode = false,
   transactionType = "from",
 }: GetTransactionOptions) {
-  if (!debugMode) debugMode = DEBUG_LEVEL2;
+  if (!debugMode) debugMode = DEBUG_LEVEL2 && logGetLogsIndexer;
   checkIndexerConfig("v2");
   const chainId = getChainId(chain, "v2");
 

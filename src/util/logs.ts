@@ -11,6 +11,7 @@ import {
   isIndexerEnabled,
 } from "./indexer";
 import runInPromisePool from "./promisePool";
+import { logGetLogsDebug } from "./env";
 
 const currentVersion = "v3";
 
@@ -96,7 +97,7 @@ export async function getLogs(
     }
   }
 
-  if (!debugMode) debugMode = DEBUG_LEVEL2;
+  if (!debugMode) debugMode = DEBUG_LEVEL2 && logGetLogsDebug
 
   /* ----------------------- Split by maxBlockRange ------------------------- */
 

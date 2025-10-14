@@ -4,6 +4,11 @@ const whitelistedEnvConstants = [
   'ELASTICSEARCH_CONFIG', 'GRAPH_API_KEY', 'LLAMA_INDEXER_ENDPOINT', 'LLAMA_INDEXER_API_KEY', 'LLAMA_INDEXER_V2_ENDPOINT', 'LLAMA_INDEXER_V2_API_KEY',
 ]
 
+export const logGetBlockStats = process.env.LLAMA_SDK_LOG_GET_BLOCK_STATS === 'true' || false
+export const logGetLogsErrors = process.env.LLAMA_SDK_LOG_GET_LOGS_ERRORS === 'true' || false
+export const logGetLogsDebug = process.env.LLAMA_SDK_LOG_GET_LOGS_DEBUG === 'true' || false
+export const logGetLogsIndexer = process.env.LLAMA_SDK_LOG_GET_LOGS_INDEXER === 'true' || false
+
 const defaultEnvValues = {
   INTERNAL_SDK_CACHE_FILE: './cache.json',
   TRON_RPC_CONCURRENCY_LIMIT: '5',
@@ -68,7 +73,7 @@ export function getEnvRPC(chain: string): string | undefined {
 export function getEnvValue(key: string, defaultValue?: string) {
   key = key.toUpperCase()
   defaultValue = defaultValue ?? defaultEnvValues[key]
-  return process.env['LLAMA_SDK_' + key] ?? process.env['SDK_' + key] ??  process.env[key] ?? defaultValue
+  return process.env['LLAMA_SDK_' + key] ?? process.env['SDK_' + key] ?? process.env[key] ?? defaultValue
 }
 
 export function getEnvCacheFolder(defaultCacheFolder: string): string {
