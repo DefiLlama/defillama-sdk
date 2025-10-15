@@ -15,7 +15,7 @@ type McapsApiData = {
   timestamp: number;
 };
 
-const coinsApiKey = ENV_CONSTANTS["COINS_API_KEY"];
+const coinsApiKey = process.env.COINS_KEY || ENV_CONSTANTS["COINS_API_KEY"];
 const bodySize = 2; // 100;
 
 function getBodies(readKeys: string[], timestamp: number | "now") {
@@ -31,6 +31,27 @@ function getBodies(readKeys: string[], timestamp: number | "now") {
   return bodies;
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function restCallWrapper(
+  request: () => Promise<any>,
+  retries: number = 8,
+  name: string = "-"
+) {
+  while (retries > 0) {
+    try {
+      const res = await request();
+      return res;
+    } catch {
+      await sleep(60000 + 40000 * Math.random());
+      restCallWrapper(request, retries--, name);
+    }
+  }
+  throw new Error(`couldnt work ${name} call after retries!`);
+}
+
 export async function getPrices(
   readKeys: string[],
   timestamp: number | "now"
@@ -43,14 +64,16 @@ export async function getPrices(
     items: bodies,
     concurrency: 10,
     processor: async (body: string) => {
-      const res = await axios.post(
-        `https://coins.llama.fi/prices?source=internal${
-          coinsApiKey ? `?apikey=${coinsApiKey}` : ""
-        }`,
-        body,
-        {
-          headers: { "Content-Type": "application/json" },
-        }
+      const res = await restCallWrapper(() =>
+        axios.post(
+          `https://coins.llama.fi/prices?source=internal${
+            coinsApiKey ? `?apikey=${coinsApiKey}` : ""
+          }`,
+          body,
+          {
+            headers: { "Content-Type": "application/json" },
+          }
+        )
       );
 
       const data = (res.data.coins = Object.entries(res.data.coins).map(
@@ -84,19 +107,21 @@ export async function getMcaps(
   if (!readKeys.length) return {};
 
   const bodies = getBodies(readKeys, timestamp);
-  const tokenData: {[key: string]: McapsApiData}[] = [];
+  const tokenData: { [key: string]: McapsApiData }[] = [];
   await runInPromisePool({
     items: bodies,
     concurrency: 10,
     processor: async (body: string) => {
-      const res = await axios.post(
-        `https://coins.llama.fi/mcaps${
-          coinsApiKey ? `?apikey=${coinsApiKey}` : ""
-        }`,
-        body,
-        {
-          headers: { "Content-Type": "application/json" },
-        }
+      const res = await restCallWrapper(() =>
+        axios.post(
+          `https://coins.llama.fi/mcaps${
+            coinsApiKey ? `?apikey=${coinsApiKey}` : ""
+          }`,
+          body,
+          {
+            headers: { "Content-Type": "application/json" },
+          }
+        )
       );
       tokenData.push(res.data as any);
     },
@@ -104,7 +129,7 @@ export async function getMcaps(
 
   const aggregatedRes: { [address: string]: McapsApiData } = {};
   const normalizedReadKeys = readKeys.map((k: string) => k.toLowerCase());
-  tokenData.map((batch: {[key: string]: McapsApiData}) => {
+  tokenData.map((batch: { [key: string]: McapsApiData }) => {
     Object.keys(batch).map((a: string) => {
       if (!batch[a].mcap) return;
       const i = normalizedReadKeys.indexOf(a.toLowerCase());
