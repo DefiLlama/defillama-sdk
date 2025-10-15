@@ -1,8 +1,6 @@
-import { sliceIntoChunks } from ".";
 import { sumSingleBalance } from "../generalUtil";
 import { Balances } from "../types";
-import axios from "axios";
-import { ENV_CONSTANTS } from "./env";
+import { getPrices } from "./coinsApi";
 
 type PricesObject = {
   // NOTE: the tokens queried might be case sensitive and can be in mixed case, but while storing them in the cache, we convert them to lowercase
@@ -85,27 +83,11 @@ async function updatePriceCache(keys: string[], timestamp?: number) {
 
   const missingKeys = keys.filter(key => !pricesCache[key.toLowerCase()])
 
-  const chunks = sliceIntoChunks(missingKeys, 100)
-  for (const chunk of chunks) {
-    const coins = await getPrices(chunk)
-    for (const [token, data] of Object.entries(coins)) {
-      pricesCache[token.toLowerCase()] = data
-    }
-    chunk.map(i => i.toLowerCase()).filter(i => !pricesCache[i]).forEach(i => pricesCache[i] = {})
+  const coins = await getPrices(missingKeys, timestamp ?? "now")
+  for (const [token, data] of Object.entries(coins)) {
+    pricesCache[token.toLowerCase()] = data
   }
-
-  async function getPrices(keys: string[]) {
-    if (!timestamp) {
-      const { coins } = await axios.get(`https://coins.llama.fi/prices/current/${keys.join(',')}`).then((res) => res.data)
-      return coins
-    }
-
-    // fetch post with timestamp in body
-    const coinsApiKey = ENV_CONSTANTS['COINS_API_KEY']
-    const { coins } = await axios.post("https://coins.llama.fi/prices?source=internal&apikey=" + coinsApiKey, { coins: keys, timestamp }).then((res) => res.data)
-    return coins
-  }
-
+  missingKeys.map(i => i.toLowerCase()).filter(i => !pricesCache[i]).forEach(i => pricesCache[i] = {})
 }
 
 function getPriceCache(timestamp?: number) {
