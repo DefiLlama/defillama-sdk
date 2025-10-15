@@ -2,7 +2,6 @@ import { ethers } from "ethers";
 import { Chain } from "../general";
 import convertResults from "./convertResults";
 import makeMultiCallV2 from './multicall'
-import * as Tron from './tron'
 import { call } from './index'
 // https://github.com/mds1/multicall
 // https://www.multicall3.com/deployments
@@ -205,7 +204,6 @@ export default async function makeMultiCall(
   chain: Chain,
   block?: string | number,
 ): Promise<any> {
-  if (chain === 'tron') return Tron.multiCall(functionABI, calls)
 
   if (!functionABI) throw new Error('Missing ABI parameter')
   if (calls.some(i => !i.contract)) throw new Error('Missing target, abi:' + functionABI)
@@ -269,7 +267,7 @@ export default async function makeMultiCall(
     let output = null
     let error = null
     try {
-      output = convertResults(contractInterface.decodeFunctionResult(fd, values), fd);
+      output = convertResults(contractInterface.decodeFunctionResult(fd, values), { functionABI: fd, chain});
     } catch (e) {
       error = e
       success = false

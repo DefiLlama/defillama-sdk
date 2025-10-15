@@ -7,8 +7,7 @@ import convertResults from "./convertResults";
 import { debugLog } from "../util/debugLog";
 import { getCache, setCache, CacheOptions, } from "../util/internal-cache";
 import { runInPromisePool, sliceIntoChunks, } from "../util";
-import * as Tron from './tron'
-import { formError } from "../generalUtil";
+import { fixTronCallParams, formError } from "../util/common";
 import { getDefaultChunkSize } from "../util/env";
 
 const nullAddress = '0x0000000000000000000000000000000000000000'
@@ -105,11 +104,13 @@ function fixBlockTag(params: any) {
 
 function isValidTarget(target: string, chain?: string) {
   if (typeof target !== 'string') return false
-  if (chain === 'tron') return true;
   return target.startsWith('0x') && target !== nullAddress
 }
 
 export async function call(params: CallOptions): Promise<any> {
+  if (params.chain === 'tron')
+    fixTronCallParams(params)
+
   if (!isValidTarget(params.target, params.chain)) throw new Error('Invalid target: ' + params.target)
   fixBlockTag(params)
   const chain = params.chain ?? "ethereum";
@@ -120,7 +121,7 @@ export async function call(params: CallOptions): Promise<any> {
     if (!params.skipCache) return cachedCall(params)
     const abi = resolveABI(params.abi);
     const callParams = normalizeParams(params.params);
-    if (chain === 'tron') return Tron.call({ ...params, abi, params: callParams })
+    // if (chain === 'tron') return Tron.call({ ...params, abi, params: callParams })
 
     const contractInterface = new ethers.Interface([abi]);
     const functionABI = ethers.FunctionFragment.from(abi);
@@ -139,7 +140,7 @@ export async function call(params: CallOptions): Promise<any> {
     errorParams.result = result
     const decodedResult = contractInterface.decodeFunctionResult(abi, result);
 
-    const output = convertResults(decodedResult, functionABI)
+    const output = convertResults(decodedResult, { functionABI, chain });
 
 
     if (params.logArray && abi.name == 'balanceOf' && abi.outputs[0].type == 'uint256')
@@ -172,12 +173,16 @@ export async function bytecodeCall(params: ByteCodeCallOptions): Promise<any> {
   const decodedResult = ethers.AbiCoder.defaultAbiCoder().decode(outputTypes, result)
 
   return {
-    output: convertResults(decodedResult),
+    output: convertResults(decodedResult, { chain }),
   };
 }
 
 export async function multiCall(params: MulticallOptions): Promise<any> {
   fixBlockTag(params)
+
+  if (params.chain === 'tron')
+    fixTronCallParams(params)
+
   if (catchedABIs[params.abi]) params.abi = catchedABIs[params.abi]
   const chain = params.chain ?? 'ethereum'
   if (!params.calls) throw new Error('Missing calls parameter')
@@ -200,7 +205,7 @@ export async function multiCall(params: MulticallOptions): Promise<any> {
       if (typeof i === 'object') return !isValidTarget(i.target, params.chain)
       return true
     })) {
-      debugLog('Multicall is missing target', JSON.stringify(params, null, 2))
+      // debugLog('Multicall is missing target', JSON.stringify(params, null, 2))
       throw new Error('Multicall is missing a target')
     }
   }

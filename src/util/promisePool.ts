@@ -1,6 +1,6 @@
 
 import { PromisePool } from '@supercharge/promise-pool';
-import { formError } from '../generalUtil';
+import { formError } from './common';
 
 export default async function runInPromisePool(params: {
   items: any[];

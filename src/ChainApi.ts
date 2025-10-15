@@ -6,9 +6,8 @@ import providerList from './providers.json';
 import { Balances as BalancesV1, Block, ByteCodeCallOptions, CallOptions, FetchListOptions, MulticallOptions } from "./types";
 
 import { Provider } from "ethers";
-import { getMulticallAddress } from "./abi/multicall3";
-import { getBalance, getBalances } from "./eth";
-import { getUniqueAddresses, } from "./generalUtil";
+import { getBalances } from "./eth";
+import { getUniqueAddresses, } from "./util/common";
 import { debugLog, debugTable, } from "./util/debugLog";
 import getLogs, { GetLogsOptions } from "./util/logs";
 import { GetTransactionOptions, getTransactions } from "./util/transactions";

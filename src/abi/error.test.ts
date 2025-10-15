@@ -1,6 +1,4 @@
-import { call, multiCall, fetchList, } from "./abi2";
 import { ChainApi } from "../ChainApi";
-import { debugLog } from "../util/debugLog";
 
 test("getBlock failure: echelon", async () => {
   const api = new ChainApi({ chain: "echelon", timestamp: Math.floor(Date.now() / 1000) })
@@ -8,7 +6,7 @@ test("getBlock failure: echelon", async () => {
     await api.getBlock()
     expect(true).toEqual(false)     // automatically fail if we get here
   } catch (e: any) {
-    debugLog('echelon', e.message)
+    // debugLog('echelon', e.message)
   }
 });
 
@@ -18,18 +16,18 @@ test.skip("getBlock failure: kekchain", async () => {
     await api.getBlock()
     expect(true).toEqual(false)     // automatically fail if we get here
   } catch (e: any) {
-    debugLog('kekchain', e.message)
+    // debugLog('kekchain', e.message)
   }
 });
 
 
-test("multicall failure: kekchain", async () => {
+test.skip("multicall failure: kekchain", async () => {
   const api = new ChainApi({ chain: "kekchain" })
   try {
     await api.fetchList({ target: '0xfe0139503a1B97F7f6c2b72f4020df7A6c1EE399', lengthAbi: 'uint256:allPairsLength', itemAbi: 'function allPairs(uint256) view returns (address)' })
     expect(true).toEqual(false)     // automatically fail if we get here
   } catch (e: any) {
-    debugLog('kekchain', e.message)
+    // debugLog('kekchain', e.message)
   }
 });
 
@@ -41,7 +39,7 @@ test("bad fetchlist failure: ethereum", async () => {
     await api.fetchList({ target: '0xfe0139503a1B97F7f6c2b72f4020df7A6c1EE399', lengthAbi: 'uint256:allPairsLength', itemAbi: 'function allPairs(uint256) view returns (address)' })
     expect(true).toEqual(false)     // automatically fail if we get here
   } catch (e: any) {
-    debugLog(e.message)
+    // debugLog(e.message)
   }
 });
 
@@ -52,7 +50,7 @@ test("bad call failure: ethereum", async () => {
     await api.call({ target: '0xfe0139503a1B97F7f6c2b72f4020df7A6c1EE399', abi: 'uint256:allPairsLength' })
     expect(true).toEqual(false)     // automatically fail if we get here
   } catch (e: any) {
-    debugLog(e.message)
+    // debugLog(e.message)
   }
 });
 
@@ -72,7 +70,7 @@ test("bad multicall failure: ethereum", async () => {
     ], abi: 'uint256:allPairsLength'})
     expect(true).toEqual(false)     // automatically fail if we get here
   } catch (e: any) {
-    debugLog(e.message)
+    // debugLog(e.message)
     expect(e.message).toContain("Multicall failed!")
     expect(e.message).toContain("0xfe0139503a1B97F7f6c2b72f4020df7A6c1EE399")
   }

@@ -1,13 +1,13 @@
 import { getProvider, Chain } from "../general";
 import type { Address } from "../types";
 import { ethers, EventLog } from "ethers";
-import { formError, getProviderUrl, sumSingleBalance } from "../generalUtil";
+import { formError, getProviderUrl, sumSingleBalance } from "./common";
 import { debugLog } from "./debugLog";
 import runInPromisePoolOrig from "./promisePool";
 export { getLatestBlock, getTimestamp, lookupBlock, } from "./blocks";
-export { convertToBigInt } from "../generalUtil"
+export { convertToBigInt } from "./common"
 import pLimit from 'p-limit';
-import { getParallelGetLogsLimit } from "./env";
+import { getParallelGetLogsLimit, logGetLogsDebug } from "./env";
 
 export const runInPromisePool = runInPromisePoolOrig
 
@@ -56,7 +56,10 @@ export async function getLogs(options: GetLogsOptions): Promise<{ output: EventL
     } catch (e) {
       options.provider = getProvider(options.chain!, false)
       // if (provider === options.provider) throw e // the provider for archival and non-archival request is the same
-      debugLog(`Error fetching logs for chain ${options.chain} ${formError(e, { chain: options.chain, target: options.target, })}, retrying...`)
+
+      if (logGetLogsDebug)
+        debugLog(`Error fetching logs for chain ${options.chain} ${formError(e, { chain: options.chain, target: options.target, })}, retrying...`)
+
       return getLimiter()(() => _getLogs(options));
     }
   }
@@ -93,7 +96,10 @@ async function _getLogs(params: GetLogsOptions): Promise<{ output: EventLog[] }>
       logs = logs.concat(partLogs as EventLog[]);
       currentBlock = nextBlock;
     } catch (e) {
-      debugLog(`Error fetching logs for chain ${params.chain} blockSpread: ${blockSpread}. ${formError(e, { chain: params.chain, target: params.target, provider })}`)
+
+      if (logGetLogsDebug)
+        debugLog(`Error fetching logs for chain ${params.chain} blockSpread: ${blockSpread}. ${formError(e, { chain: params.chain, target: params.target, provider })}`)
+
       if (blockSpread >= 1001) {
         // We got too many results
         // We could chop it up into 1001 block spreads as that is guaranteed to always return but then we'll have to make a lot of queries (easily >1000), so instead we'll keep dividing the block spread by two until we make it

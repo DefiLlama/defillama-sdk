@@ -1,7 +1,7 @@
 import axios from "axios";
 import { sliceIntoChunks } from ".";
 import { ETHER_ADDRESS } from "../general";
-import { getUniqueAddresses } from "../generalUtil";
+import { formError, getUniqueAddresses } from "./common";
 import { Address } from "../types";
 import { getBlockNumber } from "./blocks";
 import { readCache, writeCache } from "./cache";
@@ -127,7 +127,7 @@ async function getChainIndexStatus(version: "v1" | "v2" = "v2"): Promise<ChainIn
   state.chainIndexStatus = (async () => {
     const {
       data: { syncStatus },
-    } = await axiosInstances[version].get(`/sync`);
+    } = await axiosInstances[version].get(`/sync`).catch(e => { throw formError(e) });
 
     const info: ChainIndexStatus = {};
     syncStatus.forEach((d: any) => {
@@ -247,7 +247,8 @@ export async function getTokens(
     if (cache.timestamp && timeNow - cache.timestamp < THREE_DAYS) return cache.tokens;
   }
 
-  debugLog("[Indexer] Pulling tokens for " + address);
+  if (logGetLogsIndexer)
+    debugLog("[Indexer] Pulling tokens for " + address);
 
   const tokens = cache.tokens ?? {};
   const {
@@ -258,7 +259,7 @@ export async function getTokens(
       chainId,
       type: tokenType,
     },
-  });
+  }).catch(e => { throw formError(e) })
 
   balances
     .filter((b: any) => +b.total_amount > 0)
@@ -337,7 +338,8 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
         `Indexer not up to date for ${chain}. Last indexed block: ${lastIndexedBlock}, requested block: ${toBlock}`
       );
 
-    debugLog(`Indexer only partially up to date for ${chain}. Last indexed block: ${lastIndexedBlock}, requested block: ${toBlock}, missing ${Number(percentageMissing).toFixed(2)}%. Pulling part of the logs through RPC calls.`);
+    if (logGetLogsIndexer)
+      debugLog(`Indexer only partially up to date for ${chain}. Last indexed block: ${lastIndexedBlock}, requested block: ${toBlock}, missing ${Number(percentageMissing).toFixed(2)}%. Pulling part of the logs through RPC calls.`);
 
     // now we split the request into two parts, one that goes to the indexer and one that goes through rpc calls
 
@@ -418,7 +420,7 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
 
       const {
         data: { logs: _logs, totalCount },
-      } = await axiosInstances.v2(`/logs`, { params });
+      } = await axiosInstances.v2(`/logs`, { params }).catch(e => { throw formError(e) })
 
       const filtered = _logs.filter((l: any) => {
         const isWhitelisted = !addressSet.size || addressSet.has(l.source.toLowerCase());
@@ -573,7 +575,7 @@ export async function getTokenTransfers({
 
     const {
       data: { transfers: _logs, totalCount },
-    } = await axiosInstances.v2(`/token-transfers`, { params });
+    } = await axiosInstances.v2(`/token-transfers`, { params }).catch(e => { throw formError(e) })
 
     rawTransfers.push(..._logs);
     currentOffset += limit;
@@ -672,7 +674,7 @@ export async function getTransactions({
     console.time(debugTimeKey);
   }
 
-  const { data: { transactions } } = await axiosInstances.v2(`/transactions`, { params });
+  const { data: { transactions } } = await axiosInstances.v2(`/transactions`, { params }).catch(e => { throw formError(e) })
 
   if (debugMode) {
     console.timeEnd(debugTimeKey);

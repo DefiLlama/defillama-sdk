@@ -13,6 +13,7 @@ export async function getBalance(params: {
   chain?: Chain;
   logArray?: LogArray;
 }) {
+  // this is needed eth.getBalances doesnt include staked trx value
   if (params.chain === 'tron') return Tron.getBalance(params)
   const balance = await getProvider(params.chain).getBalance(
     params.target,
@@ -43,6 +44,7 @@ export async function getBalances(params: {
   skipMultiCall?: boolean
   permitFailure?: boolean
 }) {
+  // this is needed eth.getBalances doesnt include staked trx value
   if (params.chain === 'tron') return Tron.getBalances(params)
   let output: any
 

@@ -9,6 +9,16 @@
     ],
     "chainId": 56
   },
+  "tron": {
+    "rpc": [
+      "https://tron.drpc.org",
+      "https://tron.therpc.io/jsonrpc",
+      "https://tron.rpc.grove.city/v1/01fdb492",
+      "https://rpc.ankr.com/tron_jsonrpc",
+      "https://api.trongrid.io/jsonrpc"
+    ],
+    "chainId": 728126428
+  },
   "polygon": {
     "rpc": [],
     "chainId": 137

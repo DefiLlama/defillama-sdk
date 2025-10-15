@@ -1,7 +1,7 @@
 
 import _providerList from '../providers.json'
 import fs from 'fs'
-import axios from "axios";
+import { fetchJson } from '../generalUtil';
 
 
 const providerList = _providerList as {
@@ -14,7 +14,7 @@ const providerList = _providerList as {
 
 async function getChainData() {
   try {
-    const { data: chainData } = await axios('https://chainlist.org/rpcs.json')
+    const chainData = await fetchJson('https://chainlist.org/rpcs.json')
     return chainData
   } catch (e) {
     console.log('Failed to fetch chainlist.org, falling back to local copy')

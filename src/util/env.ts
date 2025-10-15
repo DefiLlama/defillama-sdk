@@ -8,13 +8,14 @@ export const logGetBlockStats = process.env.LLAMA_SDK_LOG_GET_BLOCK_STATS === 't
 export const logGetLogsErrors = process.env.LLAMA_SDK_LOG_GET_LOGS_ERRORS === 'true' || false
 export const logGetLogsDebug = process.env.LLAMA_SDK_LOG_GET_LOGS_DEBUG === 'true' || false
 export const logGetLogsIndexer = process.env.LLAMA_SDK_LOG_GET_LOGS_INDEXER === 'true' || false
+export const defaultShortenStringLength = +(process.env.LLAMA_SDK_DEFAULT_SHORTEN_STRING_LENGTH ?? '120')
 
 const defaultEnvValues = {
   INTERNAL_SDK_CACHE_FILE: './cache.json',
   TRON_RPC_CONCURRENCY_LIMIT: '5',
   LLAMA_INDEXER_ADDRESS_CHUNK_SIZE: '20',
-  TRON_RPC: 'https://api.trongrid.io',
-  TRON_EVM_RPC: 'https://rpc.ankr.com/tron_jsonrpc',
+  TRON_WALLET_RPC: 'https://api.trongrid.io',
+  // TRON_EVM_RPC: 'https://rpc.ankr.com/tron_jsonrpc', // no longer used
   NAKA_RPC: 'https://node.nakachain.xyz',
   ETHF_RPC: 'https://rpc.dischain.xyz/',
   CORE_RPC: "https://rpc.coredao.org,https://rpc.ankr.com/core,https://1rpc.io/core,https://rpc-core.icecreamswap.com",

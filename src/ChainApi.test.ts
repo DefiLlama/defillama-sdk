@@ -389,11 +389,11 @@ test("ChainApi - erc4626Sum - 3", async () => {
 test("ChainApi - getTokenBalances - use tokens", async () => {
   const api = new ChainApi({})
   const res = await api.getTokenBalances({
-    tokens: ['0xdac17f958d2ee523a2206206994597c13d831ec7',],
-    owners: ['0xdac17f958d2ee523a2206206994597c13d831ec7'],
+    tokens: ['0x0227b3fb1582b64d5c455e2a88c006d9f7127414',],
+    owners: ['0xf70da97812CB96acDF810712Aa562db8dfA3dbEF'],
     withTokenData: true,
   })
-  expect(res).toEqual([['0xdac17f958d2ee523a2206206994597c13d831ec7', '2068378259638']])
+  expect(res).toEqual([['0x0227b3fb1582b64d5c455e2a88c006d9f7127414', '1']])
 })
 
 test("ChainApi - getTokenBalances - use tokensAndOwners", async () => {
