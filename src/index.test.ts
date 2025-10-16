@@ -105,6 +105,7 @@ test("imports", async () => {
       },
       "cache": {
         "ONE_WEEK": 604800000,
+        "cachedFetch": [Function],
         "compressCache": [Function],
         "currentVersion": "zlib-1.0",
         "deleteCache": [Function],
