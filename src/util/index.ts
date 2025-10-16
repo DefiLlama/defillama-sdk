@@ -8,7 +8,7 @@ export { getLatestBlock, getTimestamp, lookupBlock, } from "./blocks";
 export { convertToBigInt } from "../generalUtil"
 import pLimit from 'p-limit';
 import { getParallelGetLogsLimit } from "./env";
-export { getConfig, getCache, setCache, configPost, configCache } from "./cache";
+
 export const runInPromisePool = runInPromisePoolOrig
 
 export function sliceIntoChunks(arr: any[], chunkSize = 100) {
