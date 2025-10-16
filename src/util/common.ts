@@ -159,7 +159,7 @@ export function sumChainTvls(
 
 export function getUniqueAddresses(addresses: string[], chain?: string): string[] {
   if (!addresses.length) return []
-  const isTronAddress = chain === 'tron' && addresses[0].startsWith('T')
+  const isTronAddress = chain === 'tron' && addresses[0].includes('T')
   const toLowerCase = !isTronAddress
   const set = {} as { [address: string]: boolean }
   addresses.forEach(i => set[toLowerCase ? i.toLowerCase() : i] = true)

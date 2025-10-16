@@ -9,6 +9,7 @@ import * as evmAbi from "./index";
 const limitRPCCalls = pLimit(+getEnvValue('TRON_RPC_CONCURRENCY_LIMIT', '5')!);
 
 const getEndpoint = () => getEnvValue('TRON_WALLET_RPC')
+const balanceCache: { [address: string]: any } = {}
 
 type CallParams = any;
 
@@ -39,11 +40,20 @@ export async function getBalance(params: {
   target: Address;
   decimals?: number;
 }) {
-  const data = await limitRPCCalls(() => post({ address: params.target, visible: true, }, '/wallet/getaccount'))
+
+  if (!params.target) throw new Error('getBalance: target is required')
+
+  const data = await limitRPCCalls(() => {
+    if (!balanceCache[params.target]) balanceCache[params.target] = post({ address: params.target, visible: true, }, '/wallet/getaccount')
+    return balanceCache[params.target]
+  })
+
   const frozenBalance = data.frozen?.reduce((t: any, { frozen_balance }: any) => t + frozen_balance, 0) ?? 0
   const frozenBalanceV2 = data.frozenV2?.reduce((t: any, { amount = 0 }: any) => t + amount, 0) ?? 0
   const freeBalance = data.balance ?? 0
-  const balance = (freeBalance + frozenBalance + frozenBalanceV2).toString()
+  const delegatedBandwidthBalance = data.delegated_frozenV2_balance_for_bandwidth ?? 0
+  const delegatedEnergyBalance = data.account_resource?.delegated_frozenV2_balance_for_energy ?? 0
+  let balance = (freeBalance + frozenBalance + frozenBalanceV2 + delegatedBandwidthBalance + delegatedEnergyBalance).toString()
 
   return {
     output: handleDecimals(balance, params.decimals),
