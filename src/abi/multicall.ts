@@ -4,7 +4,6 @@ import convertResults from "./convertResults";
 import { call } from "./rpcCall";
 import { debugLog } from "../util/debugLog"
 import { runInPromisePool, sliceIntoChunks, } from "../util"
-import * as Tron from './tron'
 import { getEnvMulticallAddress } from "../util/env";
 
 export const MULTICALL_ADDRESS_MAINNET =
@@ -49,7 +48,6 @@ export default async function makeMultiCall(
   chain: Chain,
   block?: string | number,
 ) {
-  if (chain === 'tron') return Tron.multiCall(functionABI, calls)
   const contractInterface = new ethers.Interface([functionABI]);
   let fd = contractInterface.fragments[0] as ethers.FunctionFragment
 
@@ -67,7 +65,7 @@ export default async function makeMultiCall(
     let output: any;
     let error = undefined
     try {
-      output = convertResults(contractInterface.decodeFunctionResult(fd, values), fd);
+      output = convertResults(contractInterface.decodeFunctionResult(fd, values), { functionABI: fd, chain });
     } catch (e) {
       output = null;
       error = e
@@ -405,6 +403,7 @@ function multicallAddress(chainId: number | BigInt) {
       return '0x63cee78B11774535132fd773C5dDe3c4b41CD07f';
     case 11820: return '0x6d761c3fe633c67b1d3a55678b04eb4ad11c4642'; // artela
     case 2355: return '0x566da61a4D0841a67bA8F2c7e5975885fa0Af4DA'; // silicon_zk
+    case 728126428: return 'TEazPvZwDjDtFeJupyo7QunvnrnUjPH8ED'; // silicon_zk
     default:
       return null;
   }

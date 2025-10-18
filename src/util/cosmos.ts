@@ -1,6 +1,6 @@
 
-import axios from "axios";
 import { getEnvRPC } from "./env";
+import { postJson } from "./common";
 
 // where to find chain info
 // https://proxy.atomscan.com/chains.json
@@ -48,8 +48,8 @@ export const isCosmosChain = (chain: string) => ibcChains.includes(chain) || !!e
 export async function getCosmosBlock(block: number | string = 'latest', chain = 'cosmos') {
   const endPoint = getEnvRPC(chain) || endPoints[chain] || 'https://rest.cosmos.directory/' + chain
   try {
-    const { data } = await axios(`${endPoint}/blocks/${block}`)
-    const { block: { header: { height, time } } } = await data
+    const data = await postJson(`${endPoint}/blocks/${block}`)
+    const { block: { header: { height, time } } } = data
     return {
       number: Number(height),
       timestamp: Math.floor(Date.parse(time) / 1000),

@@ -1,7 +1,7 @@
 import { getBalance } from "./eth/index";
 import { getProvider, setProvider } from "./general";
 import { ethers, } from "ethers"
-import { getProviderUrl } from "./generalUtil";
+import { getProviderUrl } from "./util/common";
 import { ChainApi } from "./ChainApi";
 
 const dummyRPC = 'https://eth.llamarpc.com'

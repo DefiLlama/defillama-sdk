@@ -1,9 +1,9 @@
 
 import _providerList from '../providers.json'
 import fs from 'fs'
-import axios from "axios";
 import { debugLog } from './debugLog';
 import PromisePool from '@supercharge/promise-pool';
+import { fetchJson, postJson } from '../generalUtil';
 
 
 const providerList = _providerList as {
@@ -16,7 +16,7 @@ const providerList = _providerList as {
 
 async function getChainData() {
   try {
-    const { data: chainData } = await axios('https://chainlist.org/rpcs.json')
+    const chainData = await fetchJson('https://chainlist.org/rpcs.json')
     // fix for zksync era name clash
     const eteriaListing = chainData.find((i: any) => i.chainId === 140)
     if (eteriaListing) eteriaListing.shortName = 'eteria'
@@ -30,7 +30,7 @@ async function getChainData() {
 }
 
 async function main() {
-  const { data: oldProviders } = await axios(`https://unpkg.com/@defillama/sdk@latest/build/providers.json`)
+  const oldProviders = await fetchJson(`https://unpkg.com/@defillama/sdk@latest/build/providers.json`)
   let chainData = await getChainData()
   const providerIDMap = {} as {
     [key: string]: string[]
@@ -46,7 +46,7 @@ async function main() {
 
 
   await PromisePool
-    .withConcurrency(7)
+    .withConcurrency(5)
     .for(chainData)
     .process(async (i: any) => {
       i.rpc = await filterForWorkingRPCs(i.rpc.map((j: any) => j.url), i.name, i.chainId)
@@ -140,7 +140,7 @@ async function filterForWorkingRPCs(rpc: string[], chain: string, chainId: numbe
 
   const promises = await Promise.all(rpc.map(async (i: string) => {
     try {
-      const { data } = await axios.post(i, {
+      const data = await postJson(i, {
         jsonrpc: '2.0',
         method: 'eth_blockNumber',
         params: [],
@@ -150,7 +150,7 @@ async function filterForWorkingRPCs(rpc: string[], chain: string, chainId: numbe
       })
       if (data.result) return i
     } catch (e) {
-      console.log((e as any)?.message, i, chain)
+      console.log(chain, (e as any)?.message)
     }
   }))
 

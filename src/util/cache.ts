@@ -3,6 +3,8 @@ import { storeR2JSONString, getR2JSONString, } from "./r2";
 import { constants, brotliCompress, brotliDecompress } from "zlib";
 import { promisify } from 'util';
 import { getEnvCacheFolder } from "./env";
+import { fetchJson, formError, postJson } from "./common";
+import crypto from 'crypto';
 
 const brotliOptions = {
   [constants.BROTLI_PARAM_MODE]: constants.BROTLI_MODE_TEXT,
@@ -250,4 +252,66 @@ export async function writeExpiringJsonCache(file: string, data: any, {
   if (!expiryTimestamp) expiryTimestamp = Math.floor(Date.now() / 1e3) + expireAfter
   const options: WriteCacheOptions = { skipR2CacheWrite: true, skipCompression: true }
   await writeCache(file, { data, expiryTimestamp }, options)
+}
+
+export async function cachedFetch({
+  key,
+  endpoint,
+  postData,
+  fetcher,
+  fetchOptions,
+  errorOnNoCache = true,
+  writeCacheOptions = {
+    skipCompression: true,
+    skipR2CacheWrite: true,
+  },
+  readCacheOptions = {
+    skipCompression: true,
+    skipR2Cache: true,
+  },
+}: {
+  key: string,
+  endpoint?: string,
+  postData?: any,
+  fetcher?: () => Promise<any>,
+  fetchOptions?: any,  // axios fetch options
+  errorOnNoCache?: boolean,
+  writeCacheOptions?: WriteCacheOptions,
+  readCacheOptions?: ReadCacheOptions
+}) {
+
+  if (!key) {
+    if (!endpoint || postData || fetcher) throw new Error('Key is required for cachedFetch')
+    key = crypto.createHash('sha256').update(endpoint).digest('hex').substring(0, 32);
+  }
+
+  const fileKey = 'cached-fetch/' + key
+
+  try {
+
+    let data: any 
+    if (fetcher) data = await fetcher()
+    else {
+      if (!endpoint) throw new Error('Either fetcher or endpoint is required for cachedFetch')
+      if (postData) data = await postJson(endpoint, postData, fetchOptions)
+      else data = await fetchJson(endpoint, fetchOptions)
+    }
+
+    await writeCache(fileKey, data, writeCacheOptions)
+    return data
+
+  } catch (error) {
+
+    const errorMessage = formError(error).message
+    debugLog('Error in cachedFetch:', errorMessage)
+    
+    // if fetch fails, read from cache
+    const cachedData = await readCache(fileKey, readCacheOptions)
+
+    if (!cachedData && errorOnNoCache)
+      throw new Error('Fetch failed and no cache available')
+
+    return cachedData
+  }
+
 }

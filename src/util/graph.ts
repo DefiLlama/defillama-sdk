@@ -1,4 +1,4 @@
-import axios from "axios";
+import { postJson } from "./common";
 import { readCache, writeCache } from "./cache";
 import { debugLog } from "./debugLog";
 import { getEnvValue } from "./env";
@@ -27,7 +27,7 @@ export async function request(endpoint: string, query: string, {
 
   async function _request() {
     endpoint = modifyEndpoint(endpoint, network)
-    const { data: result } = await axios.post(endpoint, { query, variables })
+    const result = await postJson(endpoint, { query, variables })
     if (result.errors) throw new Error(result.errors[0].message)
     return withMetadata ? result : result.data
   }

@@ -1,7 +1,6 @@
 import { sliceIntoChunks } from ".";
-import { sumSingleBalance } from "../generalUtil";
+import { fetchJson, postJson, sumSingleBalance } from "./common";
 import { Balances } from "../types";
-import axios from "axios";
 import { ENV_CONSTANTS } from "./env";
 
 type PricesObject = {
@@ -96,13 +95,13 @@ async function updatePriceCache(keys: string[], timestamp?: number) {
 
   async function getPrices(keys: string[]) {
     if (!timestamp) {
-      const { coins } = await axios.get(`https://coins.llama.fi/prices/current/${keys.join(',')}`).then((res) => res.data)
+      const { coins } = await fetchJson(`https://coins.llama.fi/prices/current/${keys.join(',')}`)
       return coins
     }
 
     // fetch post with timestamp in body
     const coinsApiKey = ENV_CONSTANTS['COINS_API_KEY']
-    const { coins } = await axios.post("https://coins.llama.fi/prices?source=internal&apikey=" + coinsApiKey, { coins: keys, timestamp }).then((res) => res.data)
+    const { coins } = await postJson("https://coins.llama.fi/prices?source=internal&apikey=" + coinsApiKey, { coins: keys, timestamp })
     return coins
   }
 
