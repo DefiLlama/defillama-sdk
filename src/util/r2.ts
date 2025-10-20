@@ -1,5 +1,5 @@
-import axios from "axios";
 import { ENV_CONSTANTS } from "./env";
+import { fetchJson } from "./common";
 
 const { S3Client, PutObjectCommand, GetObjectCommand, } = require("@aws-sdk/client-s3");
 const { R2_ENDPOINT, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY } = ENV_CONSTANTS
@@ -46,7 +46,6 @@ export async function getR2JSONString(filename: string) {
   }
 
   async function _fetchData() {
-    const response = await axios(`${publicBucketUrl}/${filename}`);
-    return response.data;
+    return fetchJson(`${publicBucketUrl}/${filename}`)
   }
 }

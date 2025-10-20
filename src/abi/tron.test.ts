@@ -1,5 +1,6 @@
 import { ChainApi } from "../ChainApi";
 import { getBalance, getBalances } from "../eth/index";
+import { ETHER_ADDRESS } from "../general";
 import { getLatestBlock, lookupBlock } from "../util/blocks";
 import getLogs from "../util/logs";
 
@@ -164,3 +165,21 @@ test("tron: getLogs", async () => {
   })
   expect(logs.length).toBeGreaterThan(0)
 });
+
+test("tron: chainApi.getBalances", async () => {
+
+  // most of the trx here is staked, so good test to check staked balance is included
+  const binanceColdWallet = 'TNPdqto8HiuMzoG7Vv9wyyYhWzCojLeHAF'
+
+  const res = await tronApi.getGasTokenBalance(binanceColdWallet)
+  const multiRes = await tronApi.getGasTokenBalances({ owners: [binanceColdWallet] })
+  const tokenBalancesRes = await tronApi.getTokenBalances({ owners: [binanceColdWallet, binanceColdWallet, binanceColdWallet], tokens: [ETHER_ADDRESS], skipDuplicates: true, })
+  const tokenBalancesDupsRes = await tronApi.getTokenBalances({ owners: [binanceColdWallet, binanceColdWallet, binanceColdWallet], tokens: [ETHER_ADDRESS] })
+
+  expect(+res).toBeGreaterThan(1e13)
+  expect(multiRes.length).toEqual(1)
+  expect(tokenBalancesRes.length).toEqual(1)
+  expect(multiRes).toEqual(tokenBalancesRes)
+  expect(tokenBalancesDupsRes.length).toEqual(3)
+  expect(tokenBalancesDupsRes[2]).toEqual(res)
+})

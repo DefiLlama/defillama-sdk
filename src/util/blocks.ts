@@ -1,11 +1,10 @@
 import { getProvider, Chain } from "../general";
-import axios from "axios";
-import { formError, getProviderUrl, } from "../generalUtil";
+import { fetchJson, formError, getProviderUrl, } from "./common";
 import { debugLog } from "./debugLog";
 import { isCosmosChain, getCosmosProvider } from "./cosmos";
 import { getTempLocalCache, ONE_WEEK } from "./cache";
 import pLimit from 'p-limit';
-import { getParallelGetBlocksLimit } from "./env";
+import { getParallelGetBlocksLimit, logGetBlockStats } from "./env";
 
 const defaultChains = ["avax", "bsc", "polygon", "arbitrum"] as Chain[]
 export const chainsForBlocks = defaultChains;
@@ -101,14 +100,12 @@ interface TimestampBlock {
 const algorandBlockProvider = {
   getBlock: async (height: number | "latest"): Promise<TimestampBlock> => {
     if (height !== 'latest')
-      return axios(`https://algoindexer.algoexplorerapi.io/v2/blocks/${height}`)
-        .then((res: any) => res.data)
+      return fetchJson(`https://algoindexer.algoexplorerapi.io/v2/blocks/${height}`)
         .then((block: any) => ({
           number: block.round,
           timestamp: block.timestamp
         }))
-    return axios('https://algoindexer.algoexplorerapi.io/health')
-      .then((res: any) => res.data)
+    return fetchJson('https://algoindexer.algoexplorerapi.io/health')
       .then((block: any) => algorandBlockProvider.getBlock(block.round))
   }
 };
@@ -199,7 +196,7 @@ async function _lookupBlock(
 
   if (chain === 'waves') {
     const api = `https://nodes.wavesnodes.com/blocks/heightByTimestamp/${timestamp}`
-    const { data } = await axios(api)
+    const data = await fetchJson(api)
     return {
       timestamp,
       block: +data.height,
@@ -270,7 +267,7 @@ async function _lookupBlock(
       updateBlock(blocks)
     }
 
-    if (i > 2)
+    if (i > 2 && logGetBlockStats)
       debugLog(`chain: ${chain} block: ${block!.number} #calls: ${i} imprecision: ${Number((imprecision!) / 60).toFixed(2)} (min) Time Taken: ${Number((Date.now() - time) / 1000).toFixed(2)} (in sec)`)
 
 

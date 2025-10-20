@@ -1,4 +1,5 @@
 import { ChainApi } from "./ChainApi";
+const nullAddress = '0x0000000000000000000000000000000000000000'
 
 const uniswapAbis = {
   appPairs: { "constant": true, "inputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "name": "allPairs", "outputs": [{ "internalType": "address", "name": "", "type": "address" }], "payable": false, "stateMutability": "view", "type": "function" },
@@ -163,7 +164,6 @@ test("bad paramters throw error", async () => {
   await expect(apiEth.multiCall({ abi: testAbi, calls: [nullAddress] })).rejects.toThrowError()
 });
 
-const nullAddress = '0x0000000000000000000000000000000000000000'
 test("bad paramters does not throw error with permitFailure Flag", async () => {
   const testAbi = uniswapAbis.allPairsLength
   const apiBsc = new ChainApi({ chain: 'bsc' })
@@ -384,4 +384,287 @@ test("ChainApi - erc4626Sum - 2", async () => {
 test("ChainApi - erc4626Sum - 3", async () => {
   const api = new ChainApi({ chain: 'mantle'})
   await api.erc4626Sum({ calls: ['0x0DB2BA00bCcf4F5e20b950bF954CAdF768D158Aa'], isOG4626: true })
+})
+
+test("ChainApi - getTokenBalances - use tokens", async () => {
+  const api = new ChainApi({})
+  const res = await api.getTokenBalances({
+    tokens: ['0x0227b3fb1582b64d5c455e2a88c006d9f7127414',],
+    owners: ['0xf70da97812CB96acDF810712Aa562db8dfA3dbEF'],
+    withTokenData: true,
+  })
+  expect(res).toEqual([['0x0227b3fb1582b64d5c455e2a88c006d9f7127414', '1']])
+})
+
+test("ChainApi - getTokenBalances - use tokensAndOwners", async () => {
+  const api = new ChainApi({})
+
+  const res = await api.getTokenBalances({
+    tokensAndOwners: [ // full of duplicates
+      [nullAddress, '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A'],
+      [nullAddress, '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A'],
+      ['0x419B8ED155180A8c9C64145e76DaD49c0A4Efb97', '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A'],
+      ['0x419B8ED155180A8c9C64145e76DaD49c0A4Efb97', '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A'],
+      ['0x419B8ED155180A8c9C64145e76DaD49c0A4Efb97', '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A'],
+      [nullAddress, '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A'],
+      [nullAddress, '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A'],
+      ['0x419B8ED155180A8c9C64145e76DaD49c0A4Efb97', '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A'],
+      ['0x419B8ED155180A8c9C64145e76DaD49c0A4Efb97', '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A'],
+    ]
+  })
+
+
+  const singleApi = new ChainApi({})
+  const resSingle = await singleApi.getTokenBalances({
+    tokensAndOwners: [
+      ['0x419B8ED155180A8c9C64145e76DaD49c0A4Efb97', '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A'],
+      [nullAddress, '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A'],
+    ],
+    withTokenData: true,
+  })
+
+  expect(res).toEqual([
+    '1081418614616880',
+    '1081418614616880',
+    '3284260000000000000000',
+    '3284260000000000000000',
+    '3284260000000000000000',
+    '1081418614616880',
+    '1081418614616880',
+    '3284260000000000000000',
+    '3284260000000000000000',
+  ])
+  expect(resSingle).toEqual([
+    ['0x419B8ED155180A8c9C64145e76DaD49c0A4Efb97', '3284260000000000000000'],
+    ['0x0000000000000000000000000000000000000000', '1081418614616880']
+  ])
+})
+
+test("ChainApi - getERC20TokenBalances", async () => {
+  const api = new ChainApi({})
+
+  const res = await api.getERC20TokenBalances({
+    tokensAndOwners: [
+      ['0x419B8ED155180A8c9C64145e76DaD49c0A4Efb97', '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A'],
+    ]
+  })
+
+  expect(res).toEqual(['3284260000000000000000'])
+
+})
+
+
+
+
+test("ChainApi - getGasTokenBalance", async () => {
+  const api = new ChainApi({})
+
+  const res = await api.getGasTokenBalance('0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A')
+
+  expect(res).toEqual('1081418614616880')
+})
+
+test("ChainApi - getGasTokenBalances", async () => {
+  const api = new ChainApi({})
+
+  const res = await api.getGasTokenBalances({ owners: ['0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A', '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A', '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A', '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A'] })
+  const resNoDup = await api.getGasTokenBalances({ owners: ['0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A', '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A', '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A', '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A'] , skipDuplicates: true })
+
+  expect(res).toEqual(['1081418614616880', '1081418614616880', '1081418614616880', '1081418614616880'])
+  expect(resNoDup).toEqual(['1081418614616880'])
+})
+
+
+test("ChainApi - getEthBalance", async () => {
+  const api = new ChainApi({})
+
+  const res = await api.getEthBalance('0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A')
+
+  expect(res).toEqual('1081418614616880')
+})
+
+test("ChainApi - getEthBalances", async () => {
+  const api = new ChainApi({})
+
+  const res = await api.getEthBalances({ owners: ['0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A', '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A', '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A', '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A'] })
+  const resNoDup = await api.getEthBalances({ owners: ['0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A', '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A', '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A', '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A'] , skipDuplicates: true })
+
+  expect(res).toEqual(['1081418614616880', '1081418614616880', '1081418614616880', '1081418614616880'])
+  expect(resNoDup).toEqual(['1081418614616880'])
+})
+
+
+
+
+
+test("ChainApi - getERC20TokenBalances", async () => {
+  const api = new ChainApi({})
+
+  const res = await api.getERC20TokenBalances({
+    tokensAndOwners: [
+      ['0x419B8ED155180A8c9C64145e76DaD49c0A4Efb97', '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A'],
+    ]
+  })
+
+  expect(res).toEqual(['3284260000000000000000'])
+
+})
+
+
+test("ChainApi - getERC20TokenBalances - fail ", async () => {
+  const api = new ChainApi({})
+
+  const badOwnerAddress = () => api.getERC20TokenBalances({
+    tokensAndOwners: [
+      ['0x419B8ED155180A8c9C64145e76DaD49c0A4Efb97', '0x9a849A108764a5cE2Ab4CD3208071B304aAc99A'],
+    ]
+  })
+  const badTokenAddress = () => api.getERC20TokenBalances({
+    tokensAndOwners: [
+      ['0x419B8ED155180A8c9C64145e76DaD49c0A4Efb90', '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A'],
+    ]
+  })
+  await expect(badOwnerAddress()).rejects.toThrow();
+  await expect(badTokenAddress()).rejects.toThrow();
+
+})
+
+test("ChainApi - getERC20TokenBalances - permit failure", async () => {
+  const api = new ChainApi({})
+
+  const badOwnerAddress = await api.getERC20TokenBalances({
+    tokensAndOwners: [
+      ['0x419B8ED155180A8c9C64145e76DaD49c0A4Efb97', '0x9a849A108764a5cE2Ab4CD3208071B304aAc99A'],
+    ],
+    permitFailure: true
+  })
+
+  const badTokenAddress = await api.getERC20TokenBalances({
+    tokensAndOwners: [
+      ['0x419B8ED155180A8c9C64145e76DaD49c0A4Efb90', '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A'],
+    ],
+    permitFailure: true
+  })
+
+  expect(badOwnerAddress).toEqual(['0'])
+  expect(badTokenAddress).toEqual(['0'])
+
+})
+
+
+
+
+
+
+test("ChainApi - getGasTokenBalance", async () => {
+  const api = new ChainApi({})
+
+  const res = await api.getGasTokenBalance('0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A')
+
+  expect(res).toEqual('1081418614616880')
+})
+
+
+
+test("ChainApi - getGasTokenBalance - fail", async () => {
+  const api = new ChainApi({})
+
+  const badAddress = () => api.getGasTokenBalance('0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99Adummy')
+
+  await expect(badAddress()).rejects.toThrow();
+})
+
+
+
+test("ChainApi - getGasTokenBalance - permit failure", async () => {
+  const api = new ChainApi({})
+
+  const res = await api.getGasTokenBalance('0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99Adummy', { permitFailure: true })
+
+  expect(res).toEqual('0')
+})
+
+
+
+
+
+test("ChainApi - getGasTokenBalances", async () => {
+  const api = new ChainApi({})
+
+  const res = await api.getGasTokenBalances({ owners: ['0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A', '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A', '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A', '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A'] })
+  const resNoDup = await api.getGasTokenBalances({ owners: ['0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A', '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A', '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A', '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A'] , skipDuplicates: true })
+
+  expect(res).toEqual(['1081418614616880', '1081418614616880', '1081418614616880', '1081418614616880'])
+  expect(resNoDup).toEqual(['1081418614616880'])
+})
+
+test("ChainApi - getGasTokenBalances - fail", async () => {
+  const api = new ChainApi({})
+
+  const oneBadAddress =  () =>  api.getGasTokenBalances({ owners: ['dummy0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A', '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A', '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A', '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A'] })
+
+  await expect(oneBadAddress()).rejects.toThrow();
+})
+
+test("ChainApi - getGasTokenBalances - permit failure", async () => {
+  const api = new ChainApi({})
+
+  const res = await api.getGasTokenBalances({ owners: ['dummy0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A', '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A', '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A', '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A'], permitFailure: true })
+
+  expect(res).toEqual(['0', '1081418614616880', '1081418614616880', '1081418614616880'])
+})
+
+
+test("ChainApi - getTokenBalances - non-existent token", async () => {
+  const api = new ChainApi({})
+
+  const res = await api.getTokenBalances({
+    tokensAndOwners: [ // full of duplicates
+      [nullAddress, '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A'],
+      [nullAddress, '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A'],
+      ['0x419B8ED155180A8c9C64145e76DaD49c0A4Efb97', '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A'],
+      ['0x419B8ED155180A8c9C64145e76DaD49c0A4Efb97', '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A'],
+      ['0x419B8ED155180A8c9C64145e76DaD49c0A4Efb97', '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A'],
+      [nullAddress, '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A'],
+      [nullAddress, '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A'],
+      ['0x419B8ED155180A8c9C64145e76DaD49c0A4Efb97', '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A'],
+      ['0x419B8ED155180A8c9C64145e76DaD49c0A4Efb97', '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A'],
+      ['0x419B8ED155180A8c9C64145e76DaD49c0A4Efb90', '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A'],
+      ['0xcA11bde05977b3631167028862bE2a173976CA11', '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A'],
+    ],
+    permitFailure: true,
+  })
+
+
+  const singleApi = new ChainApi({})
+  const resSingle = await singleApi.getTokenBalances({
+    tokensAndOwners: [
+      ['0x419B8ED155180A8c9C64145e76DaD49c0A4Efb97', '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A'],
+      ['0x419B8ED155180A8c9C64145e76DaD49c0A4Efb90', '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A'],
+      ['0xcA11bde05977b3631167028862bE2a173976CA11', '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A'],
+      [nullAddress, '0x9a849A108764a5cE2Ab4CD3208071B304a9Ac99A'],
+    ],
+    withTokenData: true,
+    permitFailure: true,
+  })
+
+  expect(res).toEqual([
+    '1081418614616880',
+    '1081418614616880',
+    '3284260000000000000000',
+    '3284260000000000000000',
+    '3284260000000000000000',
+    '1081418614616880',
+    '1081418614616880',
+    '3284260000000000000000',
+    '3284260000000000000000',
+    '0',
+    '0',
+  ])
+  expect(resSingle).toEqual([
+    ['0x419B8ED155180A8c9C64145e76DaD49c0A4Efb97', '3284260000000000000000'],
+    ['0x419B8ED155180A8c9C64145e76DaD49c0A4Efb90', '0'],
+    ['0xcA11bde05977b3631167028862bE2a173976CA11', '0'],
+    ['0x0000000000000000000000000000000000000000', '1081418614616880']
+  ])
 })
