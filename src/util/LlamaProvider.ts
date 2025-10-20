@@ -1,6 +1,6 @@
 import { AbstractProvider, AddressLike, Block, BlockTag, FallbackProvider, Filter, FilterByBlockHash, JsonRpcProvider, Log, Provider, TransactionRequest, WebSocketProvider } from "ethers";
 import providerList from '../providers.json'
-import { getArchivalRPCs, getBatchMaxCount, getChainId, getChainRPCs, getEnvValue } from './env';
+import { getArchivalRPCs, getBatchMaxCount, getChainId, getChainRPCs, getEnvValue, getWhitelistedRPCs } from './env';
 import { debugLog, debugTable } from './debugLog';
 import { Chain } from "../types";
 import axios from "axios";
@@ -227,6 +227,12 @@ export function getProvider(chain: Chain = "ethereum", _getArchivalNode = false)
   // use RPC from env variable if set else use RPC from providers.json
   let rpcList: (string | undefined) = getChainRPCs(rpcKey, pList[chain]?.rpc)
   let archivalRPCList: (string[] | undefined) = getArchivalRPCs(rpcKey)
+  let whitelistedRPCList: (string[] | undefined) = getWhitelistedRPCs(rpcKey)
+
+  if (whitelistedRPCList?.length) {
+    rpcList = [...whitelistedRPCList].join(',')
+    archivalRPCList = whitelistedRPCList
+  }
   if (!rpcList) {
     // @ts-ignore (throwing error here would alter function behavior and have side effects)
     return null

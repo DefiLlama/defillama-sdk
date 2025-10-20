@@ -116,3 +116,9 @@ export function getChainRPCs(chain: string, defaultList: string[] = []): string 
   }
   return envValue || undefined
 }
+
+export function getWhitelistedRPCs(chain: string): string[] {
+  const key = chain + '_WHITELISTED_RPC'
+  if (getEnvValue(key)) return getEnvValue(key)!.split(',')
+  return []
+}
