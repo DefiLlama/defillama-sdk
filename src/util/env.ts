@@ -4,10 +4,12 @@ const whitelistedEnvConstants = [
   'ELASTICSEARCH_CONFIG', 'GRAPH_API_KEY', 'LLAMA_INDEXER_ENDPOINT', 'LLAMA_INDEXER_API_KEY', 'LLAMA_INDEXER_V2_ENDPOINT', 'LLAMA_INDEXER_V2_API_KEY',
 ]
 
-export const logGetBlockStats = process.env.LLAMA_SDK_LOG_GET_BLOCK_STATS === 'true' || false
-export const logGetLogsErrors = process.env.LLAMA_SDK_LOG_GET_LOGS_ERRORS === 'true' || false
-export const logGetLogsDebug = process.env.LLAMA_SDK_LOG_GET_LOGS_DEBUG === 'true' || false
-export const logGetLogsIndexer = process.env.LLAMA_SDK_LOG_GET_LOGS_INDEXER === 'true' || false
+export const isDebugLevel3 = process.env.LLAMA_SDK_DEBUG_LEVEL_3 === 'true' || false
+export const logLlamaProviderCalls = process.env.LLAMA_SDK_LOG_LLAMA_PROVIDER_CALLS === 'true' || isDebugLevel3
+export const logGetBlockStats = process.env.LLAMA_SDK_LOG_GET_BLOCK_STATS === 'true' || isDebugLevel3
+export const logGetLogsErrors = process.env.LLAMA_SDK_LOG_GET_LOGS_ERRORS === 'true' || isDebugLevel3
+export const logGetLogsDebug = process.env.LLAMA_SDK_LOG_GET_LOGS_DEBUG === 'true' || isDebugLevel3
+export const logGetLogsIndexer = process.env.LLAMA_SDK_LOG_GET_LOGS_INDEXER === 'true' || isDebugLevel3
 export const defaultShortenStringLength = +(process.env.LLAMA_SDK_DEFAULT_SHORTEN_STRING_LENGTH ?? '120')
 
 const defaultEnvValues = {
