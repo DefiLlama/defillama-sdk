@@ -56,6 +56,10 @@ test("imports", async () => {
           "fetchList": [Function],
           "multiCall": [Function],
         },
+        "coinsApi": {
+          "getMcaps": [Function],
+          "getPrices": [Function],
+        },
         "config": {
           "ETHER_ADDRESS": "0x0000000000000000000000000000000000000000",
           "TEN": 10n,
