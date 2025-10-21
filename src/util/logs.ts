@@ -1,6 +1,5 @@
 import { ethers, EventFragment, EventLog, id, Interface } from "ethers";
 import { getLogs as getLogsV1 } from ".";
-import { hexifyTarget } from "../abi/tron";
 import { Address } from "../types";
 import { getBlockNumber } from "./blocks";
 import { readCache, writeCache } from "./cache";
@@ -11,6 +10,8 @@ import {
   isIndexerEnabled,
 } from "./indexer";
 import runInPromisePool from "./promisePool";
+import { logGetLogsDebug } from "./env";
+import { tronToEvmAddress } from "./common";
 
 const currentVersion = "v3";
 
@@ -96,7 +97,7 @@ export async function getLogs(
     }
   }
 
-  if (!debugMode) debugMode = DEBUG_LEVEL2;
+  if (!debugMode) debugMode = DEBUG_LEVEL2 && logGetLogsDebug
 
   /* ----------------------- Split by maxBlockRange ------------------------- */
 
@@ -145,7 +146,7 @@ export async function getLogs(
 
   /* ----------------------------- RPC fallback ----------------------------- */
 
-  if (chain === "tron") target = hexifyTarget(target!);
+  if (chain === "tron") target = tronToEvmAddress(target!);
 
   let caches = (await _getCache()) as logCache[];
   const firstRun = !caches.length;

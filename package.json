@@ -1,6 +1,6 @@
 {
   "name": "@defillama/sdk",
-  "version": "5.0.175",
+  "version": "5.0.177",
   "description": "SDK for calculating TVL",
   "main": "build/index.js",
   "scripts": {
@@ -10,7 +10,7 @@
     "load-providers": "wget https://unpkg.com/@defillama/sdk@latest/build/providers.json -O build/providers.json",
     "test": "npm run load-providers && TEST_MODE=true LLAMA_DEBUG_MODE='' SDK_DEBUG='' LLAMA_DEBUG_LEVEL2='' jest",
     "test-only": "echo 'skipped building providers.json' && TEST_MODE=true LLAMA_DEBUG_MODE='' SDK_DEBUG='' LLAMA_DEBUG_LEVEL2='' jest",
-    "test-debug": "jest",
+    "test-debug": "TEST_MODE=true jest",
     "update-providers": "ts-node src/util/updateProviderList.ts",
     "remove-rpcs": "ts-node src/util/removeRedundantRPCs.ts",
     "format": "prettier --write \"src/**/*.ts\"",

@@ -4,12 +4,20 @@ const whitelistedEnvConstants = [
   'ELASTICSEARCH_CONFIG', 'GRAPH_API_KEY', 'LLAMA_INDEXER_ENDPOINT', 'LLAMA_INDEXER_API_KEY', 'LLAMA_INDEXER_V2_ENDPOINT', 'LLAMA_INDEXER_V2_API_KEY',
 ]
 
+export const isDebugLevel3 = process.env.LLAMA_SDK_DEBUG_LEVEL_3 === 'true' || false
+export const logLlamaProviderCalls = process.env.LLAMA_SDK_LOG_LLAMA_PROVIDER_CALLS === 'true' || isDebugLevel3
+export const logGetBlockStats = process.env.LLAMA_SDK_LOG_GET_BLOCK_STATS === 'true' || isDebugLevel3
+export const logGetLogsErrors = process.env.LLAMA_SDK_LOG_GET_LOGS_ERRORS === 'true' || isDebugLevel3
+export const logGetLogsDebug = process.env.LLAMA_SDK_LOG_GET_LOGS_DEBUG === 'true' || isDebugLevel3
+export const logGetLogsIndexer = process.env.LLAMA_SDK_LOG_GET_LOGS_INDEXER === 'true' || isDebugLevel3
+export const defaultShortenStringLength = +(process.env.LLAMA_SDK_DEFAULT_SHORTEN_STRING_LENGTH ?? '120')
+
 const defaultEnvValues = {
   INTERNAL_SDK_CACHE_FILE: './cache.json',
   TRON_RPC_CONCURRENCY_LIMIT: '5',
   LLAMA_INDEXER_ADDRESS_CHUNK_SIZE: '20',
-  TRON_RPC: 'https://api.trongrid.io',
-  TRON_EVM_RPC: 'https://rpc.ankr.com/tron_jsonrpc',
+  TRON_WALLET_RPC: 'https://api.trongrid.io',
+  // TRON_EVM_RPC: 'https://rpc.ankr.com/tron_jsonrpc', // no longer used
   NAKA_RPC: 'https://node.nakachain.xyz',
   ETHF_RPC: 'https://rpc.dischain.xyz/',
   CORE_RPC: "https://rpc.coredao.org,https://rpc.ankr.com/core,https://1rpc.io/core,https://rpc-core.icecreamswap.com",
@@ -68,7 +76,7 @@ export function getEnvRPC(chain: string): string | undefined {
 export function getEnvValue(key: string, defaultValue?: string) {
   key = key.toUpperCase()
   defaultValue = defaultValue ?? defaultEnvValues[key]
-  return process.env['LLAMA_SDK_' + key] ?? process.env['SDK_' + key] ??  process.env[key] ?? defaultValue
+  return process.env['LLAMA_SDK_' + key] ?? process.env['SDK_' + key] ?? process.env[key] ?? defaultValue
 }
 
 export function getEnvCacheFolder(defaultCacheFolder: string): string {
@@ -109,4 +117,10 @@ export function getChainRPCs(chain: string, defaultList: string[] = []): string 
     return listString
   }
   return envValue || undefined
+}
+
+export function getWhitelistedRPCs(chain: string): string[] {
+  const key = chain + '_WHITELISTED_RPC'
+  if (getEnvValue(key)) return getEnvValue(key)!.split(',')
+  return []
 }

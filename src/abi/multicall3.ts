@@ -2,7 +2,6 @@ import { ethers } from "ethers";
 import { Chain } from "../general";
 import convertResults from "./convertResults";
 import makeMultiCallV2 from './multicall'
-import * as Tron from './tron'
 import { call } from './index'
 // https://github.com/mds1/multicall
 // https://www.multicall3.com/deployments
@@ -205,21 +204,56 @@ export default async function makeMultiCall(
   chain: Chain,
   block?: string | number,
 ): Promise<any> {
-  if (chain === 'tron') return Tron.multiCall(functionABI, calls)
+
   if (!functionABI) throw new Error('Missing ABI parameter')
   if (calls.some(i => !i.contract)) throw new Error('Missing target, abi:' + functionABI)
-  if (!isMulticallV3Supported(chain, block))
-    return makeMultiCallV2(functionABI, calls, chain, block)
+
+  if (!isMulticallV3Supported(chain, block)) return makeMultiCallV2(functionABI, calls, chain, block)
+
+
   const contractInterface = new ethers.Interface([functionABI])
   let fd = contractInterface.fragments[0] as ethers.FunctionFragment
+  const failedEncodingIndexes: number[] = []
+  const goodEncodingIndexes: number[] = []
+  const goodCalls: any = []
 
-  const contractCalls = calls.map((call) => {
-    const data = contractInterface.encodeFunctionData(fd, call.params);
-    return {
-      to: call.contract,
-      data,
-    };
-  });
+  const contractCalls = calls.map((call, idx) => {
+    try {
+
+      const data = contractInterface.encodeFunctionData(fd, call.params)
+      if (call.contract?.startsWith('0x')) {
+        const _isValidAddress = ethers.getAddress(call.contract); // Validates and checksums the address
+      }
+
+      goodCalls.push(call)
+      goodEncodingIndexes.push(idx)
+
+      return {
+        to: call.contract,
+        data,
+      }
+    } catch (e) {
+      failedEncodingIndexes.push(idx)
+    }
+  })
+
+
+  // if some calls failed to encode, we fetch the good ones and fill the rest with null
+  if (failedEncodingIndexes.length) {
+
+    const goodCallResponses = await makeMultiCall(functionABI, goodCalls, chain, block)
+    const responses: any[] = []
+
+    failedEncodingIndexes.forEach(idx => {
+      responses[idx] = { input: { params: calls[idx].params, target: calls[idx].contract }, success: false, output: null, error: new Error('Bad encoding') }
+    })
+
+    goodEncodingIndexes.forEach((goodIdx, i) => {
+      responses[goodIdx] = goodCallResponses[i]
+    })
+
+    return responses
+  }
 
   let returnValues: any
   try {
@@ -233,7 +267,7 @@ export default async function makeMultiCall(
     let output = null
     let error = null
     try {
-      output = convertResults(contractInterface.decodeFunctionResult(fd, values), fd);
+      output = convertResults(contractInterface.decodeFunctionResult(fd, values), { functionABI: fd, chain});
     } catch (e) {
       error = e
       success = false
@@ -251,7 +285,7 @@ export default async function makeMultiCall(
 
   async function _call() {
     const multicallAddress = getMulticallAddress(chain, block) as string
-    const { output: returnData } = await call({ chain, block, target: multicallAddress, abi: 'function tryAggregate(bool requireSuccess, tuple(address target, bytes callData)[] calls) payable returns (tuple(bool success, bytes returnData)[] returnData)', params: [false, contractCalls.map((call) => [call.to, call.data])] })
+    const { output: returnData } = await call({ chain, block, target: multicallAddress, abi: 'function tryAggregate(bool requireSuccess, tuple(address target, bytes callData)[] calls) payable returns (tuple(bool success, bytes returnData)[] returnData)', params: [false, contractCalls.map((call: any) => [call.to, call.data])] })
     returnValues = returnData;
   }
 }

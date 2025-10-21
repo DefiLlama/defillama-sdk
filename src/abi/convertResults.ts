@@ -1,4 +1,5 @@
 import { ethers } from "ethers";
+import { evmToTronAddress } from "../util/common";
 
 function isNumberOrBigNumber(value: any) {
   return typeof value === 'bigint' || typeof value === "number"
@@ -19,7 +20,7 @@ function stringifyBigNumbers(result: any) {
   return final
 }
 
-export default function (results: ethers.Result, functionABI?: ethers.FunctionFragment) {
+export default function (results: ethers.Result, { functionABI, chain }: { functionABI?: ethers.FunctionFragment, chain?: string } = {}) {
   let response: any
   if (typeof results === "string" || typeof results === "boolean")
     return results
@@ -30,11 +31,9 @@ export default function (results: ethers.Result, functionABI?: ethers.FunctionFr
   response = stringifyBigNumbers(results)
 
   if (functionABI && functionABI.outputs) {
-    const outputNames = functionABI.outputs.map((i) => i.name)
-    outputNames.map((name, i) => {
-      setComponentDetails(response[i], functionABI.outputs[i])
-      if (name)
-        response[name] = response[i]
+    functionABI.outputs.map((componentDefinition, i) => {
+      setComponentDetails(response[i], componentDefinition, chain)
+      setNameAndTranformAddress({ response, componentDefinition, chain, index: i })
     })
   }
 
@@ -45,20 +44,30 @@ export default function (results: ethers.Result, functionABI?: ethers.FunctionFr
   return response;
 }
 
-function setComponentDetails(component: any, componentDefinition: any) {
+function setComponentDetails(component: any, componentDefinition: any, chain?: string) {
   if (componentDefinition.type === "tuple[]")
-    return component.map(setDetails)
+    return component.map((item: any) => setDetails(item, chain));
 
   if (componentDefinition.type === "tuple")
-    return setDetails(component)
+    return setDetails(component, chain)
 
-  function setDetails(value: any) {
+  function setDetails(value: any, chain?: string) {
     const definitions = componentDefinition.components || componentDefinition.arrayChildren.components
     definitions.map((def: any, i: number) => {
-      setComponentDetails(value[i], def)
-      const name = def.name
-      if (name)
-        value[name] = value[i]
+      setComponentDetails(value[i], def, chain)
+      setNameAndTranformAddress({ response: value, componentDefinition: def, chain, index: i })
     })
   }
+}
+
+function setNameAndTranformAddress({ response, componentDefinition, chain, index }: { response: any, componentDefinition: any, chain?: string, index: number, }) {
+
+  if (chain === 'tron' && componentDefinition.type === 'address') {
+    response[index] = evmToTronAddress(response[index])
+  }
+
+  if (componentDefinition?.name)
+    response[componentDefinition.name] = response[index]
+
+  return response
 }

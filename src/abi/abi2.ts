@@ -57,7 +57,7 @@ export async function fetchList(params: FetchListOptions) {
 
     if (itemCount) itemLength = itemCount
     else itemLength = await call({ chain, block, target, abi: lengthAbi, })
-    debugLog('length: ', itemLength)
+    // debugLog('length: ', itemLength)
     if (startFromOne) {
       itemLength++
       if (startFrom === 0) startFrom = 1
@@ -73,7 +73,7 @@ export async function fetchList(params: FetchListOptions) {
   if (itemCount) itemLengths = targets!.map(() => itemCount)
   else itemLengths = await multiCall({ chain, block, calls: targets!, abi: lengthAbi, })
 
-  debugLog('itemLengths: ', itemLengths)
+  // debugLog('itemLengths: ', itemLengths)
   let groupedByRes: any = itemLengths.map(() => [])
   const indexToTargetMapping: { [idx: number]: number } = {}
   let k = 0
