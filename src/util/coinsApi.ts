@@ -1,5 +1,5 @@
 import axios from "axios";
-import { ENV_CONSTANTS } from "./env";
+import { getEnvValue } from "./env";
 import runInPromisePool from "./promisePool";
 
 type CoinsApiData = {
@@ -15,7 +15,7 @@ type McapsApiData = {
   timestamp: number;
 };
 
-const coinsApiKey = process.env.COINS_KEY || ENV_CONSTANTS["COINS_API_KEY"];
+const coinsApiKey = getEnvValue("COINS_API_KEY")
 const bodySize = 2; // 100;
 
 function getBodies(readKeys: string[], timestamp: number | "now") {
@@ -37,7 +37,7 @@ function sleep(ms: number) {
 
 async function restCallWrapper(
   request: () => Promise<any>,
-  retries: number = 8,
+  retries: number = 3,
   name: string = "-"
 ) {
   while (retries > 0) {
@@ -86,13 +86,13 @@ export async function getPrices(
     processor: async (body: string) => {
       const res = await restCallWrapper(() =>
         axios.post(
-          `https://coins.llama.fi/prices?source=internal${
-            coinsApiKey ? `?apikey=${coinsApiKey}` : ""
+          `https://coins.llama.fi/prices?source=internal${coinsApiKey ? `?apikey=${coinsApiKey}` : ""
           }`,
           body,
           {
             headers: { "Content-Type": "application/json" },
-          }
+            params: { source: "internal", apikey: coinsApiKey },
+          },
         )
       );
 
@@ -147,8 +147,7 @@ export async function getMcaps(
     processor: async (body: string) => {
       const res = await restCallWrapper(() =>
         axios.post(
-          `https://coins.llama.fi/mcaps${
-            coinsApiKey ? `?apikey=${coinsApiKey}` : ""
+          `https://coins.llama.fi/mcaps${coinsApiKey ? `?apikey=${coinsApiKey}` : ""
           }`,
           body,
           {
