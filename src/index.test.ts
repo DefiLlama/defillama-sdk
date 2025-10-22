@@ -116,6 +116,10 @@ test("imports", async () => {
         "writeCache": [Function],
         "writeExpiringJsonCache": [Function],
       },
+      "coins": {
+        "getMcaps": [Function],
+        "getPrices": [Function],
+      },
       "elastic": {
         "addDebugLog": [Function],
         "addErrorLog": [Function],

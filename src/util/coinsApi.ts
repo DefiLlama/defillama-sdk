@@ -1,0 +1,172 @@
+import axios from "axios";
+import { getEnvValue } from "./env";
+import runInPromisePool from "./promisePool";
+
+type CoinsApiData = {
+  decimals: number;
+  price: number;
+  symbol: string;
+  timestamp: number;
+  PK?: string;
+};
+
+type McapsApiData = {
+  mcap: number;
+  timestamp: number;
+};
+
+const coinsApiKey = getEnvValue("COINS_API_KEY")
+const bodySize = 2; // 100;
+
+function getBodies(readKeys: string[], timestamp: number | "now") {
+  const bodies: string[] = [];
+  for (let i = 0; i < readKeys.length; i += bodySize) {
+    const body = {
+      coins: readKeys.slice(i, i + bodySize),
+    } as any;
+    if (timestamp !== "now") body.timestamp = timestamp;
+    bodies.push(JSON.stringify(body));
+  }
+
+  return bodies;
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function restCallWrapper(
+  request: () => Promise<any>,
+  retries: number = 3,
+  name: string = "-"
+) {
+  while (retries > 0) {
+    try {
+      const res = await request();
+      return res;
+    } catch {
+      await sleep(5_000 + 10_000 * Math.random());
+      restCallWrapper(request, retries--, name);
+    }
+  }
+  throw new Error(`couldnt work ${name} call after retries!`);
+}
+
+const priceCache: { [PK: string]: any } = {
+  "coingecko:tether": {
+    price: 1,
+    symbol: "USDT",
+    timestamp: Math.floor(Date.now() / 1e3 + 3600), // an hour from script start time
+  },
+};
+
+export async function getPrices(
+  readKeys: string[],
+  timestamp: number | "now"
+): Promise<{ [address: string]: CoinsApiData }> {
+  if (!readKeys.length) return {};
+
+  const aggregatedRes: { [address: string]: CoinsApiData } = {};
+
+  // read data from cache where possible
+  readKeys = readKeys.filter((PK: string) => {
+    if (timestamp !== "now") return true;
+    if (priceCache[PK]) {
+      aggregatedRes[PK] = { ...priceCache[PK], PK };
+      return false;
+    }
+    return true;
+  });
+
+  const bodies = getBodies(readKeys, timestamp);
+  const tokenData: CoinsApiData[][] = [];
+  await runInPromisePool({
+    items: bodies,
+    concurrency: 10,
+    processor: async (body: string) => {
+      const res = await restCallWrapper(() =>
+        axios.post(
+          `https://coins.llama.fi/prices?source=internal${coinsApiKey ? `?apikey=${coinsApiKey}` : ""
+          }`,
+          body,
+          {
+            headers: { "Content-Type": "application/json" },
+            params: { source: "internal", apikey: coinsApiKey },
+          },
+        )
+      );
+
+      const data = (res.data.coins = Object.entries(res.data.coins).map(
+        ([PK, value]) => ({
+          ...(value as CoinsApiData),
+          PK,
+        })
+      ));
+
+      tokenData.push(data);
+    },
+  });
+
+  const normalizedReadKeys = readKeys.map((k: string) => k.toLowerCase());
+  tokenData.map((batch: CoinsApiData[]) => {
+    batch.map((a: CoinsApiData) => {
+      if (!a.PK) return;
+      const i = normalizedReadKeys.indexOf(a.PK.toLowerCase());
+      aggregatedRes[readKeys[i]] = a;
+    });
+  });
+
+  return aggregatedRes;
+}
+
+const mcapCache: { [PK: string]: any } = {};
+
+export async function getMcaps(
+  readKeys: string[],
+  timestamp: number | "now"
+): Promise<{ [address: string]: McapsApiData }> {
+  if (!readKeys.length) return {};
+
+  const aggregatedRes: { [address: string]: McapsApiData } = {};
+
+  // read data from cache where possible
+  readKeys = readKeys.filter((PK: string) => {
+    if (timestamp !== "now") return true;
+    if (mcapCache[PK]) {
+      aggregatedRes[PK] = { ...mcapCache[PK], PK };
+      return false;
+    }
+    return true;
+  });
+
+  const bodies = getBodies(readKeys, timestamp);
+  const tokenData: { [key: string]: McapsApiData }[] = [];
+  await runInPromisePool({
+    items: bodies,
+    concurrency: 10,
+    processor: async (body: string) => {
+      const res = await restCallWrapper(() =>
+        axios.post(
+          `https://coins.llama.fi/mcaps${coinsApiKey ? `?apikey=${coinsApiKey}` : ""
+          }`,
+          body,
+          {
+            headers: { "Content-Type": "application/json" },
+          }
+        )
+      );
+      tokenData.push(res.data as any);
+    },
+  });
+
+  const normalizedReadKeys = readKeys.map((k: string) => k.toLowerCase());
+  tokenData.map((batch: { [key: string]: McapsApiData }) => {
+    Object.keys(batch).map((a: string) => {
+      if (!batch[a].mcap) return;
+      const i = normalizedReadKeys.indexOf(a.toLowerCase());
+      aggregatedRes[readKeys[i]] = batch[a];
+    });
+  });
+
+  return aggregatedRes;
+}

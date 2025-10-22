@@ -17,6 +17,7 @@ export * as indexer from "./util/indexer";
 export * as types from "./types";
 export * as tron from "./abi/tron";
 export * as erc20 from "./erc20";
+export * as coins from "./util/coinsApi";
 
 export const log = debugLog
 export const logTable = debugTable
