@@ -1,6 +1,7 @@
 import axios from "axios";
 import { getEnvValue } from "./env";
 import runInPromisePool from "./promisePool";
+import { sleepRandom } from "./common";
 
 type CoinsApiData = {
   decimals: number;
@@ -31,9 +32,6 @@ function getBodies(readKeys: string[], timestamp: number | "now") {
   return bodies;
 }
 
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 async function restCallWrapper(
   request: () => Promise<any>,
@@ -45,7 +43,7 @@ async function restCallWrapper(
       const res = await request();
       return res;
     } catch {
-      await sleep(5_000 + 10_000 * Math.random());
+      await sleepRandom(5_000 + 10_000, 5_000);
       restCallWrapper(request, retries--, name);
     }
   }
