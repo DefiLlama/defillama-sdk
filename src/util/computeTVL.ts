@@ -1,6 +1,6 @@
 import { sumSingleBalance } from "../generalUtil";
 import { Balances } from "../types";
-import { getPrices } from "./coinsApi";
+import { getPrices } from "./coins";
 
 type PricesObject = {
   // NOTE: the tokens queried might be case sensitive and can be in mixed case, but while storing them in the cache, we convert them to lowercase

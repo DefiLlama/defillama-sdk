@@ -7,7 +7,7 @@ import runInPromisePoolOrig from "./promisePool";
 export { getLatestBlock, getTimestamp, lookupBlock, } from "./blocks";
 export { convertToBigInt } from "./common"
 import pLimit from 'p-limit';
-import { getParallelGetLogsLimit, logGetLogsDebug } from "./env";
+import { getParallelGetLogsLimit, ENV_CONSTANTS } from "./env";
 
 export const runInPromisePool = runInPromisePoolOrig
 
@@ -57,7 +57,7 @@ export async function getLogs(options: GetLogsOptions): Promise<{ output: EventL
       options.provider = getProvider(options.chain!, false)
       // if (provider === options.provider) throw e // the provider for archival and non-archival request is the same
 
-      if (logGetLogsDebug)
+      if (ENV_CONSTANTS.GET_LOGS_DEBUG)
         debugLog(`Error fetching logs for chain ${options.chain} ${formError(e, { chain: options.chain, target: options.target, })}, retrying...`)
 
       return getLimiter()(() => _getLogs(options));
@@ -97,7 +97,7 @@ async function _getLogs(params: GetLogsOptions): Promise<{ output: EventLog[] }>
       currentBlock = nextBlock;
     } catch (e) {
 
-      if (logGetLogsDebug)
+      if (ENV_CONSTANTS.GET_LOGS_DEBUG)
         debugLog(`Error fetching logs for chain ${params.chain} blockSpread: ${blockSpread}. ${formError(e, { chain: params.chain, target: params.target, provider })}`)
 
       if (blockSpread >= 1001) {

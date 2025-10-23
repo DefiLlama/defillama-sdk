@@ -4,7 +4,7 @@ import { debugLog } from "./debugLog";
 import { isCosmosChain, getCosmosProvider } from "./cosmos";
 import { getTempLocalCache, ONE_WEEK } from "./cache";
 import pLimit from 'p-limit';
-import { getParallelGetBlocksLimit, logGetBlockStats } from "./env";
+import { getParallelGetBlocksLimit, ENV_CONSTANTS } from "./env";
 
 const defaultChains = ["avax", "bsc", "polygon", "arbitrum"] as Chain[]
 export const chainsForBlocks = defaultChains;
@@ -267,7 +267,7 @@ async function _lookupBlock(
       updateBlock(blocks)
     }
 
-    if (i > 2 && logGetBlockStats)
+    if (i > 2 && ENV_CONSTANTS.GET_BLOCK_STATS)
       debugLog(`chain: ${chain} block: ${block!.number} #calls: ${i} imprecision: ${Number((imprecision!) / 60).toFixed(2)} (min) Time Taken: ${Number((Date.now() - time) / 1000).toFixed(2)} (in sec)`)
 
 

@@ -10,7 +10,7 @@ import {
   isIndexerEnabled,
 } from "./indexer";
 import runInPromisePool from "./promisePool";
-import { logGetLogsDebug } from "./env";
+import { ENV_CONSTANTS } from "./env";
 import { getHash, tronToEvmAddress } from "./common";
 
 const currentVersion = "v3";
@@ -97,7 +97,7 @@ export async function getLogs(
     }
   }
 
-  if (!debugMode) debugMode = DEBUG_LEVEL2 && logGetLogsDebug
+  if (!debugMode) debugMode = DEBUG_LEVEL2 && !!ENV_CONSTANTS.GET_LOGS_DEBUG;
 
   /* ----------------------- Split by maxBlockRange ------------------------- */
 
