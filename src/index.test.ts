@@ -235,6 +235,7 @@ test("imports", async () => {
         "fetchJson": [Function],
         "formError": [Function],
         "formErrorString": [Function],
+        "getHash": [Function],
         "getProviderUrl": [Function],
         "getTimestamp": [Function],
         "getUniqueAddresses": [Function],

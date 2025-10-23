@@ -6,7 +6,7 @@ import { Address } from "../types";
 import { getBlockNumber } from "./blocks";
 import { readCache, writeCache } from "./cache";
 import { DEBUG_LEVEL2, debugLog } from "./debugLog";
-import { getEnvValue, logGetLogsIndexer } from "./env";
+import { getEnvValue, ENV_CONSTANTS } from "./env";
 import { getLogParams, getLogs as getLogsParent } from "./logs";
 import { GetTransactionOptions } from "./transactions";
 
@@ -247,7 +247,7 @@ export async function getTokens(
     if (cache.timestamp && timeNow - cache.timestamp < THREE_DAYS) return cache.tokens;
   }
 
-  if (logGetLogsIndexer)
+  if (ENV_CONSTANTS.GET_LOGS_INDEXER)
     debugLog("[Indexer] Pulling tokens for " + address);
 
   const tokens = cache.tokens ?? {};
@@ -309,7 +309,7 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
     transformLog,
   } = await getLogParams(options, true);
 
-  if (!debugMode) debugMode = DEBUG_LEVEL2 && logGetLogsIndexer
+  if (!debugMode) debugMode = DEBUG_LEVEL2 && !!ENV_CONSTANTS.GET_LOGS_INDEXER;
 
   const blockRange = toBlock - fromBlock;
   const effectiveMaxBlockRange = maxBlockRange ?? (noTarget ? 10_000 : Infinity);
@@ -338,7 +338,7 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
         `Indexer not up to date for ${chain}. Last indexed block: ${lastIndexedBlock}, requested block: ${toBlock}`
       );
 
-    if (logGetLogsIndexer)
+    if (ENV_CONSTANTS.GET_LOGS_INDEXER)
       debugLog(`Indexer only partially up to date for ${chain}. Last indexed block: ${lastIndexedBlock}, requested block: ${toBlock}, missing ${Number(percentageMissing).toFixed(2)}%. Pulling part of the logs through RPC calls.`);
 
     // now we split the request into two parts, one that goes to the indexer and one that goes through rpc calls
@@ -491,7 +491,7 @@ export async function getTokenTransfers({
   token,
   tokens,
 }: IndexerGetTokenTransfersOptions) {
-  if (!debugMode) debugMode = DEBUG_LEVEL2 && logGetLogsIndexer;
+  if (!debugMode) debugMode = DEBUG_LEVEL2 && !!ENV_CONSTANTS.GET_LOGS_INDEXER;
 
   checkIndexerConfig("v2");
   const chainId = getChainId(chain, "v2");
@@ -630,7 +630,7 @@ export async function getTransactions({
   debugMode = false,
   transactionType = "from",
 }: GetTransactionOptions) {
-  if (!debugMode) debugMode = DEBUG_LEVEL2 && logGetLogsIndexer;
+  if (!debugMode) debugMode = DEBUG_LEVEL2 && !!ENV_CONSTANTS.GET_LOGS_INDEXER;
   checkIndexerConfig("v2");
   const chainId = getChainId(chain, "v2");
 

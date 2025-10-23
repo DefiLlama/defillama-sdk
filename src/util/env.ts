@@ -4,13 +4,7 @@ const whitelistedEnvConstants = [
   'ELASTICSEARCH_CONFIG', 'GRAPH_API_KEY', 'LLAMA_INDEXER_ENDPOINT', 'LLAMA_INDEXER_API_KEY', 'LLAMA_INDEXER_V2_ENDPOINT', 'LLAMA_INDEXER_V2_API_KEY',
 ]
 
-export const isDebugLevel3 = process.env.LLAMA_SDK_DEBUG_LEVEL_3 === 'true' || false
-export const logLlamaProviderCalls = process.env.LLAMA_SDK_LOG_LLAMA_PROVIDER_CALLS === 'true' || isDebugLevel3
-export const logGetBlockStats = process.env.LLAMA_SDK_LOG_GET_BLOCK_STATS === 'true' || isDebugLevel3
-export const logGetLogsErrors = process.env.LLAMA_SDK_LOG_GET_LOGS_ERRORS === 'true' || isDebugLevel3
-export const logGetLogsDebug = process.env.LLAMA_SDK_LOG_GET_LOGS_DEBUG === 'true' || isDebugLevel3
-export const logGetLogsIndexer = process.env.LLAMA_SDK_LOG_GET_LOGS_INDEXER === 'true' || isDebugLevel3
-export const defaultShortenStringLength = +(process.env.LLAMA_SDK_DEFAULT_SHORTEN_STRING_LENGTH ?? '120')
+const isDebugLevel3 = process.env.LLAMA_SDK_DEBUG_LEVEL_3 === 'true'
 
 const defaultEnvValues = {
   INTERNAL_SDK_CACHE_FILE: './cache.json',
@@ -32,9 +26,16 @@ const defaultEnvValues = {
 
 const _ENV_CONSTANTS = {
   DEBUG_ENABLED: getEnvValue('DEBUG') === "true" || process.env.LLAMA_DEBUG_MODE ? 'true' : 'false',
-  DEBUG_LEVEL2: process.env.LLAMA_DEBUG_LEVEL2 ? 'true' : 'false',
+  DEBUG_LEVEL2: process.env.LLAMA_DEBUG_LEVEL2 || process.env.LLAMA_SDK_DEBUG_LEVEL_3 ? 'true' : 'false',
+  DEBUG_LEBEL_3: isDebugLevel3,
+  LOG_LLAMA_PROVIDER_CALLS:  isDebugLevel3 || process.env.LLAMA_SDK_LOG_LLAMA_PROVIDER_CALLS === 'true',
+  GET_BLOCK_STATS:  isDebugLevel3 || process.env.LLAMA_SDK_GET_BLOCK_STATS === 'true',
+  // GET_LOGS_ERRORS:  isDebugLevel3 || process.env.LLAMA_SDK_GET_LOGS_ERRORS === 'true',
+  GET_LOGS_DEBUG:  isDebugLevel3 || process.env.LLAMA_SDK_GET_LOGS_DEBUG === 'true',
+  GET_LOGS_INDEXER:  isDebugLevel3 || process.env.LLAMA_SDK_GET_LOGS_INDEXER === 'true',
+  DEFAULT_SHORTEN_STRING_LENGTH: process.env.LLAMA_SDK_DEFAULT_SHORTEN_STRING_LENGTH ?? '120',
 } as {
-  [key: string]: string | undefined
+  [key: string]: string | undefined | boolean
 }
 
 whitelistedEnvConstants.forEach(key => _ENV_CONSTANTS[key] = getEnvValue(key))

@@ -1,6 +1,6 @@
 import { AbstractProvider, AddressLike, Block, BlockTag, FallbackProvider, Filter, FilterByBlockHash, JsonRpcProvider, Log, Provider, TransactionRequest, WebSocketProvider } from "ethers";
 import providerList from '../providers.json'
-import { getArchivalRPCs, getBatchMaxCount, getChainId, getChainRPCs, getEnvValue, getWhitelistedRPCs, logLlamaProviderCalls } from './env';
+import { getArchivalRPCs, getBatchMaxCount, getChainId, getChainRPCs, getEnvValue, getWhitelistedRPCs, ENV_CONSTANTS } from './env';
 import { debugLog, debugTable } from './debugLog';
 import { Chain } from "../types";
 import axios from "axios";
@@ -76,7 +76,7 @@ export class LlamaProvider extends FallbackProvider {
         const block = await httpRPC.getBlockNumber(url)
         currentBlocks[url] = block
       } catch (e) {
-        if (logLlamaProviderCalls)
+        if (ENV_CONSTANTS.LOG_LLAMA_PROVIDER_CALLS)
           debugLog(`${_this.chainName} skipping RPC ${url} is not working, error: ${(e as any).message}`)
         _this._removeProvider(url)
       }

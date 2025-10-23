@@ -2,7 +2,7 @@ import * as fs from 'fs'
 import { ENV_CONSTANTS } from './env';
 
 // const cacheFile = __dirname + '/../../../sc-cache1.json'
-const cacheFile = ENV_CONSTANTS.INTERNAL_SDK_CACHE_FILE
+const cacheFile = ENV_CONSTANTS.INTERNAL_SDK_CACHE_FILE as string | undefined
 
 let cache: any = {}
 

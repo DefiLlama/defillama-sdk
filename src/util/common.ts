@@ -5,7 +5,9 @@ import axios, { AxiosError } from "axios";
 import * as ethers from 'ethers'
 import * as TronAddressFormatter from 'tron-format-address'
 import type { Balances, StringNumber, Address } from "../types";
-import { defaultShortenStringLength } from "./env";
+import { ENV_CONSTANTS } from "./env";
+import crypto from 'crypto';
+
 
 export function convertToBigInt(value: any) {
   const balance = value
@@ -280,8 +282,14 @@ export function formErrorString(e: any, errorParams: any = {}) {
   return errorString
 }
 
-export function shortenString(str: string, length = defaultShortenStringLength) {
-  return str.length > length ? str.slice(0, length).concat('...') : str
+export function shortenString(str: string, length?: number) {
+
+  if (!length) {
+    if (!isNaN(+ENV_CONSTANTS.DEFAULT_SHORTEN_STRING_LENGTH!)) length = +ENV_CONSTANTS.DEFAULT_SHORTEN_STRING_LENGTH!
+    if (!length || isNaN(length)) length = 120
+  }
+
+  return str.length > length! ? str.slice(0, length).concat('...') : str
 }
 
 export function formError(e: any, errorParams: any = {}): Error {
@@ -344,4 +352,10 @@ export function fixTronCallParams(params: any) {
 
   if (Array.isArray(params.calls))
     params.calls.forEach(fixTronCallParams)
+}
+
+
+export function getHash(str: string | string[]) {
+  if (Array.isArray(str)) str = str.join('-')
+  return crypto.createHash('sha256').update(str).digest('hex').substring(0, 32)
 }

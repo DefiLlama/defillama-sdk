@@ -3,7 +3,7 @@ import { storeR2JSONString, getR2JSONString, } from "./r2";
 import { constants, brotliCompress, brotliDecompress } from "zlib";
 import { promisify } from 'util';
 import { getEnvCacheFolder } from "./env";
-import { fetchJson, formError, postJson } from "./common";
+import { fetchJson, formError, getHash, postJson } from "./common";
 import crypto from 'crypto';
 
 const brotliOptions = {
@@ -111,7 +111,7 @@ export async function writeCache(file: string, data: any, options: WriteCacheOpt
       debugLog('Data too small to cache: ', file);
       return;
     }
-    if (isSameData(data, await readCache(file, { skipR2Cache: true, skipCompression: options.skipCompression, }))) return;
+    if (!options.skipCompression && isSameData(data, await readCache(file, { skipR2Cache: true, skipCompression: options.skipCompression, }))) return;
 
     if (options.skipCompression)
       file = `${file}-uncompressed`
@@ -282,7 +282,7 @@ export async function cachedFetch({
 
   if (!key) {
     if (!endpoint || postData || fetcher) throw new Error('Key is required for cachedFetch')
-    key = crypto.createHash('sha256').update(endpoint).digest('hex').substring(0, 32);
+    key = getHash(endpoint)
   }
 
   const fileKey = 'cached-fetch/' + key
