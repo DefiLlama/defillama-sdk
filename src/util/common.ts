@@ -6,6 +6,8 @@ import * as ethers from 'ethers'
 import * as TronAddressFormatter from 'tron-format-address'
 import type { Balances, StringNumber, Address } from "../types";
 import { defaultShortenStringLength } from "./env";
+import crypto from 'crypto';
+
 
 export function convertToBigInt(value: any) {
   const balance = value
@@ -344,4 +346,10 @@ export function fixTronCallParams(params: any) {
 
   if (Array.isArray(params.calls))
     params.calls.forEach(fixTronCallParams)
+}
+
+
+export function getHash(str: string|string[]) {
+  if (Array.isArray(str)) str = str.join('-')
+  return crypto.createHash('sha256').update(str).digest('hex').substring(0, 32)
 }

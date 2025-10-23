@@ -11,7 +11,7 @@ import {
 } from "./indexer";
 import runInPromisePool from "./promisePool";
 import { logGetLogsDebug } from "./env";
-import { tronToEvmAddress } from "./common";
+import { getHash, tronToEvmAddress } from "./common";
 
 const currentVersion = "v3";
 
@@ -183,21 +183,21 @@ export async function getLogs(
 
   /* ---------------------------- Return result ----------------------------- */
 
-let out: any[] = [];
-for (const c of caches) {
-  const { fromBlock: cStart, toBlock: cEnd } = c.metadata;
-  if (fromBlock! > cEnd || toBlock! < cStart) continue;
+  let out: any[] = [];
+  for (const c of caches) {
+    const { fromBlock: cStart, toBlock: cEnd } = c.metadata;
+    if (fromBlock! > cEnd || toBlock! < cStart) continue;
 
-  const filtered = c.logs
-    .filter((i: EventLog) => i.blockNumber >= fromBlock! && i.blockNumber <= toBlock!)
-    .map(transformLog);
+    const filtered = c.logs
+      .filter((i: EventLog) => i.blockNumber >= fromBlock! && i.blockNumber <= toBlock!)
+      .map(transformLog);
 
-  if (processor) await processor(filtered);
-  // Always include filtered logs in the return value, even when a processor is provided
-  out = out.concat(filtered); // use concat instead of ... to avoid running into issues with large arrays (RangeError: Maximum call stack size exceeded)
-}
+    if (processor) await processor(filtered);
+    // Always include filtered logs in the return value, even when a processor is provided
+    out = out.concat(filtered); // use concat instead of ... to avoid running into issues with large arrays (RangeError: Maximum call stack size exceeded)
+  }
 
-return out;
+  return out;
 
   /* ----------------------------------------------------------------------- */
   /*                         Internal helper functions                       */
@@ -241,9 +241,46 @@ return out;
       } else merged.push(c);
     });
     caches = merged;
-    
-    if (!skipCache)  // we are skipping compression by default, so reads & writes are faster
-      await writeCache(getFile(), { caches, version: currentVersion }, { skipR2CacheWrite: !cacheInCloud, skipCompression: !cacheInCloud })
+
+    if (!skipCache) {
+      let storeCaches = caches;
+      let randomLogLength = 0
+      const totalLogCount = caches.reduce((acc, c) => {
+        if (c.logs.length) randomLogLength = JSON.stringify(c.logs[0]).length
+        return acc + c.logs.length
+      }, 0);
+      const fileSizeInMB = (totalLogCount * randomLogLength) / (1024 * 1024)
+      if (fileSizeInMB > 300) { // if cache size is larger than ~300MB, trim it down
+        console.log(`getLogs: large cache size detected ${totalLogCount} logs size: ${fileSizeInMB}MB, retaining only the latest 200k logs to limit memory usage target=${target} topic=${topic} fromBlock=${fromBlock} toBlock=${toBlock}`);
+
+        // retain only the latest logs that fit within 300,000 logs
+        if (caches.length > 1) {
+          let cacheWithLatestFromBlock = caches[0]
+          for (const c of caches) {
+            if (c.metadata.fromBlock > cacheWithLatestFromBlock.metadata.fromBlock) {
+              cacheWithLatestFromBlock = c
+            }
+          }
+
+          storeCaches = [cacheWithLatestFromBlock]
+        }
+
+        storeCaches = storeCaches.map(c => {
+          const clone: any = { logs: [], metadata: JSON.parse(JSON.stringify(c.metadata)) }
+          if (c.logs.length > 200_000) {
+            // sort the logs by block number descending and keep only the latest 200k logs
+            c.logs.sort((a, b) => b.blockNumber - a.blockNumber)
+            clone.logs = c.logs.slice(0, 200_000)
+            const lastLog = clone.logs[clone.logs.length - 1]
+            clone.metadata.fromBlock = lastLog.blockNumber
+          }
+          return clone
+        })
+      }
+
+      // we are skipping compression by default, so reads & writes are faster
+      await writeCache(getFile(), { caches: storeCaches, version: currentVersion }, { skipR2CacheWrite: !cacheInCloud, skipCompression: !cacheInCloud })
+    }
   }
 
   function dedupLogs(...arr: EventLog[][]) {
@@ -283,7 +320,16 @@ return out;
     let extraKey = topics?.join("-").toLowerCase();
     if (!extraKey) throw new Error("extraKey is required");
     if (keys.length) extraKey += "-" + keys.join("-").toLowerCase();
-    return `event-logs/${chain}/${target?.toLowerCase() ?? null}-${extraKey}`;
+    let file = `${target?.toLowerCase() ?? null}-${extraKey}`
+
+    const normalKeyLength = '0x27e5cb712334e101b3c232eb0be198baaa595f5f-0xe8137aa901976cc8eaf1cef5dec491873faadc99d9720ccaec95673294a9d7c5-uncompressed'.length
+
+    // sometimes, there is a lot of topics and we hit the file name length limit
+    if (file.length > normalKeyLength) 
+      file = getHash(file)
+
+
+    return `event-logs/${chain}/${file}`;
   }
 }
 
@@ -401,12 +447,12 @@ export async function getLogParams(
           const topic = t.startsWith("0x") ? t : `0x${t}`;
           return ethers.zeroPadValue(topic, 32);
         });
-      
+
       // Ensure first topic (event signature) is present
       if (!topics[0]) {
         return log;
       }
-      
+
       log.topics = topics;
 
       // Store original topics for later use
@@ -453,10 +499,10 @@ export async function getLogParams(
     const parsed = iface.parseLog(log);
     if (!parsed && !allowParseFailure)
       throw new Error(`Failed to parse log: ${JSON.stringify(log.transactionHash)}`);
-    
+
     log.args = parsed?.args;
     if (entireLog) log.parsedLog = parsed;
-    
+
     return onlyArgs ? log.args : log;
   }
 

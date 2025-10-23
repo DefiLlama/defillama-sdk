@@ -9,7 +9,7 @@ export {
   formError, formErrorString, shortenString,
   fetchJson, postJson,
   tronToEvmAddress, evmToTronAddress,
-  sleep, sleepRandom,
+  sleep, sleepRandom, getHash,
 } from './util/common'
 
 export { blocks, humanizeNumber, }

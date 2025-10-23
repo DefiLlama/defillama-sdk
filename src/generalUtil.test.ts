@@ -1,5 +1,6 @@
 import { sumMultiBalanceOf, sumSingleBalance, mergeBalances, removeTokenBalance, sumChainTvls, convertToBigInt, } from "./generalUtil";
 import ChainApi from "./ChainApi";
+import { getHash, sleep, sleepRandom, sliceIntoChunks, normalizeAddress } from "./generalUtil";
 
 test("sumMultiBalanceOf", () => {
   const balances = {
@@ -188,3 +189,76 @@ test('convertToBigInt', () => {
   expect(convertToBigInt('2.031e+22')).toBe(BigInt('20310000000000000000000'))
   expect(convertToBigInt('0x0000000000000000000139C5FfeE6153a7b8678f')).toBe(BigInt('1481753159505255786375055'))
 })
+
+test("getHash", () => {
+  // Test basic functionality
+  const hash1 = getHash("test string");
+  expect(hash1).toBeDefined();
+  expect(typeof hash1).toBe("string")
+  
+  // Test determinism (same input gives same output)
+  const hash2 = getHash("test string");
+  expect(hash1).toEqual(hash2);
+  
+  // Test different inputs give different outputs
+  const hash3 = getHash("different string");
+  expect(hash1).not.toEqual(hash3);
+  
+  // Test with empty string
+  const emptyHash = getHash("");
+  expect(emptyHash).toBeDefined();
+
+  const longString = "a".repeat(1000);
+  const longString2 = longString + "b"
+  const longHash = getHash(longString);
+  expect(longHash).toBeDefined();
+
+  const longHash2 = getHash(longString2);
+  expect(longHash).not.toEqual(longHash2);
+});
+
+test("sleep", async () => {
+  const start = Date.now();
+  await sleep(50); // Sleep for 50ms
+  const duration = Date.now() - start;
+  
+  // Check that at least the sleep time has passed, with some tolerance
+  expect(duration).toBeGreaterThanOrEqual(45);
+});
+
+test("sleepRandom", async () => {
+  const start = Date.now();
+  await sleepRandom(50, 100); // Sleep for between 50-100ms
+  const duration = Date.now() - start;
+  
+  // Check that at least min sleep time has passed
+  expect(duration).toBeGreaterThanOrEqual(45);
+  
+  // It's difficult to test the upper bound due to timing variations,
+  // but we can check that it's reasonably close to our expected range
+  expect(duration).toBeLessThan(150);
+});
+
+test("sliceIntoChunks", () => {
+  const array = [1, 2, 3, 4, 5, 6, 7, 8];
+  
+  const chunks = sliceIntoChunks(array, 3);
+  expect(chunks).toEqual([[1, 2, 3], [4, 5, 6], [7, 8]]);
+  
+  const singleChunk = sliceIntoChunks(array, 10);
+  expect(singleChunk).toEqual([array]);
+  
+  const manyChunks = sliceIntoChunks(array, 1);
+  expect(manyChunks).toEqual([[1], [2], [3], [4], [5], [6], [7], [8]]);
+  
+  // Test empty array
+  expect(sliceIntoChunks([], 3)).toEqual([]);
+});
+
+test("normalizeAddress", () => {
+  const upperAddress = "0xABCDEF1234567890ABCDEF1234567890ABCDEF12";
+  const lowerAddress = "0xabcdef1234567890abcdef1234567890abcdef12";
+  
+  expect(normalizeAddress(upperAddress)).toBe(lowerAddress);
+  expect(normalizeAddress(lowerAddress)).toBe(lowerAddress);
+});
