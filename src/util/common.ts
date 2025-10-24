@@ -228,7 +228,7 @@ export function formErrorString(e: any, errorParams: any = {}) {
 
   if (e.llamaRPCError) {
     const errorString = `Llama RPC error! method: ${e.method} `
-    const errors = e.errors.map((i: any) => `- host: ${i?.host} error: ${i?.error?.message}`)
+    const errors = e.errors.map((i: any) => `- host: ${i?.host} error: ${typeof i?.error === 'string' ? i?.error : i?.error?.message}`)
     return errorString + '\n' + errors.join('\n')
   }
 
