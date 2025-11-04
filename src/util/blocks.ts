@@ -275,8 +275,9 @@ async function _lookupBlock(
 
 
     if (
-      chain !== "bsc" && // this check is there because bsc halted the chain for few days
       Math.abs(block!.timestamp - timestamp) > 3600
+      && chain !== "bsc" // this check is there because bsc halted the chain for few days
+      && !shouldSkipCurrentBlockValidation(chain)
     ) {
       throw new Error(
         "Block selected is more than 1 hour away from the requested timestamp"

@@ -127,15 +127,15 @@ export function getWhitelistedRPCs(chain: string): string[] {
   return []
 }
 
-let skipCurrentBlockValidationChainSet: Set<string> | null = null
+let skipBlockValidationChainSet: Set<string> | null = null
 
-export function shouldSkipCurrentBlockValidation(chain: string): boolean {
-  if (!skipCurrentBlockValidationChainSet) {
-    const envValue = getEnvValue('SKIP_CURRENT_BLOCK_VALIDATION_CHAINS', '')
+export function shouldSkipBlockValidation(chain: string): boolean {
+  if (!skipBlockValidationChainSet) {
+    const envValue = getEnvValue('SKIP_BLOCK_VALIDATION_CHAINS', '')
     const chainList = envValue ? envValue.split(',').map(c => c.trim()) : []
-    skipCurrentBlockValidationChainSet = new Set(chainList)
+    skipBlockValidationChainSet = new Set(chainList)
   }
-  return skipCurrentBlockValidationChainSet.has(chain)
+  return skipBlockValidationChainSet.has(chain)
 }
 
 export function getBoolEnvValue(key: string, defaultValue: boolean = false): boolean {
