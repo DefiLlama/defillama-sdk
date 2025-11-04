@@ -5,7 +5,7 @@ import axios, { AxiosError } from "axios";
 import * as ethers from 'ethers'
 import * as TronAddressFormatter from 'tron-format-address'
 import type { Balances, StringNumber, Address } from "../types";
-import { ENV_CONSTANTS } from "./env";
+import { ENV_CONSTANTS, getBoolEnvValue } from "./env";
 import crypto from 'crypto';
 
 
@@ -293,6 +293,11 @@ export function shortenString(str: string, length?: number) {
 }
 
 export function formError(e: any, errorParams: any = {}): Error {
+
+  if (e instanceof Error && getBoolEnvValue('DEBUG_ERROR_STACK')) {
+    console.error(e)
+  }
+
   const errorParamsSet = Object.keys(errorParams).length
   if (e?._isCustomError || (!errorParamsSet && typeof e === 'object' && !Object.keys(e).length)) return e // already formatted or vannila error
   const error: any = new Error(formErrorString(e, errorParams));

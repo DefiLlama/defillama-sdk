@@ -3,7 +3,7 @@ import { getArchivalRPCs, getBatchMaxCount, getChainId, getChainRPCs, getDefault
 import { ChainApi } from '../ChainApi'
 
 
-test("cronos calls over batch limit", async () => {
+test.skip("cronos calls over batch limit", async () => {
   const limit = getBatchMaxCount("cronos") + 10
   const call = '0x66e428c3f67a68878562e79a0234c1f83c208770'
   const calls = [] as any

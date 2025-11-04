@@ -1,6 +1,6 @@
-import { AbstractProvider, AddressLike, Block, BlockTag, FallbackProvider, Filter, FilterByBlockHash, JsonRpcProvider, Log, Provider, TransactionRequest, WebSocketProvider } from "ethers";
+import { AbstractProvider, AddressLike, Block, BlockTag, FallbackProvider, Filter, FilterByBlockHash, JsonRpcProvider, Log, TransactionRequest } from "ethers";
 import providerList from '../providers.json'
-import { getArchivalRPCs, getBatchMaxCount, getChainId, getChainRPCs, getEnvValue, getWhitelistedRPCs, ENV_CONSTANTS } from './env';
+import { getArchivalRPCs, getChainId, getChainRPCs, getEnvValue, getWhitelistedRPCs, ENV_CONSTANTS } from './env';
 import { debugLog, debugTable } from './debugLog';
 import { Chain } from "../types";
 import axios from "axios";

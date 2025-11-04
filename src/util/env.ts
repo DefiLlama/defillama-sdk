@@ -26,13 +26,14 @@ const defaultEnvValues = {
 
 const _ENV_CONSTANTS = {
   DEBUG_ENABLED: getEnvValue('DEBUG') === "true" || process.env.LLAMA_DEBUG_MODE ? 'true' : 'false',
+  DEBUG_ERROR_STACK: getEnvValue('DEBUG_ERROR_STACK') === "true",
   DEBUG_LEVEL2: process.env.LLAMA_DEBUG_LEVEL2 || process.env.LLAMA_SDK_DEBUG_LEVEL_3 ? 'true' : 'false',
   DEBUG_LEBEL_3: isDebugLevel3,
-  LOG_LLAMA_PROVIDER_CALLS:  isDebugLevel3 || process.env.LLAMA_SDK_LOG_LLAMA_PROVIDER_CALLS === 'true',
-  GET_BLOCK_STATS:  isDebugLevel3 || process.env.LLAMA_SDK_GET_BLOCK_STATS === 'true',
+  LOG_LLAMA_PROVIDER_CALLS: isDebugLevel3 || process.env.LLAMA_SDK_LOG_LLAMA_PROVIDER_CALLS === 'true',
+  GET_BLOCK_STATS: isDebugLevel3 || process.env.LLAMA_SDK_GET_BLOCK_STATS === 'true',
   // GET_LOGS_ERRORS:  isDebugLevel3 || process.env.LLAMA_SDK_GET_LOGS_ERRORS === 'true',
-  GET_LOGS_DEBUG:  isDebugLevel3 || process.env.LLAMA_SDK_GET_LOGS_DEBUG === 'true',
-  GET_LOGS_INDEXER:  isDebugLevel3 || process.env.LLAMA_SDK_GET_LOGS_INDEXER === 'true',
+  GET_LOGS_DEBUG: isDebugLevel3 || process.env.LLAMA_SDK_GET_LOGS_DEBUG === 'true',
+  GET_LOGS_INDEXER: isDebugLevel3 || process.env.LLAMA_SDK_GET_LOGS_INDEXER === 'true',
   DEFAULT_SHORTEN_STRING_LENGTH: process.env.LLAMA_SDK_DEFAULT_SHORTEN_STRING_LENGTH ?? '120',
 } as {
   [key: string]: string | undefined | boolean
@@ -124,4 +125,21 @@ export function getWhitelistedRPCs(chain: string): string[] {
   const key = chain + '_WHITELISTED_RPC'
   if (getEnvValue(key)) return getEnvValue(key)!.split(',')
   return []
+}
+
+let skipCurrentBlockValidationChainSet: Set<string> | null = null
+
+export function shouldSkipCurrentBlockValidation(chain: string): boolean {
+  if (!skipCurrentBlockValidationChainSet) {
+    const envValue = getEnvValue('SKIP_CURRENT_BLOCK_VALIDATION_CHAINS', '')
+    const chainList = envValue ? envValue.split(',').map(c => c.trim()) : []
+    skipCurrentBlockValidationChainSet = new Set(chainList)
+  }
+  return skipCurrentBlockValidationChainSet.has(chain)
+}
+
+export function getBoolEnvValue(key: string, defaultValue: boolean = false): boolean {
+  const envValue = getEnvValue(key)
+  if (envValue === undefined) return defaultValue
+  return envValue === 'true'
 }

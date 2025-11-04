@@ -4,7 +4,7 @@ import { debugLog } from "./debugLog";
 import { isCosmosChain, getCosmosProvider } from "./cosmos";
 import { getTempLocalCache, ONE_WEEK } from "./cache";
 import pLimit from 'p-limit';
-import { getParallelGetBlocksLimit, ENV_CONSTANTS } from "./env";
+import { getParallelGetBlocksLimit, ENV_CONSTANTS, shouldSkipCurrentBlockValidation } from "./env";
 
 const defaultChains = ["avax", "bsc", "polygon", "arbitrum"] as Chain[]
 export const chainsForBlocks = defaultChains;
@@ -153,6 +153,9 @@ const blockCacheSaveInterval = 1000 * 60 * 5; // 5 minutes
 const { data: blockTimeCache, saveCacheFile: saveBlockCacheFile }: { data: ChainBlockCache, saveCacheFile: Function } = getTempLocalCache({ file: 'BlockCache.json', defaultData: {}, clearAfter: ONE_WEEK, returnWithSaveFunction: true });
 
 function validateCurrentBlock(block: Block, chain: Chain = 'ethereum') {
+  // sometimes the chain is halted or facing issues, so we skip the validation for those chains
+  if (shouldSkipCurrentBlockValidation(chain)) return;
+
   const provider = getExtraProvider(chain);
   const now = Math.floor(Date.now() / 1000)
   const minutesDiff = Math.floor((now - block.timestamp) / 60)
