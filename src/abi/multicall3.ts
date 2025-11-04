@@ -191,6 +191,7 @@ const DEPLOYMENT_BLOCK = {
   edu_chain: 16410660,
   stratis: 1420372,
   '0g': 6546802,
+  besc: 1,
 } as {
   [key: string | Chain]: number
 }
@@ -334,4 +335,5 @@ const CUSTOM_MULTICALL_ADDRESSES: { [key: string]: string } = {
   'bitci': '0x777238B119cD07e6849b0817f284532DC0F9F8D9',
   'eteria': '0x8cC688B1F99b651ee00bB0Cb0aae61F416F8384b',
   'xone': '0xe39d7BCDdaBBD0526D143185Fb7b459099Fd40c9',
+  'besc': '0xBcdb671cBC7711fE533E8B46E52EbC1470145F67',
 }
