@@ -66,6 +66,26 @@ test("lookupBlock bsc", async () => {
   expect(getDiff(block2.timestamp, 1638821718)).toBeLessThanOrEqual(15 * 60); // difference should be under 15 minutes
 });
 
+test("lookupBlock berachain", async () => {
+  const block = await lookupBlock(1761955200, { chain: 'berachain' });
+  // Should return a valid block before the halt (block 12627746)
+  expect(block.block).toBeLessThanOrEqual(12627746);
+  expect(getDiff(block.timestamp, 1761955200)).toBeLessThanOrEqual(15 * 60); // difference should be under 15 minutes
+
+  const block2 = await lookupBlock(1759276800, { chain: 'berachain' });
+  // Should return a valid block before the halt
+  expect(block2.block).toBeLessThanOrEqual(12627746);
+  expect(getDiff(block2.timestamp, 1759276800)).toBeLessThanOrEqual(15 * 60); // difference should be under 15 minutes
+}, 120000);
+
+test("getLatestBlock berachain", async () => {
+  // The chain halted after block 12627746, so the latest block will always be outdated
+  const block = await getLatestBlock('berachain');
+  expect(block.block).toBeGreaterThan(0);
+  expect(block.timestamp).toBeGreaterThan(0);
+  expect(block.number).toBe(block.block);
+});
+
 test("lookupBlock celo", async () => {
   const block = await lookupBlock(1654822801, { chain: 'celo' });
   expect(getDiff(block.block, 13448723)).toBeLessThanOrEqual(500); // 200 blocks appromiates to 10 minute difference

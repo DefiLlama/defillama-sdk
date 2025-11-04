@@ -153,6 +153,10 @@ const blockCacheSaveInterval = 1000 * 60 * 5; // 5 minutes
 const { data: blockTimeCache, saveCacheFile: saveBlockCacheFile }: { data: ChainBlockCache, saveCacheFile: Function } = getTempLocalCache({ file: 'BlockCache.json', defaultData: {}, clearAfter: ONE_WEEK, returnWithSaveFunction: true });
 
 function validateCurrentBlock(block: Block, chain: Chain = 'ethereum') {
+  // Skip validation for berachain as it was halted after block 12627746
+  // The latest block will always be outdated since the chain stopped
+  if (chain === 'berachain') return
+  
   const provider = getExtraProvider(chain);
   const now = Math.floor(Date.now() / 1000)
   const minutesDiff = Math.floor((now - block.timestamp) / 60)
@@ -273,6 +277,7 @@ async function _lookupBlock(
 
     if (
       chain !== "bsc" && // this check is there because bsc halted the chain for few days
+      chain !== "berachain" && // this check is there because berachain halted after block 12627746
       Math.abs(block!.timestamp - timestamp) > 3600
     ) {
       throw new Error(
