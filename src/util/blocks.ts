@@ -4,7 +4,7 @@ import { debugLog } from "./debugLog";
 import { isCosmosChain, getCosmosProvider } from "./cosmos";
 import { getTempLocalCache, ONE_WEEK } from "./cache";
 import pLimit from 'p-limit';
-import { getParallelGetBlocksLimit, ENV_CONSTANTS, shouldSkipCurrentBlockValidation } from "./env";
+import { getParallelGetBlocksLimit, ENV_CONSTANTS, shouldSkipBlockValidation } from "./env";
 
 const defaultChains = ["avax", "bsc", "polygon", "arbitrum"] as Chain[]
 export const chainsForBlocks = defaultChains;
@@ -154,7 +154,7 @@ const { data: blockTimeCache, saveCacheFile: saveBlockCacheFile }: { data: Chain
 
 function validateCurrentBlock(block: Block, chain: Chain = 'ethereum') {
   // sometimes the chain is halted or facing issues, so we skip the validation for those chains
-  if (shouldSkipCurrentBlockValidation(chain)) return;
+  if (shouldSkipBlockValidation(chain)) return;
 
   const provider = getExtraProvider(chain);
   const now = Math.floor(Date.now() / 1000)
@@ -277,7 +277,7 @@ async function _lookupBlock(
     if (
       Math.abs(block!.timestamp - timestamp) > 3600
       && chain !== "bsc" // this check is there because bsc halted the chain for few days
-      && !shouldSkipCurrentBlockValidation(chain)
+      && !shouldSkipBlockValidation(chain)
     ) {
       throw new Error(
         "Block selected is more than 1 hour away from the requested timestamp"
