@@ -1,6 +1,10 @@
 import axios from "axios";
 import http from "http";
 import https from "https";
+import { Readable } from "stream";
+import { parser as streamJsonParser } from "stream-json";
+import { pick } from "stream-json/filters/Pick";
+import { streamArray } from "stream-json/streamers/StreamArray";
 import { sliceIntoChunks } from ".";
 import { ETHER_ADDRESS } from "../general";
 import { Address } from "../types";
@@ -310,101 +314,83 @@ async function streamJsonArrayFromIndexer(opts: {
 
   if (!res?.data) return;
 
-  let buf = "";
-  let keyDetected = false;
-  let inArray = false;
+  return new Promise<void>((resolve, reject) => {
+    const stream = res.data as Readable;
+    let isResolved = false;
 
-  const detectKey = (acc: string) => {
-    if (keyDetected) return acc;
-    const re = new RegExp(`"${arrayKey}"\\s*:\\s*\\[`);
-    const m = acc.match(re);
-    if (m) {
-      keyDetected = true;
-      const idx = acc.indexOf(m[0]);
-      const after = acc.slice(idx + m[0].length);
-      inArray = true;
-      return after;
-    }
-    return acc;
-  };
-
-  const drainObjects = async () => {
-    if (!inArray) return;
-    let i = 0, start = -1, depth = 0, inStr = false, esc = false;
-
-    while (i < buf.length) {
-      if (shouldStop?.()) { controller.abort(); return; }
-
-      const ch = buf[i];
-
-      if (esc) { esc = false; i++; continue; }
-      if (inStr) {
-        if (ch === "\\") esc = true;
-        else if (ch === '"') inStr = false;
-        i++; continue;
+    const safeResolve = () => {
+      if (!isResolved) {
+        isResolved = true;
+        resolve();
       }
-      if (ch === '"') { inStr = true; i++; continue; }
+    };
 
-      if (ch === "{") {
-        if (depth === 0) start = i;
-        depth++; i++; continue;
+    const safeReject = (err: any) => {
+      if (!isResolved) {
+        isResolved = true;
+        reject(err);
       }
+    };
 
-      if (ch === "}") {
-        depth--; i++;
-        if (depth === 0 && start >= 0) {
-          const jsonStr = buf.slice(start, i);
-          try {
-            await onItem(JSON.parse(jsonStr));
-            itemsProcessed++;
-          } catch {}
-          if (i < buf.length && buf[i] === ",") i++;
-          buf = buf.slice(i);
-          i = 0; start = -1;
+    const isCancellationError = (err: any): boolean =>
+      err?.name === "CanceledError" ||
+      err?.message?.includes("aborted") ||
+      axios.isCancel(err) ||
+      err?.code === 'ERR_CANCELED';
 
-          if (onChunkStats && itemsProcessed % 100000 === 0) {
-            onChunkStats({ chunkSize: 100000, bytesReceived, itemsProcessed });
-          }
-        }
-        continue;
-      }
+    // Track bytes received for stats (use actual chunk size)
+    stream.on('data', (chunk: Buffer) => {
+      bytesReceived += chunk.length;
+      onChunkStats?.({ chunkSize: chunk.length, bytesReceived, itemsProcessed });
+    });
 
-      if (ch === "]" && depth === 0) {
-        buf = buf.slice(i + 1);
-        inArray = false;
+    const jsonParser = streamJsonParser();
+    const pickFilter = pick({ filter: arrayKey });
+    const arrayStream = streamArray();
+
+    // Backpressure handling: pause/resume to prevent memory buildup
+    arrayStream.on('data', (data: { key: number; value: any }) => {
+      if (shouldStop?.()) {
+        controller.abort();
+        stream.destroy();
         return;
       }
-      i++;
-    }
-  };
 
-  try {
-    for await (const chunk of res.data as NodeJS.ReadableStream) {
-      if (shouldStop?.()) { controller.abort(); break; }
-      const size = (chunk as Buffer).length;
-      if (size) {
-        bytesReceived += size;
-        if (onChunkStats) onChunkStats({ chunkSize: 0, bytesReceived, itemsProcessed }); // TTFB + live bytes
-      }
-      const str = chunk.toString("utf8");
-      if (!keyDetected) {
-        const remainder = detectKey(buf + str);
-        if (keyDetected) { buf = remainder; await drainObjects(); }
-        else { buf = (buf + str).slice(-1024 * 64); }
-      } else {
-        buf += str;
-        await drainObjects();
-      }
-    }
+      arrayStream.pause();
+      Promise.resolve(onItem(data.value))
+        .catch(() => { })
+        .finally(() => {
+          itemsProcessed++;
+          if (itemsProcessed % 100000 === 0) {
+            onChunkStats?.({ chunkSize: 100000, bytesReceived, itemsProcessed });
+          }
+          arrayStream.resume();
+        });
+    });
 
-    if (onChunkStats && itemsProcessed > 0) {
-      const remainder = itemsProcessed % 100000;
-      if (remainder > 0) onChunkStats({ chunkSize: remainder, bytesReceived, itemsProcessed });
-    }
-  } catch (e: any) {
-    if (e?.name === "CanceledError" || e?.message?.includes("aborted")) return;
-    throw e;
-  }
+    const handleError = (err: any) =>
+      isCancellationError(err) ? safeResolve() : safeReject(err);
+
+    arrayStream.on('error', handleError);
+    jsonParser.on('error', handleError);
+    pickFilter.on('error', handleError);
+    stream.on('error', handleError);
+
+    const onEnd = () => {
+      if (itemsProcessed > 0) {
+        const remainder = itemsProcessed % 100000;
+        if (remainder > 0) {
+          onChunkStats?.({ chunkSize: remainder, bytesReceived, itemsProcessed });
+        }
+      }
+      safeResolve();
+    };
+
+    arrayStream.on('end', onEnd);
+    arrayStream.on('close', onEnd);
+
+    stream.pipe(jsonParser).pipe(pickFilter).pipe(arrayStream);
+  });
 }
 
 // ---------------------------------------------------------------------------

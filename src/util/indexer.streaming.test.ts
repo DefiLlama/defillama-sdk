@@ -11,7 +11,7 @@ const CONFIG = {
   collect:   true,
   fromBlock: 66214443,
   toBlock:   66329526,
-  limit:     500_000,
+  limit:     200_000,
   all:       false
 };
 
@@ -417,20 +417,6 @@ describe("Indexer getLogs - All Configurations Comparison", () => {
     reportLines.push("\n" + "=".repeat(80));
     reportLines.push("⚖️  PERFORMANCE COMPARISON");
     reportLines.push("=".repeat(80));
-
-    const fastest = results.reduce((best, curr) => 
-      curr.metrics.totalTime < best.metrics.totalTime ? curr : best
-    );
-    const fastestDecode = results.reduce((best, curr) => 
-      curr.metrics.totalDecodeTime < best.metrics.totalDecodeTime ? curr : best
-    );
-    const bestThroughput = results.reduce((best, curr) => 
-      curr.metrics.logsPerSecond > best.metrics.logsPerSecond ? curr : best
-    );
-
-    reportLines.push(`\n FASTEST TOTAL TIME: ${getConfigLabel(fastest.config)} (${formatDuration(fastest.metrics.totalTime)})`);
-    reportLines.push(` FASTEST DECODE: ${getConfigLabel(fastestDecode.config)} (${formatDuration(fastestDecode.metrics.totalDecodeTime)})`);
-    reportLines.push(` BEST THROUGHPUT: ${getConfigLabel(bestThroughput.config)} (${bestThroughput.metrics.logsPerSecond.toFixed(0)} logs/s)`);
 
     reportLines.push("\n📊 DETAILED COMPARISON TABLE:");
     reportLines.push("Config".padEnd(35) + "Total Time".padEnd(15) + "Decode Time".padEnd(15) + "Logs/s".padEnd(12) + "Decode %");
