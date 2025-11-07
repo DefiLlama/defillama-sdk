@@ -34,7 +34,8 @@
     "axios": "^1.6.5",
     "ethers": "^6.0.0",
     "p-limit": "^3.0.0",
-    "tron-format-address": "^0.1.11"
+    "tron-format-address": "^0.1.11",
+    "viem": "^2.38.6"
   },
   "devDependencies": {
     "@types/jest": "^29.2.3",

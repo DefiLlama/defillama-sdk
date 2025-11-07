@@ -233,3 +233,64 @@ test("Indexer - getTransactions - unknown chain", async () => {
     to_block: 19001067,
   })).rejects.toThrow();
 });
+
+test("Indexer - getLogs - Viem vs Ethers comparison", async () => {
+  const testConfig = {
+    target: contract,
+    eventAbi,
+    fromBlock: 16310967,
+    toBlock: 16610967,
+    chain: 'ethereum',
+    entireLog: true,
+  };
+
+  const viemLogs = await getLogs({
+    ...testConfig,
+    decoderType: "viem",
+  });
+
+  const ethersLogs = await getLogs({
+    ...testConfig,
+    decoderType: "ethers",
+  });
+
+  expect(viemLogs.length).toBe(ethersLogs.length);
+  expect(viemLogs.length).toBeGreaterThan(0);
+
+  function normalizeArgsForComparison(args: any): any {
+    if (!args) return args;
+    
+    const sorted = Object.keys(args).sort().reduce((acc: any, key: string) => {
+      acc[key] = args[key];
+      return acc;
+    }, {} as any);
+    
+    return JSON.parse(JSON.stringify(sorted, (key, value) => {
+      if (typeof value === 'bigint') {
+        return value.toString();
+      }
+      return value;
+    }));
+  }
+
+  for (let i = 0; i < viemLogs.length; i++) {
+    const viemLog = viemLogs[i];
+    const ethersLog = ethersLogs[i];
+
+    // Compare basic fields
+    expect(viemLog.transactionHash).toBe(ethersLog.transactionHash);
+    expect(viemLog.logIndex ?? viemLog.index).toBe(ethersLog.logIndex ?? ethersLog.index);
+    expect(viemLog.blockNumber).toBe(ethersLog.blockNumber);
+    expect((viemLog.address ?? viemLog.source)?.toLowerCase()).toBe(
+      (ethersLog.address ?? ethersLog.source)?.toLowerCase()
+    );
+
+    // Compare args if present
+    if (viemLog.args || ethersLog.args) {
+      const viemArgs = normalizeArgsForComparison(viemLog.args);
+      const ethersArgs = normalizeArgsForComparison(ethersLog.args);
+
+      expect(viemArgs).toEqual(ethersArgs);
+    }
+  }
+});

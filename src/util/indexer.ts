@@ -1,12 +1,14 @@
 import axios from "axios";
+import http from "http";
+import https from "https";
 import { sliceIntoChunks } from ".";
 import { ETHER_ADDRESS } from "../general";
-import { formError, getUniqueAddresses } from "./common";
 import { Address } from "../types";
 import { getBlockNumber } from "./blocks";
 import { readCache, writeCache } from "./cache";
+import { formError, getUniqueAddresses } from "./common";
 import { DEBUG_LEVEL2, debugLog } from "./debugLog";
-import { getEnvValue, ENV_CONSTANTS } from "./env";
+import { ENV_CONSTANTS, getEnvValue } from "./env";
 import { getLogParams, getLogs as getLogsParent } from "./logs";
 import { GetTransactionOptions } from "./transactions";
 
@@ -16,7 +18,7 @@ const LLAMA_INDEXER_V2_ENDPOINT = getEnvValue("LLAMA_INDEXER_V2_ENDPOINT");
 const LLAMA_INDEXER_V2_API_KEY = getEnvValue("LLAMA_INDEXER_V2_API_KEY");
 const addressChunkSize = +getEnvValue("LLAMA_INDEXER_ADDRESS_CHUNK_SIZE")! || 100;
 
-// v1 chains (still used for balances endpoint) -------------------------------------------------
+// v1 chains (still used for balances endpoint)
 const indexerChainIdChainMapping: { [key: number]: string } = {
   1: "ethereum",
   10: "optimism",
@@ -47,9 +49,6 @@ const indexer2ChainIdChainMapping: { [key: number]: string } = {
   999: "hyperliquid",
 };
 
-/**
- * Indexer configuration per version. We keep v1 **only** for legacy `/balances` endpoint.
- */
 interface IndexerConfig {
   endpoint: string;
   apiKey: string;
@@ -69,14 +68,22 @@ const indexerConfigs: Record<"v1" | "v2", IndexerConfig> = {
   },
 } as const;
 
+// http agents for streaming (keep-alive)
+const httpAgent = new http.Agent({ keepAlive: true, maxSockets: 256, maxFreeSockets: 64 });
+const httpsAgent = new https.Agent({ keepAlive: true, maxSockets: 256, maxFreeSockets: 64 });
+
 const axiosInstances = {
   v1: axios.create({
     headers: { "x-api-key": indexerConfigs.v1.apiKey },
     baseURL: indexerConfigs.v1.endpoint,
+    timeout: 180_000
   }),
   v2: axios.create({
     headers: { "x-api-key": indexerConfigs.v2.apiKey },
     baseURL: indexerConfigs.v2.endpoint,
+    httpAgent,
+    httpsAgent,
+    timeout: 300_000
   }),
 };
 
@@ -103,20 +110,9 @@ Object.entries(indexerConfigs.v1.chainMapping).forEach(([id, chain]) => {
   chainToIDMapping[chain] = +id;
 });
 
-const chainToIDMapping2: Record<string, number> = {};
-Object.entries(indexerConfigs.v2.chainMapping).forEach(([id, chain]) => {
-  chainToIDMapping2[chain] = +id;
-});
-
-// ---------------------------------------------------------------------------
-// In‑memory sync‑status cache helpers
-// ---------------------------------------------------------------------------
-
 type ChainIndexStatus = { [chain: string]: { block: number; timestamp: number } };
-const state: { timestamp?: number; chainIndexStatus: ChainIndexStatus | Promise<ChainIndexStatus> } = {
-  chainIndexStatus: {},
-};
-const cacheTime = 1 * 60 * 1000; // 1 min
+const state: { timestamp?: number; chainIndexStatus: ChainIndexStatus | Promise<ChainIndexStatus> } = { chainIndexStatus: {} };
+const cacheTime = 1 * 60 * 1000; // 1 min
 
 async function getChainIndexStatus(version: "v1" | "v2" = "v2"): Promise<ChainIndexStatus> {
   checkIndexerConfig(version);
@@ -144,10 +140,6 @@ async function getChainIndexStatus(version: "v1" | "v2" = "v2"): Promise<ChainIn
 
   return state.chainIndexStatus;
 }
-
-// ---------------------------------------------------------------------------
-// Utilities / Enums / Types
-// ---------------------------------------------------------------------------
 
 enum TokenTypes {
   ERC20 = "erc20",
@@ -180,10 +172,21 @@ export type IndexerGetLogsOptions = {
   offset?: number;
   debugMode?: boolean;
   noTarget?: boolean;
+  collect?: boolean; // If false, don't accumulate results in memory (useful with processor). Default: true
   parseLog?: boolean;
   processor?: (logs: any[]) => Promise<void> | void;
   maxBlockRange?: number;
   allowParseFailure?: boolean;
+
+  /** Feature flag: enable client-side streaming of /logs v2 */
+  clientStreaming?: boolean;
+
+  /** Decoder type: 'viem' (faster) or 'ethers' (fallback) */
+  decoderType?: "viem" | "ethers";
+
+  /** Metrics hooks (optional) */
+  onWireStats?: (s: { chunkSize: number; bytesReceived: number; itemsProcessed: number }) => void;
+  onDecodeStats?: (s: { batchSize: number; decodeTime: number; itemsDecoded: number }) => void;
 };
 
 export type IndexerGetTokenTransfersOptions = {
@@ -204,10 +207,6 @@ export type IndexerGetTokenTransfersOptions = {
   tokens?: string | string[];
   token?: string;
 };
-
-// ---------------------------------------------------------------------------
-// Token helpers (still via v1 endpoint)
-// ---------------------------------------------------------------------------
 
 export async function getTokens(
   address: string | string[],
@@ -281,10 +280,141 @@ export async function getTokens(
 }
 
 // ---------------------------------------------------------------------------
-// LOGS (v2 only)
+// Streaming support (disabled by default, opt-in via clientStreaming: true)
+// ---------------------------------------------------------------------------
+
+async function streamJsonArrayFromIndexer(opts: {
+  path: string;
+  arrayKey?: "logs";
+  onItem: (obj: any) => Promise<void> | void;
+  onChunkStats?: (s: { chunkSize: number; bytesReceived: number; itemsProcessed: number }) => void;
+  shouldStop?: () => boolean;
+}) {
+  const { path, arrayKey = "logs", onItem, onChunkStats, shouldStop } = opts;
+
+  const controller = new AbortController();
+  let bytesReceived = 0;
+  let itemsProcessed = 0;
+
+  const res = await axiosInstances.v2.get(path, {
+    responseType: "stream",
+    timeout: 0,
+    maxContentLength: Infinity,
+    maxBodyLength: Infinity,
+    headers: { Accept: "application/json", "Accept-Encoding": "gzip" },
+    signal: controller.signal,
+  }).catch((e) => {
+    if (axios.isCancel(e) || (e as any)?.code === 'ERR_CANCELED') return { data: null } as any;
+    throw formError(e);
+  });
+
+  if (!res?.data) return;
+
+  let buf = "";
+  let keyDetected = false;
+  let inArray = false;
+
+  const detectKey = (acc: string) => {
+    if (keyDetected) return acc;
+    const re = new RegExp(`"${arrayKey}"\\s*:\\s*\\[`);
+    const m = acc.match(re);
+    if (m) {
+      keyDetected = true;
+      const idx = acc.indexOf(m[0]);
+      const after = acc.slice(idx + m[0].length);
+      inArray = true;
+      return after;
+    }
+    return acc;
+  };
+
+  const drainObjects = async () => {
+    if (!inArray) return;
+    let i = 0, start = -1, depth = 0, inStr = false, esc = false;
+
+    while (i < buf.length) {
+      if (shouldStop?.()) { controller.abort(); return; }
+
+      const ch = buf[i];
+
+      if (esc) { esc = false; i++; continue; }
+      if (inStr) {
+        if (ch === "\\") esc = true;
+        else if (ch === '"') inStr = false;
+        i++; continue;
+      }
+      if (ch === '"') { inStr = true; i++; continue; }
+
+      if (ch === "{") {
+        if (depth === 0) start = i;
+        depth++; i++; continue;
+      }
+
+      if (ch === "}") {
+        depth--; i++;
+        if (depth === 0 && start >= 0) {
+          const jsonStr = buf.slice(start, i);
+          try {
+            await onItem(JSON.parse(jsonStr));
+            itemsProcessed++;
+          } catch {}
+          if (i < buf.length && buf[i] === ",") i++;
+          buf = buf.slice(i);
+          i = 0; start = -1;
+
+          if (onChunkStats && itemsProcessed % 100000 === 0) {
+            onChunkStats({ chunkSize: 100000, bytesReceived, itemsProcessed });
+          }
+        }
+        continue;
+      }
+
+      if (ch === "]" && depth === 0) {
+        buf = buf.slice(i + 1);
+        inArray = false;
+        return;
+      }
+      i++;
+    }
+  };
+
+  try {
+    for await (const chunk of res.data as NodeJS.ReadableStream) {
+      if (shouldStop?.()) { controller.abort(); break; }
+      const size = (chunk as Buffer).length;
+      if (size) {
+        bytesReceived += size;
+        if (onChunkStats) onChunkStats({ chunkSize: 0, bytesReceived, itemsProcessed }); // TTFB + live bytes
+      }
+      const str = chunk.toString("utf8");
+      if (!keyDetected) {
+        const remainder = detectKey(buf + str);
+        if (keyDetected) { buf = remainder; await drainObjects(); }
+        else { buf = (buf + str).slice(-1024 * 64); }
+      } else {
+        buf += str;
+        await drainObjects();
+      }
+    }
+
+    if (onChunkStats && itemsProcessed > 0) {
+      const remainder = itemsProcessed % 100000;
+      if (remainder > 0) onChunkStats({ chunkSize: remainder, bytesReceived, itemsProcessed });
+    }
+  } catch (e: any) {
+    if (e?.name === "CanceledError" || e?.message?.includes("aborted")) return;
+    throw e;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// LOGS (v2) – streaming opt-in, legacy default
 // ---------------------------------------------------------------------------
 
 export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
+  // Set collect=false by default when processor is provided AND collect is not explicitly set AND clientStreaming = true
+  // if you pass processor without collect=true, you won't get results back
+  
   let {
     all = true,
     limit = 1000,
@@ -296,7 +426,15 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
     noTarget = false,
     maxBlockRange,
     processor,
+    clientStreaming = false,   // default OFF to keep retro-compat
+    decoderType = "viem" as "viem" | "ethers", // default to viem for performance
+    onWireStats,
+    onDecodeStats,
   } = options;
+
+  if (processor && typeof options.collect === "undefined" && clientStreaming) {
+    (options as IndexerGetLogsOptions).collect = false;
+  }
 
   const {
     chain,
@@ -311,6 +449,10 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
 
   if (!debugMode) debugMode = DEBUG_LEVEL2 && !!ENV_CONSTANTS.GET_LOGS_INDEXER;
 
+  // === Match logs.ts semantic regarding processor + multiple targets (flatten=false) ===
+  if (processor && targets?.length > 1 && !flatten)
+    throw new Error("processor is not supported with multiple targets when flatten=false");
+
   const blockRange = toBlock - fromBlock;
   const effectiveMaxBlockRange = maxBlockRange ?? (noTarget ? 10_000 : Infinity);
 
@@ -320,20 +462,16 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
     );
   }
 
-  // We now only support v2 for logs ---------------------------------------------------------
+  // Ensure the indexer is synced far enough
   checkIndexerConfig("v2");
   const chainId = getChainId(chain, "v2");
-
-  // Ensure the indexer is synced far enough
   const chainIndexStatus = await getChainIndexStatus("v2");
   const lastIndexedBlock = chainIndexStatus[chain]?.block ?? 0;
   if (lastIndexedBlock < toBlock) {
 
-    const percentageMissing = ((toBlock - lastIndexedBlock) / (toBlock - fromBlock)) * 100
+    const percentageMissing = ((toBlock - lastIndexedBlock) / (toBlock - fromBlock)) * 100;
 
-
-
-    if (percentageMissing > 50)  // more than 50% of the requested range is missing, throw an error and so we pull the logs through rpc calls
+    if (percentageMissing > 50)
       throw new Error(
         `Indexer not up to date for ${chain}. Last indexed block: ${lastIndexedBlock}, requested block: ${toBlock}`
       );
@@ -341,18 +479,14 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
     if (ENV_CONSTANTS.GET_LOGS_INDEXER)
       debugLog(`Indexer only partially up to date for ${chain}. Last indexed block: ${lastIndexedBlock}, requested block: ${toBlock}, missing ${Number(percentageMissing).toFixed(2)}%. Pulling part of the logs through RPC calls.`);
 
-    // now we split the request into two parts, one that goes to the indexer and one that goes through rpc calls
+    const breakBlock = lastIndexedBlock - 50; // small buffer
+    const indexerLogs = await getLogs({ ...options, fromBlock, toBlock: breakBlock });
+    const rpcLogs = await getLogsParent({ ...options, fromBlock: breakBlock + 1, toBlock, skipIndexer: true });
 
-    const breakBlock = lastIndexedBlock - 50 // we add a small buffer to avoid missing logs due to reorgs
-
-    const indexerLogs = await getLogs({ ...options, fromBlock, toBlock: breakBlock })
-    const rpcLogs = await getLogsParent({ ...options, fromBlock: breakBlock + 1, toBlock, skipIndexer: true })
-
-
-    return indexerLogs.concat(rpcLogs)
+    return indexerLogs.concat(rpcLogs);
   }
 
-  // Re‑curse if the requested range is too large ------------------------------------------------
+  // Re-curse if the requested range is too large
   if (blockRange > effectiveMaxBlockRange) {
     const results: any[][] = [];
     for (
@@ -369,9 +503,6 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
     return targets.map((_, i) => results.map((r) => r[i]).flat());
   }
 
-  // -------------------------------------------------------------------------
-  // Prepare address filters
-  // -------------------------------------------------------------------------
   let address = target as string | undefined;
   if (typeof target === "string") targets = [target];
   if (Array.isArray(targets) && targets.length) address = targets.join(",");
@@ -383,10 +514,225 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
   const addressChunks = sliceIntoChunks(address?.split(",") ?? [], addressChunkSize);
   if (noTarget && addressChunks.length === 0) addressChunks.push(undefined as any);
 
-  // -------------------------------------------------------------------------
-  // Pull logs
-  // -------------------------------------------------------------------------
-  const allLogs: any[] = [];
+  // Function to safely push large arrays without stack overflow (avoid push.apply argument limits (~125k))
+  const safePush = (target: any[], source: any[]) => {
+    if (source.length === 0) return;
+    // For very large arrays, split into chunks
+    if (source.length > 100_000) {
+      const CHUNK_SIZE = 50_000; // Safe chunk size well below push.apply limit
+      for (let i = 0; i < source.length; i += CHUNK_SIZE) {
+        const chunk = source.slice(i, i + CHUNK_SIZE);
+        Array.prototype.push.apply(target, chunk);
+      }
+    } else {
+      Array.prototype.push.apply(target, source);
+    }
+  };
+
+  // -----------------------------------------------------------------------
+  // Streaming (opt-in) — NO server-side parsing; mirror legacy semantics
+  // -----------------------------------------------------------------------
+  if (clientStreaming) {
+    // FIX: If all === true, ignore limit completely (semantic: "get all logs")
+    const useAll = options.all === true;
+    const effectiveLimit = useAll ? Number.POSITIVE_INFINITY : (options.limit ?? limit);
+    const shouldLimit = !useAll && Number.isFinite(effectiveLimit);
+    const effectiveOffset = useAll ? 0 : (options.offset ?? initialOffset ?? 0);
+
+    const outPairs: Array<{ raw: any; transformed: any }> = [];
+    const debugKey = `Indexer-stream-${chain}-${topic}-${address || (noTarget ? "noTarget" : "none")}-${Math.random().toString(36).slice(2,8)}`;
+    const start = debugMode ? Date.now() : 0;
+    
+    const MICRO_BATCH_SIZE = 3_000;
+    const MAX_PENDING_BATCHES = 12;
+    let pendingBatchPromises: Promise<void>[] = [];
+    let batchCounter = 0;
+    // Store results by batch number to maintain order
+    const batchResults: Map<number, Array<{ raw: any; transformed: any }>> = new Map();
+    let nextExpectedBatch = 1;
+
+    // Global offset/limit tracking across all chunks (FIX: previously per-chunk)
+    let remainingOffset = effectiveOffset;
+    let remainingLimit = shouldLimit ? (effectiveLimit as number) : Number.POSITIVE_INFINITY;
+
+    const flushBatch = async (batch: any[], batchNum: number): Promise<void> => {
+      if (!batch.length) return;
+      
+      const t0 = Date.now();
+      const transformBatchFn = (transformLog as any).batch || ((logs: any[]) => logs.map(log => transformLog(log)));
+      const transformedLogs = await transformBatchFn(batch, decoderType);
+      const transformed: Array<{ raw: any; transformed: any }> = new Array(batch.length);
+      for (let i = 0; i < batch.length; i++) {
+        transformed[i] = { raw: batch[i], transformed: transformedLogs[i] };
+      }
+      const decodeTime = Date.now() - t0;
+      const batchSize = batch.length;
+
+      if (onDecodeStats) onDecodeStats({ batchSize, decodeTime, itemsDecoded: batchSize });
+
+          if (processor) await processor(transformed.map(i => i.transformed));
+          
+          // Store results by batch number for ordered output
+          const shouldCollect = (options.collect !== false); // Default true for backward compatibility
+          if (shouldCollect) {
+            batchResults.set(batchNum, transformed);
+            
+            // Flush results in order as batches complete
+            while (batchResults.has(nextExpectedBatch)) {
+              const orderedBatch = batchResults.get(nextExpectedBatch)!;
+              safePush(outPairs, orderedBatch);
+              batchResults.delete(nextExpectedBatch);
+              nextExpectedBatch++;
+            }
+          } else {
+            // If not collecting, just track completion order without storing results
+            // This allows proper batch ordering tracking without memory accumulation
+            while (batchResults.has(nextExpectedBatch)) {
+              batchResults.delete(nextExpectedBatch);
+              nextExpectedBatch++;
+            }
+          }
+    };
+
+    // Queue-based batch processing for pipeline optimization
+    const queueBatch = async (batch: any[]) => {
+      const currentBatchNum = ++batchCounter;
+      const batchPromise = flushBatch(batch, currentBatchNum);
+      
+      pendingBatchPromises.push(batchPromise);
+      
+      // Clean up completed promises periodically
+      batchPromise.finally(() => {
+        const idx = pendingBatchPromises.indexOf(batchPromise);
+        if (idx >= 0) {
+          pendingBatchPromises.splice(idx, 1);
+        }
+      });
+      
+      // If we have too many pending batches, wait for oldest to complete
+      // This creates backpressure to prevent memory issues
+      if (pendingBatchPromises.length >= MAX_PENDING_BATCHES) {
+        const oldestPromise = pendingBatchPromises[0];
+        await oldestPromise;
+        const idx = pendingBatchPromises.indexOf(oldestPromise);
+        if (idx >= 0) {
+          pendingBatchPromises.splice(idx, 1);
+        }
+      }
+    };
+
+    for (const chunk of addressChunks) {
+      if (Array.isArray(chunk) && chunk.length === 0) throw new Error("Address chunk cannot be empty");
+
+      const qs = new URLSearchParams();
+      qs.set("chainId", String(chainId));
+      qs.set("topic0", topic);
+      if (topic1) qs.set("topic1", topic1);
+      if (topic2) qs.set("topic2", topic2);
+      if (topic3) qs.set("topic3", topic3);
+      if (fromBlock != null) qs.set("from_block", String(fromBlock));
+      if (toBlock != null) qs.set("to_block", String(toBlock));
+      if (chunk && Array.isArray(chunk)) qs.set("addresses", chunk.join(",").toLowerCase());
+      if (noTarget) qs.set("noTarget", "true");
+      // no server-side parse / onlyArgs; we keep everything raw and decode client-side
+      qs.set("limit", "all");
+      qs.set("offset", "0");
+
+      const transformBatch: any[] = [];
+
+      let stopNow = false;
+
+      await streamJsonArrayFromIndexer({
+        path: `/logs?${qs.toString()}`,
+        arrayKey: "logs",
+        onItem: async (raw) => {
+          if (stopNow) return;
+
+          const okAddress = !addressSet.size || addressSet.has((raw.source ?? raw.address)?.toLowerCase?.());
+          if (!okAddress) return;
+
+          if (remainingOffset > 0) {
+            remainingOffset--;
+            return;
+          }
+          
+          if (remainingLimit <= 0) {
+            stopNow = true;
+            return;
+          }
+
+          transformBatch.push(raw);
+          remainingLimit--;
+
+          if (transformBatch.length >= MICRO_BATCH_SIZE) {
+            const batchToProcess = transformBatch.splice(0, MICRO_BATCH_SIZE);
+            queueBatch(batchToProcess).catch(() => {});
+          }
+        },
+        shouldStop: () => stopNow,
+        onChunkStats: (s) => {
+          if (onWireStats) onWireStats(s);
+        },
+      });
+
+      if (transformBatch.length > 0) {
+        await flushBatch(transformBatch.splice(0), ++batchCounter);
+      }
+      
+      await Promise.all(pendingBatchPromises);
+      pendingBatchPromises = [];
+      
+      // Flush any remaining ordered results (only if collect is enabled)
+      // Use safePush to avoid stack overflow on large batches
+      const shouldCollect = (options.collect !== false); // Default true for backward compatibility
+      while (batchResults.size > 0) {
+        if (batchResults.has(nextExpectedBatch)) {
+          const orderedBatch = batchResults.get(nextExpectedBatch)!;
+          if (shouldCollect) {
+            safePush(outPairs, orderedBatch);
+          }
+          batchResults.delete(nextExpectedBatch);
+          nextExpectedBatch++;
+        } else {
+          // If next batch is missing, find the earliest available
+          const sortedBatchNums = Array.from(batchResults.keys()).sort((a, b) => a - b);
+          if (sortedBatchNums.length > 0) {
+            nextExpectedBatch = sortedBatchNums[0];
+          } else {
+            break;
+          }
+        }
+      }
+
+      // Stop if we've reached the global limit
+      if (remainingLimit <= 0) break;
+    }
+
+    if (debugMode) {
+      const ms = Date.now() - start;
+      debugLog(`[Indexer] stream finished: ${outPairs.length} items in ${ms}ms`);
+    }
+
+    const splitByAddress = targets?.length && !flatten;
+    if (splitByAddress) {
+      const mapped: any[] = targets.map(() => []);
+      const indexMap: Record<string, number> = {};
+      targets.forEach((t, i) => (indexMap[t.toLowerCase()] = i));
+
+      outPairs.forEach(({ raw, transformed }) => {
+        const idx = indexMap[(raw.source ?? raw.address)?.toLowerCase?.()];
+        if (idx === undefined) return;
+        mapped[idx].push(transformed);
+      });
+      return mapped;
+    }
+
+    // Return empty array if collect=false (processor handles results)
+    const shouldCollect = (options.collect !== false);
+    return shouldCollect ? outPairs.map(i => i.transformed) : [];
+  }
+
+  const allLogsPairs: Array<{ raw: any; transformed: any }> = [];
   const debugTimeKey = `Indexer-getLogs-${chain}-${topic}-${address}_${Math.random()}`;
   if (debugMode) {
     debugLog("[Indexer] Pulling logs " + debugTimeKey);
@@ -413,9 +759,6 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
         limit,
         offset: chunkOffset,
         noTarget,
-        eventAbi: options.eventAbi,
-        parseLog: options.parseLog,
-        onlyArgs: options.onlyArgs,
       };
 
       const {
@@ -423,55 +766,65 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
       } = await axiosInstances.v2(`/logs`, { params }).catch(e => { throw formError(e) })
 
       const filtered = _logs.filter((l: any) => {
-        const isWhitelisted = !addressSet.size || addressSet.has(l.source.toLowerCase());
-        if (!isWhitelisted) return false;
-        if (l.block_number) {
-          l.blockNumber = parseInt(l.block_number);
-        }
-        return true;
+        const isWhitelisted = !addressSet.size || addressSet.has((l.source ?? l.address)?.toLowerCase?.());
+        return !!isWhitelisted;
       });
 
-      // we need to the { raw, transformed } structure to allow for post‑processing like clustering based on `source` field
-      const transformed = filtered.map((log: any) => ({ raw: log, transformed: transformLog(log) }));
+      const t0 = Date.now();
+      // Use batch parsing if available (Viem optimization) - much faster for large batches
+      const transformBatchFn = (transformLog as any).batch || ((logs: any[]) => logs.map(log => transformLog(log)));
+      // Batch function is async, always await
+      const transformedLogs = await transformBatchFn(filtered, decoderType);
+      const transformedPair = filtered.map((log: any, idx: number) => ({ raw: log, transformed: transformedLogs[idx] }));
+      const decodeTime = Date.now() - t0;
+      if (onDecodeStats && filtered.length > 0) onDecodeStats({ batchSize: filtered.length, decodeTime, itemsDecoded: filtered.length });
 
-      if (processor) await processor(transformed.map((i: any) => i.transformed));
+      if (processor) await processor(transformedPair.map((i: any) => i.transformed));
 
-      allLogs.push(...transformed);
+      // Use safe push helper to avoid stack overflow on large arrays
+      // Only accumulate if collect is enabled (default true for backward compatibility)
+      const shouldCollect = (options.collect !== false);
+      if (shouldCollect) {
+        safePush(allLogsPairs, transformedPair);
+      }
 
       logCount += _logs.length;
       chunkOffset += limit;
-      if (_logs.length < limit || totalCount <= logCount || _logs.length === 0) hasMore = false;
+      if (_logs.length === 0) {
+        hasMore = false;
+      } else if (_logs.length < limit) {
+        hasMore = false;
+      } else if (typeof totalCount === 'number' && totalCount <= logCount) {
+        hasMore = false;
+      } else {
+        hasMore = true;
+      }
     } while (all && hasMore);
   }
 
   if (debugMode) {
     console.timeEnd(debugTimeKey);
-    debugLog("Logs pulled " + chain, address, allLogs.length);
+    debugLog("Logs pulled " + chain, address, allLogsPairs.length);
   }
 
-  // -------------------------------------------------------------------------
-  // Map / transform result
-  // -------------------------------------------------------------------------
   const splitByAddress = targets?.length && !flatten;
   if (splitByAddress) {
     const mapped: any[] = targets.map(() => []);
     const indexMap: Record<string, number> = {};
     targets.forEach((t, i) => (indexMap[t.toLowerCase()] = i));
 
-    allLogs.forEach(({ raw, transformed }) => {
-      const idx = indexMap[raw.source.toLowerCase()];
+    allLogsPairs.forEach(({ raw, transformed }) => {
+      const idx = indexMap[(raw.source ?? raw.address)?.toLowerCase?.()];
       if (idx === undefined) return; // ignore unknown sources
       mapped[idx].push(transformed);
     });
     return mapped;
   }
 
-  return allLogs.map(i => i.transformed)
+    // Return empty array if collect=false (processor handles results)
+    const shouldCollect = (options.collect !== false);
+    return shouldCollect ? allLogsPairs.map(i => i.transformed) : [];
 }
-
-// ---------------------------------------------------------------------------
-// TOKEN TRANSFERS (v2 only)
-// ---------------------------------------------------------------------------
 
 export async function getTokenTransfers({
   chain = "ethereum",
@@ -496,9 +849,6 @@ export async function getTokenTransfers({
   checkIndexerConfig("v2");
   const chainId = getChainId(chain, "v2");
 
-  // -----------------------------------------------------------------------
-  // Input validation & pre‑processing
-  // -----------------------------------------------------------------------
   const fromFilterEnabled = !!fromAddressFilter?.length;
   if (typeof fromAddressFilter === "string") fromAddressFilter = [fromAddressFilter];
   const fromFilterSet = new Set((fromAddressFilter ?? []).map((a) => a.toLowerCase()));
@@ -523,7 +873,7 @@ export async function getTokenTransfers({
   targets = targets.map((t) => t.toLowerCase());
   const addresses = targets.join(",");
 
-  // Ensure v2 indexer is up‑to‑date
+  // Ensure v2 indexer is up-to-date
   const chainIndexStatus = await getChainIndexStatus("v2");
   const lastIndexedBlock = chainIndexStatus[chain]?.block ?? 0;
   if (lastIndexedBlock < toBlock) {
@@ -532,9 +882,6 @@ export async function getTokenTransfers({
     );
   }
 
-  // -----------------------------------------------------------------------
-  // Fetch transfers
-  // -----------------------------------------------------------------------
   const rawTransfers: any[] = [];
   const debugTimeKey = `Indexer-tokenTransfers-${chain}-${addresses}_${Math.random()}`;
   if (debugMode) {
@@ -574,13 +921,13 @@ export async function getTokenTransfers({
     }
 
     const {
-      data: { transfers: _logs, totalCount },
+      data: { transfers: _logs },
     } = await axiosInstances.v2(`/token-transfers`, { params }).catch(e => { throw formError(e) })
 
     rawTransfers.push(..._logs);
     currentOffset += limit;
 
-    if (_logs.length < limit || totalCount <= rawTransfers.length || _logs.length === 0) hasMore = false;
+    hasMore = _logs.length === limit;
   } while (all && hasMore);
 
   const filteredTransfers = rawTransfers.filter((l: any) => {
@@ -593,9 +940,6 @@ export async function getTokenTransfers({
     debugLog("Token Transfers pulled " + chain, addresses, filteredTransfers.length);
   }
 
-  // -----------------------------------------------------------------------
-  // Split result if requested
-  // -----------------------------------------------------------------------
   const splitByAddress = targets?.length && !flatten;
   if (splitByAddress) {
     const mapped: any[] = targets.map(() => []);
@@ -613,10 +957,6 @@ export async function getTokenTransfers({
 
   return filteredTransfers;
 }
-
-// ---------------------------------------------------------------------------
-// TRANSACTIONS (v2 only)
-// ---------------------------------------------------------------------------
 
 export async function getTransactions({
   chain = "ethereum",
@@ -708,17 +1048,12 @@ export async function getTransactions({
   }));
 }
 
-// ---------------------------------------------------------------------------
-// Public helpers
-// ---------------------------------------------------------------------------
 export function isIndexerEnabled(chain?: string) {
-  // Legacy function kept for backward‑compat: return true if v2 is enabled
   if (!indexerConfigs.v2.endpoint) return false;
   if (chain && !supportedChainSet2.has(chain)) return false;
   return true;
 }
 
 export function isIndexer2Enabled(chain?: string) {
-  // Alias – retained so external calls do not break
   return isIndexerEnabled(chain);
 }
