@@ -1,4 +1,13 @@
 import { ethers, Interface } from "ethers";
+import { decodeAbiParameters, parseAbiItem } from "viem";
+
+export function padTopic32(t: string): `0x${string}` {
+  if (!t) return '0x' as `0x${string}`;
+  // Early return if already 32 bytes (0x + 64 hex chars)
+  if (t.startsWith('0x') && t.length === 66) return t as `0x${string}`;
+  const hex = t.startsWith('0x') ? t.slice(2) : t;
+  return ('0x' + hex.padStart(64, '0')) as `0x${string}`;
+}
 
 export function normalizeLog(log: any, isIndexerCall: boolean = false): boolean {
   if (isIndexerCall || log.source) {
@@ -10,11 +19,7 @@ export function normalizeLog(log: any, isIndexerCall: boolean = false): boolean 
 
     const topics = [log.topic0, log.topic1, log.topic2, log.topic3]
       .filter(Boolean)
-      .map((t: string) => {
-        if (!t) return null;
-        const topic = t.startsWith("0x") ? t : `0x${t}`;
-        return ethers.zeroPadValue(topic, 32);
-      });
+      .map(padTopic32);
 
     if (!topics[0]) return false;
 
@@ -43,11 +48,7 @@ export function normalizeLog(log: any, isIndexerCall: boolean = false): boolean 
   if (!log.topics && log._originalTopics) {
     log.topics = [log._originalTopics.topic0, log._originalTopics.topic1, log._originalTopics.topic2, log._originalTopics.topic3]
       .filter(Boolean)
-      .map((t: string) => {
-        if (!t) return null;
-        const topic = t.startsWith("0x") ? t : `0x${t}`;
-        return ethers.zeroPadValue(topic, 32);
-      });
+      .map(padTopic32);
   }
 
   // Restore transaction hash if it was lost
@@ -97,9 +98,7 @@ export function convertTopicsToViemFormat(topics: any[]): [`0x${string}`, ...(`0
     : [] as [];
 }
 
-/**
- * Enrich Ethers args with named properties to match Viem output structure
- */
+// Enrich Ethers args with named properties to match Viem output structure
 export function enrichEthersArgsWithNamedProperties(
   ethersArgs: any,
   event: ethers.EventFragment | null,
@@ -124,16 +123,13 @@ export function enrichEthersArgsWithNamedProperties(
     const input = inputs[i];
     const value = ethersArgs[i];
     if (value !== undefined && value !== null) {
-      // Add named properties if they're not already present
       if (input.name && !(input.name in enrichedArgs)) {
         enrichedArgs[input.name] = value;
       }
-      // Ensure numeric index is present
       enrichedArgs[i] = value;
     }
   }
 
-  // Preserve length
   if (typeof ethersArgs.length === 'number') {
     enrichedArgs.length = ethersArgs.length;
   }
@@ -146,48 +142,170 @@ export function buildEthersCompatibleArgs(
   eventInputs: readonly ethers.ParamType[],
   normalizeFn: (value: any, type: string) => any = normalizeValueByType
 ): any {
-  const args: any = Object.create(null);
+  if (!decodedArgs) {
+    const args: any = Object.create(null);
+    args.length = eventInputs.length;
+    return args;
+  }
 
-  if (!decodedArgs) return args;
+  const args: any = Object.create(null);
+  args.length = eventInputs.length;
 
   try {
-    // Convert decoded args to array format
-    let values: any[] = [];
     if (Array.isArray(decodedArgs)) {
-      values = decodedArgs;
-    } else if (typeof decodedArgs === 'object') {
-      // Convert object to array based on input order
-      values = new Array(eventInputs.length);
-      for (let i = 0; i < eventInputs.length; i++) {
+      const len = Math.min(decodedArgs.length, eventInputs.length);
+      for (let i = 0; i < len; i++) {
         const input = eventInputs[i];
-        values[i] = (decodedArgs as any)[input.name] ?? (decodedArgs as any)[i] ?? null;
+        const value = decodedArgs[i];
+        if (value !== undefined && value !== null) {
+          const normalizedValue = normalizeFn(value, input.type);
+          if (input.name) args[input.name] = normalizedValue;
+          args[i] = normalizedValue;
+        }
       }
+      return args;
     }
 
-    // Build ethers-compatible Result object
-    args.length = eventInputs.length;
-    for (let inputIdx = 0; inputIdx < eventInputs.length; inputIdx++) {
-      const input = eventInputs[inputIdx];
-      if (values[inputIdx] !== undefined && values[inputIdx] !== null) {
-        // Normalize the value according to Solidity type to match Ethers format
-        const normalizedValue = normalizeFn(values[inputIdx], input.type);
-        // Support both named and indexed access (ethers Result behavior)
-        args[input.name] = normalizedValue;
-        args[inputIdx] = normalizedValue;
+    if (typeof decodedArgs === 'object') {
+      const inputCount = eventInputs.length;
+      for (let i = 0; i < inputCount; i++) {
+        const input = eventInputs[i];
+        const value = (decodedArgs as any)[input.name] ?? (decodedArgs as any)[i] ?? null;
+        if (value !== undefined && value !== null) {
+          const normalizedValue = normalizeFn(value, input.type);
+          if (input.name) args[input.name] = normalizedValue;
+          args[i] = normalizedValue;
+        }
       }
+      return args;
     }
   } catch (e) {
-    // Fallback: create simple object from decoded args
+    // Fallback: minimal object creation
     if (Array.isArray(decodedArgs)) {
-      args.length = decodedArgs.length;
-      for (let i = 0; i < decodedArgs.length; i++) {
+      const len = decodedArgs.length;
+      for (let i = 0; i < len; i++) {
         args[i] = decodedArgs[i];
       }
+      args.length = len;
     } else if (typeof decodedArgs === 'object') {
       Object.assign(args, decodedArgs);
     }
   }
 
   return args;
+}
+
+export function createViemFastPathBatchDecoder(eventAbi: string | any): ((logs: any[]) => Promise<any[]>) | null {
+  try {
+    // Parse ABI once
+    const ev = parseAbiItem(eventAbi);
+    if (!ev || ev.type !== 'event') return null;
+
+    const inputs = ev.inputs || [];
+    const indexed: typeof inputs = [] as typeof inputs;
+    const nonIndexed: typeof inputs = [] as typeof inputs;
+
+    for (const inp of inputs) {
+      if (inp.indexed) {
+        (indexed as any[]).push(inp);
+      } else {
+        (nonIndexed as any[]).push(inp);
+      }
+    }
+
+    const nonIndexedTypes = nonIndexed.map(i => ({ type: i.type as any }));
+
+    return async function decodeBatchViemFast(logs: any[]): Promise<any[]> {
+      const out = new Array(logs.length);
+
+      for (let i = 0; i < logs.length; i++) {
+        const l = logs[i];
+
+        try {
+          const logData = l.data || l.data_field || '0x';
+          
+          const decodedNon = nonIndexed.length && logData && logData !== '0x'
+            ? decodeAbiParameters(nonIndexedTypes as any, logData as `0x${string}`)
+            : [];
+
+          const args: any = Object.create(null);
+          args.length = inputs.length;
+
+          let topicIdx = 1; // topics[0] = event signature
+          let nonIndexedIdx = 0;
+
+          for (let j = 0; j < inputs.length; j++) {
+            const inp = inputs[j];
+            let value: any;
+
+            if (inp.indexed) {
+              if (topicIdx < (l.topics?.length || 0)) {
+                value = l.topics[topicIdx];
+                topicIdx++;
+              } else {
+                value = null;
+              }
+            } else {
+              value = decodedNon[nonIndexedIdx] ?? null;
+              nonIndexedIdx++;
+            }
+
+            let normalizedValue: any = null;
+            
+            if (value !== null && value !== undefined) {
+              // For indexed addresses, Ethers extracts the address from the padded topic
+              // Topics are 32 bytes padded, but Ethers returns addresses as normal 20-byte addresses
+              // Ethers uses getAddress() which converts to checksum format
+              if (inp.type === 'address' && inp.indexed && typeof value === 'string') {
+                let addressStr: string;
+                if (value.startsWith('0x') && value.length === 66) {
+                  // Topic is 32 bytes padded, extract the address (last 20 bytes = 40 hex chars)
+                  addressStr = '0x' + value.slice(-40);
+                } else if (value.startsWith('0x') && value.length === 42) {
+                  addressStr = value;
+                } else {
+                  // Fallback: try to extract address from topic
+                  const hex = value.startsWith('0x') ? value.slice(2) : value;
+                  if (hex.length >= 40) {
+                    addressStr = '0x' + hex.slice(-40);
+                  } else {
+                    addressStr = value;
+                  }
+                }
+                // Use ethers.getAddress to convert to checksum format (like Ethers does)
+                try {
+                  normalizedValue = ethers.getAddress(addressStr) as `0x${string}`;
+                } catch {
+                  // Fallback if getAddress fails
+                  normalizedValue = addressStr.toLowerCase() as `0x${string}`;
+                }
+              } else {
+                // For other types, use normal normalization
+                normalizedValue = normalizeValueByType(value, inp.type);
+              }
+            }
+            
+            // Always assign both numeric index and named property (even if value is null/undefined)
+            // This matches Ethers behavior where all args are present in the args object
+            args[j] = normalizedValue;
+            if (inp.name) {
+              args[inp.name] = normalizedValue;
+            }
+          }
+
+          out[i] = args;
+        } catch (e) {
+          // Fallback: return empty args on decode error
+          const args: any = Object.create(null);
+          args.length = inputs.length;
+          out[i] = args;
+        }
+      }
+
+      return out;
+    };
+  } catch (e) {
+    return null;
+  }
 }
 

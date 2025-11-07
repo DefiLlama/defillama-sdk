@@ -244,15 +244,32 @@ test("Indexer - getLogs - Viem vs Ethers comparison", async () => {
     entireLog: true,
   };
 
-  const viemLogs = await getLogs({
+  // Convert BigInt to string immediately to avoid Jest serialization issues
+  function convertBigIntToString(obj: any): any {
+    if (obj === null || obj === undefined) return obj;
+    if (typeof obj === 'bigint') return obj.toString();
+    if (Array.isArray(obj)) return obj.map(convertBigIntToString);
+    if (typeof obj === 'object') {
+      const converted: any = {};
+      for (const key in obj) {
+        converted[key] = convertBigIntToString(obj[key]);
+      }
+      return converted;
+    }
+    return obj;
+  }
+
+  const viemLogsRaw = await getLogs({
     ...testConfig,
     decoderType: "viem",
   });
+  const viemLogs = convertBigIntToString(viemLogsRaw);
 
-  const ethersLogs = await getLogs({
+  const ethersLogsRaw = await getLogs({
     ...testConfig,
     decoderType: "ethers",
   });
+  const ethersLogs = convertBigIntToString(ethersLogsRaw);
 
   expect(viemLogs.length).toBe(ethersLogs.length);
   expect(viemLogs.length).toBeGreaterThan(0);
@@ -265,12 +282,7 @@ test("Indexer - getLogs - Viem vs Ethers comparison", async () => {
       return acc;
     }, {} as any);
     
-    return JSON.parse(JSON.stringify(sorted, (key, value) => {
-      if (typeof value === 'bigint') {
-        return value.toString();
-      }
-      return value;
-    }));
+    return sorted;
   }
 
   for (let i = 0; i < viemLogs.length; i++) {

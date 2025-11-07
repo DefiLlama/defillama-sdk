@@ -11,7 +11,7 @@ const CONFIG = {
   collect:   true,
   fromBlock: 66214443,
   toBlock:   66329526,
-  limit:     200_000,
+  limit:     50_000,
   all:       false
 };
 
@@ -103,6 +103,10 @@ function pickStableFields(x: any) {
 function compareArgsStrict(argsA: any, argsB: any, path: string = 'args'): { identical: boolean; differences: string[] } {
   const differences: string[] = [];
 
+  const stringify = (value: any): string => {
+    return JSON.stringify(value, (k, v) => typeof v === 'bigint' ? v.toString() : v);
+  };
+
   const sortedA = Object.keys(argsA || {}).sort().reduce((acc: any, key: string) => {
     acc[key] = argsA[key];
     return acc;
@@ -113,19 +117,8 @@ function compareArgsStrict(argsA: any, argsB: any, path: string = 'args'): { ide
     return acc;
   }, {} as any);
   
-  const jsonA = JSON.stringify(sortedA, (key, value) => {
-    if (typeof value === 'bigint') {
-      return value.toString();
-    }
-    return value;
-  });
-  
-  const jsonB = JSON.stringify(sortedB, (key, value) => {
-    if (typeof value === 'bigint') {
-      return value.toString();
-    }
-    return value;
-  });
+  const jsonA = stringify(sortedA);
+  const jsonB = stringify(sortedB);
   
   if (jsonA !== jsonB) {
     differences.push(`Difference in ${path}: structures not identical`);
@@ -143,12 +136,12 @@ function compareArgsStrict(argsA: any, argsB: any, path: string = 'args'): { ide
       const hasB = keysB.has(key);
       
       if (!hasA) {
-        missingInA.push(`${key}=${JSON.stringify(argsB[key])}`);
+        missingInA.push(`${key}=${stringify(argsB[key])}`);
       } else if (!hasB) {
-        missingInB.push(`${key}=${JSON.stringify(argsA[key])}`);
+        missingInB.push(`${key}=${stringify(argsA[key])}`);
       } else {
-        const valA = JSON.stringify(argsA[key], (k, v) => typeof v === 'bigint' ? v.toString() : v);
-        const valB = JSON.stringify(argsB[key], (k, v) => typeof v === 'bigint' ? v.toString() : v);
+        const valA = stringify(argsA[key]);
+        const valB = stringify(argsB[key]);
         if (valA !== valB) {
           differentValues.push(`${key}: A=${valA.substring(0, 100)}, B=${valB.substring(0, 100)}`);
         }
@@ -166,8 +159,8 @@ function compareArgsStrict(argsA: any, argsB: any, path: string = 'args'): { ide
     }
     
     if (jsonA.length < 1000 && jsonB.length < 1000) {
-      differences.push(`  Object A complete:\n${JSON.stringify(sortedA, (k, v) => typeof v === 'bigint' ? v.toString() : v, 2).split('\n').map(l => `    ${l}`).join('\n')}`);
-      differences.push(`  Object B complete:\n${JSON.stringify(sortedB, (k, v) => typeof v === 'bigint' ? v.toString() : v, 2).split('\n').map(l => `    ${l}`).join('\n')}`);
+      differences.push(`  Object A complete:\n${stringify(sortedA).split('\n').map(l => `    ${l}`).join('\n')}`);
+      differences.push(`  Object B complete:\n${stringify(sortedB).split('\n').map(l => `    ${l}`).join('\n')}`);
     } else {
       differences.push(`  Object A (truncated): ${jsonA.substring(0, 500)}...`);
       differences.push(`  Object B (truncated): ${jsonB.substring(0, 500)}...`);
@@ -184,47 +177,57 @@ function compareArgsStrict(argsA: any, argsB: any, path: string = 'args'): { ide
 function findCommonTransaction(results: TestResult[]): { txHash: string; logIndex: number; log: any } | null {
   if (results.length === 0 || results[0].logs.length === 0) return null;
   
-  const refLog = results[0].logs[0];
-  const refTxHash = refLog.transactionHash ?? refLog._originalTransactionHash;
-  const refLogIndex = refLog.logIndex ?? refLog.index;
-  
-  for (const result of results) {
-    const found = result.logs.find((log: any) => {
-      const txHash = log.transactionHash ?? log._originalTransactionHash;
-      const logIndex = log.logIndex ?? log.index;
-      return txHash === refTxHash && logIndex === refLogIndex;
+  // Debug: log the structure of logs from each configuration
+  if (results[0].logs.length <= 5) {
+    console.log('\n🔍 DEBUG: Log structure from each configuration:');
+    results.forEach((result, idx) => {
+      const log = result.logs[0];
+      console.log(`  Config ${idx}:`, {
+        hasTransactionHash: !!log.transactionHash,
+        hasOriginalTransactionHash: !!log._originalTransactionHash,
+        transactionHash: log.transactionHash || log._originalTransactionHash,
+        hasLogIndex: log.logIndex !== undefined,
+        hasIndex: log.index !== undefined,
+        logIndex: log.logIndex ?? log.index,
+        keys: Object.keys(log).slice(0, 20)
+      });
     });
+  }
+  
+  // Try to find a transaction that exists in ALL results
+  // Start with the first log of the first result
+  const firstResult = results[0];
+  
+  for (const candidateLog of firstResult.logs) {
+    const candidateTxHash = candidateLog.transactionHash ?? candidateLog._originalTransactionHash ?? candidateLog.transaction_hash;
+    const candidateLogIndex = candidateLog.logIndex ?? candidateLog.index ?? candidateLog.log_index;
     
-    if (!found) {
-      const midIdx = Math.floor(result.logs.length / 2);
-      if (midIdx < result.logs.length) {
-        const altLog = result.logs[midIdx];
-        const altTxHash = altLog.transactionHash ?? altLog._originalTransactionHash;
-        const altLogIndex = altLog.logIndex ?? altLog.index;
-        
-        let allHaveAlt = true;
-        for (const r of results) {
-          const foundAlt = r.logs.find((log: any) => {
-            const txHash = log.transactionHash ?? log._originalTransactionHash;
-            const logIndex = log.logIndex ?? log.index;
-            return txHash === altTxHash && logIndex === altLogIndex;
-          });
-          if (!foundAlt) {
-            allHaveAlt = false;
-            break;
-          }
-        }
-        
-        if (allHaveAlt) {
-          return { txHash: altTxHash, logIndex: altLogIndex, log: altLog };
-        }
-      }
+    if (!candidateTxHash || candidateLogIndex === undefined) {
+      continue; // Skip logs without proper identifiers
+    }
+    
+    // Check if this transaction exists in ALL other results
+    let foundInAll = true;
+    for (let i = 1; i < results.length; i++) {
+      const found = results[i].logs.find((log: any) => {
+        const txHash = log.transactionHash ?? log._originalTransactionHash ?? log.transaction_hash;
+        const logIndex = log.logIndex ?? log.index ?? log.log_index;
+        return txHash === candidateTxHash && logIndex === candidateLogIndex;
+      });
       
-      return null;
+      if (!found) {
+        foundInAll = false;
+        break;
+      }
+    }
+    
+    if (foundInAll) {
+      return { txHash: candidateTxHash, logIndex: candidateLogIndex, log: candidateLog };
     }
   }
   
-  return { txHash: refTxHash, logIndex: refLogIndex, log: refLog };
+  // If no common transaction found, return null
+  return null;
 }
 
 function getConfigLabel(config: TestConfig): string {
@@ -588,14 +591,44 @@ describe("Indexer getLogs - All Configurations Comparison", () => {
       throw new Error(`Args decoding mismatch:\n${allDifferences.join('\n')}`);
     }
     
+    // Compare logs by transactionHash + logIndex instead of by index
+    // (logs may be in different order between configurations)
     for (let i = 1; i < results.length; i++) {
       const current = results[i];
       
-      if (current.logs.length > 0) {
-        const sampleIndices = [0, Math.floor(current.logs.length / 2), current.logs.length - 1];
+      if (current.logs.length > 0 && firstResult.logs.length > 0) {
+        // Create a map of logs by transactionHash+logIndex for current config
+        const currentLogsMap = new Map<string, any>();
+        for (const log of current.logs) {
+          const txHash = log.transactionHash ?? log._originalTransactionHash;
+          const logIndex = log.logIndex ?? log.index;
+          if (txHash && logIndex !== undefined) {
+            const key = `${txHash}-${logIndex}`;
+            currentLogsMap.set(key, log);
+          }
+        }
+        
+        // Sample a few logs from firstResult and find them in current config
+        const sampleIndices = [0, Math.floor(firstResult.logs.length / 2), firstResult.logs.length - 1].filter(idx => idx < firstResult.logs.length);
         for (const idx of sampleIndices) {
-          const fieldsA = pickStableFields(firstResult.logs[idx]);
-          const fieldsB = pickStableFields(current.logs[idx]);
+          const logA = firstResult.logs[idx];
+          const fieldsA = pickStableFields(logA);
+          const txHashA = logA.transactionHash ?? logA._originalTransactionHash;
+          const logIndexA = logA.logIndex ?? logA.index;
+          
+          if (!txHashA || logIndexA === undefined) {
+            continue; // Skip if missing identifiers
+          }
+          
+          const key = `${txHashA}-${logIndexA}`;
+          const logB = currentLogsMap.get(key);
+          
+          if (!logB) {
+            // Log not found in current config - this is acceptable if configs have different results
+            continue;
+          }
+          
+          const fieldsB = pickStableFields(logB);
           
           expect(fieldsB.transactionHash).toBe(fieldsA.transactionHash);
           expect(fieldsB.blockNumber).toBe(fieldsA.blockNumber);

@@ -14,6 +14,7 @@ import { formError, getUniqueAddresses } from "./common";
 import { DEBUG_LEVEL2, debugLog } from "./debugLog";
 import { ENV_CONSTANTS, getEnvValue } from "./env";
 import { getLogParams, getLogs as getLogsParent } from "./logs";
+import { createViemFastPathBatchDecoder, normalizeLog } from "./logs.decode.shared";
 import { GetTransactionOptions } from "./transactions";
 
 const indexerURL = getEnvValue("LLAMA_INDEXER_ENDPOINT");
@@ -290,12 +291,11 @@ export async function getTokens(
 async function streamJsonArrayFromIndexer(opts: {
   path: string;
   arrayKey?: "logs";
-  onItem: (obj: any) => Promise<void> | void;
+  onItem: (obj: any) => void;
   onChunkStats?: (s: { chunkSize: number; bytesReceived: number; itemsProcessed: number }) => void;
   shouldStop?: () => boolean;
 }) {
   const { path, arrayKey = "logs", onItem, onChunkStats, shouldStop } = opts;
-
   const controller = new AbortController();
   let bytesReceived = 0;
   let itemsProcessed = 0;
@@ -314,23 +314,8 @@ async function streamJsonArrayFromIndexer(opts: {
 
   if (!res?.data) return;
 
-  return new Promise<void>((resolve, reject) => {
+  await new Promise<void>((resolve, reject) => {
     const stream = res.data as Readable;
-    let isResolved = false;
-
-    const safeResolve = () => {
-      if (!isResolved) {
-        isResolved = true;
-        resolve();
-      }
-    };
-
-    const safeReject = (err: any) => {
-      if (!isResolved) {
-        isResolved = true;
-        reject(err);
-      }
-    };
 
     const isCancellationError = (err: any): boolean =>
       err?.name === "CanceledError" ||
@@ -338,7 +323,8 @@ async function streamJsonArrayFromIndexer(opts: {
       axios.isCancel(err) ||
       err?.code === 'ERR_CANCELED';
 
-    // Track bytes received for stats (use actual chunk size)
+    const handleError = (err: any) => isCancellationError(err) ? resolve() : reject(err);
+
     stream.on('data', (chunk: Buffer) => {
       bytesReceived += chunk.length;
       onChunkStats?.({ chunkSize: chunk.length, bytesReceived, itemsProcessed });
@@ -348,46 +334,36 @@ async function streamJsonArrayFromIndexer(opts: {
     const pickFilter = pick({ filter: arrayKey });
     const arrayStream = streamArray();
 
-    // Backpressure handling: pause/resume to prevent memory buildup
     arrayStream.on('data', (data: { key: number; value: any }) => {
       if (shouldStop?.()) {
         controller.abort();
         stream.destroy();
         return;
       }
-
-      arrayStream.pause();
-      Promise.resolve(onItem(data.value))
-        .catch(() => { })
-        .finally(() => {
-          itemsProcessed++;
-          if (itemsProcessed % 100000 === 0) {
-            onChunkStats?.({ chunkSize: 100000, bytesReceived, itemsProcessed });
-          }
-          arrayStream.resume();
-        });
+      try {
+        onItem(data.value);
+            itemsProcessed++;
+        if (itemsProcessed % 100000 === 0) {
+          onChunkStats?.({ chunkSize: 100000, bytesReceived, itemsProcessed });
+        }
+      } catch { }
     });
 
-    const handleError = (err: any) =>
-      isCancellationError(err) ? safeResolve() : safeReject(err);
+    const finish = () => {
+      const rem = itemsProcessed % 100000;
+      if (rem > 0) {
+        onChunkStats?.({ chunkSize: rem, bytesReceived, itemsProcessed });
+      }
+      resolve();
+    };
+
+    arrayStream.on('end', finish);
+    arrayStream.on('close', finish);
 
     arrayStream.on('error', handleError);
     jsonParser.on('error', handleError);
     pickFilter.on('error', handleError);
     stream.on('error', handleError);
-
-    const onEnd = () => {
-      if (itemsProcessed > 0) {
-        const remainder = itemsProcessed % 100000;
-        if (remainder > 0) {
-          onChunkStats?.({ chunkSize: remainder, bytesReceived, itemsProcessed });
-        }
-      }
-      safeResolve();
-    };
-
-    arrayStream.on('end', onEnd);
-    arrayStream.on('close', onEnd);
 
     stream.pipe(jsonParser).pipe(pickFilter).pipe(arrayStream);
   });
@@ -432,6 +408,11 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
     topic3,
     transformLog,
   } = await getLogParams(options, true);
+
+  const viemFastPath =
+    decoderType === "viem" && options.eventAbi
+      ? createViemFastPathBatchDecoder(options.eventAbi)
+      : null;
 
   if (!debugMode) debugMode = DEBUG_LEVEL2 && !!ENV_CONSTANTS.GET_LOGS_INDEXER;
 
@@ -500,7 +481,7 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
   const addressChunks = sliceIntoChunks(address?.split(",") ?? [], addressChunkSize);
   if (noTarget && addressChunks.length === 0) addressChunks.push(undefined as any);
 
-  // Function to safely push large arrays without stack overflow (avoid push.apply argument limits (~125k))
+  // Safely push large arrays without stack overflow (avoid push.apply argument limits (~125k))
   const safePush = (target: any[], source: any[]) => {
     if (source.length === 0) return;
     // For very large arrays, split into chunks
@@ -519,92 +500,90 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
   // Streaming (opt-in) — NO server-side parsing; mirror legacy semantics
   // -----------------------------------------------------------------------
   if (clientStreaming) {
-    // FIX: If all === true, ignore limit completely (semantic: "get all logs")
     const useAll = options.all === true;
     const effectiveLimit = useAll ? Number.POSITIVE_INFINITY : (options.limit ?? limit);
     const shouldLimit = !useAll && Number.isFinite(effectiveLimit);
     const effectiveOffset = useAll ? 0 : (options.offset ?? initialOffset ?? 0);
 
     const outPairs: Array<{ raw: any; transformed: any }> = [];
-    const debugKey = `Indexer-stream-${chain}-${topic}-${address || (noTarget ? "noTarget" : "none")}-${Math.random().toString(36).slice(2,8)}`;
     const start = debugMode ? Date.now() : 0;
-    
-    const MICRO_BATCH_SIZE = 3_000;
-    const MAX_PENDING_BATCHES = 12;
-    let pendingBatchPromises: Promise<void>[] = [];
-    let batchCounter = 0;
-    // Store results by batch number to maintain order
-    const batchResults: Map<number, Array<{ raw: any; transformed: any }>> = new Map();
-    let nextExpectedBatch = 1;
 
-    // Global offset/limit tracking across all chunks (FIX: previously per-chunk)
+    const MICRO_BATCH_SIZE = +(process.env.LLAMA_INDEXER_MICRO_BATCH || 10000);
+
+    // Check if we need splitByAddress (mapping by target address)
+    const splitByAddress = targets?.length && !flatten;
+
+    // If splitByAddress, build buckets directly during flushBatch
+    const addressBuckets: any[][] = splitByAddress ? targets.map(() => []) : [];
+    const addressIndexMap: Record<string, number> = splitByAddress
+      ? Object.fromEntries(targets.map((t, i) => [t.toLowerCase(), i]))
+      : {};
+
     let remainingOffset = effectiveOffset;
     let remainingLimit = shouldLimit ? (effectiveLimit as number) : Number.POSITIVE_INFINITY;
 
-    const flushBatch = async (batch: any[], batchNum: number): Promise<void> => {
+    const flushBatch = async (batch: any[]): Promise<void> => {
       if (!batch.length) return;
-      
+
       const t0 = Date.now();
-      const transformBatchFn = (transformLog as any).batch || ((logs: any[]) => logs.map(log => transformLog(log)));
-      const transformedLogs = await transformBatchFn(batch, decoderType);
-      const transformed: Array<{ raw: any; transformed: any }> = new Array(batch.length);
-      for (let i = 0; i < batch.length; i++) {
-        transformed[i] = { raw: batch[i], transformed: transformedLogs[i] };
+      
+      // Normalize logs before decoding (required for fast-path and consistency)
+      for (const log of batch) {
+        normalizeLog(log, true); // isIndexerCall = true
       }
-      const decodeTime = Date.now() - t0;
-      const batchSize = batch.length;
 
-      if (onDecodeStats) onDecodeStats({ batchSize, decodeTime, itemsDecoded: batchSize });
-
-          if (processor) await processor(transformed.map(i => i.transformed));
-          
-          // Store results by batch number for ordered output
-          const shouldCollect = (options.collect !== false); // Default true for backward compatibility
-          if (shouldCollect) {
-            batchResults.set(batchNum, transformed);
-            
-            // Flush results in order as batches complete
-            while (batchResults.has(nextExpectedBatch)) {
-              const orderedBatch = batchResults.get(nextExpectedBatch)!;
-              safePush(outPairs, orderedBatch);
-              batchResults.delete(nextExpectedBatch);
-              nextExpectedBatch++;
-            }
+      // Use fast-path if available, otherwise fallback to default
+      const batchFn = viemFastPath ?? (transformLog as any).batch;
+      let transformedLogs: any[];
+      
+      if (batchFn) {
+        // Fast-path returns only args, need to reconstruct full log objects
+        const decodedArgs = await batchFn(batch);
+        transformedLogs = new Array(batch.length);
+        for (let i = 0; i < batch.length; i++) {
+          if (options.onlyArgs) {
+            // If onlyArgs is true, return only the args (like transformLog does)
+            transformedLogs[i] = decodedArgs[i];
           } else {
-            // If not collecting, just track completion order without storing results
-            // This allows proper batch ordering tracking without memory accumulation
-            while (batchResults.has(nextExpectedBatch)) {
-              batchResults.delete(nextExpectedBatch);
-              nextExpectedBatch++;
+
+            transformedLogs[i] = {
+              ...batch[i],
+              args: decodedArgs[i]
+            };
+
+            if (!transformedLogs[i].transactionHash && transformedLogs[i]._originalTransactionHash) {
+              transformedLogs[i].transactionHash = transformedLogs[i]._originalTransactionHash;
             }
           }
-    };
-
-    // Queue-based batch processing for pipeline optimization
-    const queueBatch = async (batch: any[]) => {
-      const currentBatchNum = ++batchCounter;
-      const batchPromise = flushBatch(batch, currentBatchNum);
-      
-      pendingBatchPromises.push(batchPromise);
-      
-      // Clean up completed promises periodically
-      batchPromise.finally(() => {
-        const idx = pendingBatchPromises.indexOf(batchPromise);
-        if (idx >= 0) {
-          pendingBatchPromises.splice(idx, 1);
         }
-      });
-      
-      // If we have too many pending batches, wait for oldest to complete
-      // This creates backpressure to prevent memory issues
-      if (pendingBatchPromises.length >= MAX_PENDING_BATCHES) {
-        const oldestPromise = pendingBatchPromises[0];
-        await oldestPromise;
-        const idx = pendingBatchPromises.indexOf(oldestPromise);
-        if (idx >= 0) {
-          pendingBatchPromises.splice(idx, 1);
-        }
+      } else {
+        transformedLogs = await Promise.all(batch.map((log: any) => transformLog(log)));
       }
+      
+      const decodeTime = Date.now() - t0;
+      onDecodeStats?.({ batchSize: batch.length, decodeTime, itemsDecoded: batch.length });
+
+      if (processor) await processor(transformedLogs);
+
+      if (splitByAddress) {
+        // Map directly to address buckets without storing pairs
+        for (let i = 0; i < batch.length; i++) {
+          const raw = batch[i];
+          const transformed = transformedLogs[i];
+          const idx = addressIndexMap[(raw.source ?? raw.address)?.toLowerCase?.()];
+          if (idx !== undefined) {
+            addressBuckets[idx].push(transformed);
+          }
+        }
+      } else if (options.collect !== false) {
+        // Build pairs if collect=true (needed for final return)
+        const pairs = new Array(batch.length);
+        for (let i = 0; i < batch.length; i++) {
+          pairs[i] = { raw: batch[i], transformed: transformedLogs[i] };
+        }
+        Array.prototype.push.apply(outPairs, pairs);
+      }
+      // If collect=false and not splitByAddress, nothing to store (processor already handled it)
     };
 
     for (const chunk of addressChunks) {
@@ -620,18 +599,22 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
       if (toBlock != null) qs.set("to_block", String(toBlock));
       if (chunk && Array.isArray(chunk)) qs.set("addresses", chunk.join(",").toLowerCase());
       if (noTarget) qs.set("noTarget", "true");
-      // no server-side parse / onlyArgs; we keep everything raw and decode client-side
       qs.set("limit", "all");
       qs.set("offset", "0");
 
       const transformBatch: any[] = [];
-
       let stopNow = false;
+      let flushPromise: Promise<void> = Promise.resolve();
+
+      // Chain flushes sequentially to avoid concurrent decoding (CPU/GC thrashing)
+      const scheduleFlush = (batch: any[]) => {
+        flushPromise = flushPromise.then(() => flushBatch(batch));
+      };
 
       await streamJsonArrayFromIndexer({
         path: `/logs?${qs.toString()}`,
         arrayKey: "logs",
-        onItem: async (raw) => {
+        onItem: (raw) => {
           if (stopNow) return;
 
           const okAddress = !addressSet.size || addressSet.has((raw.source ?? raw.address)?.toLowerCase?.());
@@ -641,7 +624,6 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
             remainingOffset--;
             return;
           }
-          
           if (remainingLimit <= 0) {
             stopNow = true;
             return;
@@ -651,46 +633,20 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
           remainingLimit--;
 
           if (transformBatch.length >= MICRO_BATCH_SIZE) {
-            const batchToProcess = transformBatch.splice(0, MICRO_BATCH_SIZE);
-            queueBatch(batchToProcess).catch(() => {});
+            // Sequential flush: chain to avoid concurrent decoding
+            const batch = transformBatch.splice(0, MICRO_BATCH_SIZE);
+            scheduleFlush(batch);
           }
         },
         shouldStop: () => stopNow,
-        onChunkStats: (s) => {
-          if (onWireStats) onWireStats(s);
-        },
+        onChunkStats: (s) => onWireStats?.(s),
       });
 
       if (transformBatch.length > 0) {
-        await flushBatch(transformBatch.splice(0), ++batchCounter);
+        scheduleFlush(transformBatch.splice(0, transformBatch.length));
       }
-      
-      await Promise.all(pendingBatchPromises);
-      pendingBatchPromises = [];
-      
-      // Flush any remaining ordered results (only if collect is enabled)
-      // Use safePush to avoid stack overflow on large batches
-      const shouldCollect = (options.collect !== false); // Default true for backward compatibility
-      while (batchResults.size > 0) {
-        if (batchResults.has(nextExpectedBatch)) {
-          const orderedBatch = batchResults.get(nextExpectedBatch)!;
-          if (shouldCollect) {
-            safePush(outPairs, orderedBatch);
-          }
-          batchResults.delete(nextExpectedBatch);
-          nextExpectedBatch++;
-        } else {
-          // If next batch is missing, find the earliest available
-          const sortedBatchNums = Array.from(batchResults.keys()).sort((a, b) => a - b);
-          if (sortedBatchNums.length > 0) {
-            nextExpectedBatch = sortedBatchNums[0];
-          } else {
-            break;
-          }
-        }
-      }
+      await flushPromise;
 
-      // Stop if we've reached the global limit
       if (remainingLimit <= 0) break;
     }
 
@@ -699,23 +655,11 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
       debugLog(`[Indexer] stream finished: ${outPairs.length} items in ${ms}ms`);
     }
 
-    const splitByAddress = targets?.length && !flatten;
     if (splitByAddress) {
-      const mapped: any[] = targets.map(() => []);
-      const indexMap: Record<string, number> = {};
-      targets.forEach((t, i) => (indexMap[t.toLowerCase()] = i));
-
-      outPairs.forEach(({ raw, transformed }) => {
-        const idx = indexMap[(raw.source ?? raw.address)?.toLowerCase?.()];
-        if (idx === undefined) return;
-        mapped[idx].push(transformed);
-      });
-      return mapped;
+      return addressBuckets;
     }
 
-    // Return empty array if collect=false (processor handles results)
-    const shouldCollect = (options.collect !== false);
-    return shouldCollect ? outPairs.map(i => i.transformed) : [];
+    return (options.collect !== false) ? outPairs.map(i => i.transformed) : [];
   }
 
   const allLogsPairs: Array<{ raw: any; transformed: any }> = [];
@@ -757,17 +701,25 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
       });
 
       const t0 = Date.now();
-      // Use batch parsing if available (Viem optimization) - much faster for large batches
-      const transformBatchFn = (transformLog as any).batch || ((logs: any[]) => logs.map(log => transformLog(log)));
-      // Batch function is async, always await
-      const transformedLogs = await transformBatchFn(filtered, decoderType);
+      
+      // Normalize logs before decoding (required for consistency)
+      for (const log of filtered) {
+        normalizeLog(log, true); // isIndexerCall = true
+      }
+      
+      // Legacy path: use transformLog batch if available, otherwise transform individually
+      const transformBatchFn =
+        (transformLog as any).batch || ((logs: any[]) => Promise.all(logs.map((log: any) => transformLog(log))));
+      
+      const transformedLogs = await transformBatchFn(filtered);
+      
       const transformedPair = filtered.map((log: any, idx: number) => ({ raw: log, transformed: transformedLogs[idx] }));
       const decodeTime = Date.now() - t0;
       if (onDecodeStats && filtered.length > 0) onDecodeStats({ batchSize: filtered.length, decodeTime, itemsDecoded: filtered.length });
 
       if (processor) await processor(transformedPair.map((i: any) => i.transformed));
 
-      // Use safe push helper to avoid stack overflow on large arrays
+      // Safe push helper to avoid stack overflow on large arrays
       // Only accumulate if collect is enabled (default true for backward compatibility)
       const shouldCollect = (options.collect !== false);
       if (shouldCollect) {
