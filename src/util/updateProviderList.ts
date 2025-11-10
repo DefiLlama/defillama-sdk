@@ -5,6 +5,8 @@ import { debugLog } from './debugLog';
 import PromisePool from '@supercharge/promise-pool';
 import { fetchJson, postJson } from '../generalUtil';
 
+const concurrentCheckChains = +(process.env.SDK_BUILD_CONCURRENT_CHAINS || 7)
+
 
 const providerList = _providerList as {
   [key: string]: {
@@ -46,7 +48,7 @@ async function main() {
 
 
   await PromisePool
-    .withConcurrency(5)
+    .withConcurrency(concurrentCheckChains)
     .for(chainData)
     .process(async (i: any) => {
       i.rpc = await filterForWorkingRPCs(i.rpc.map((j: any) => j.url), i.name, i.chainId)
@@ -73,6 +75,11 @@ async function main() {
       delete providerList[key]
       return;
     }
+    i.rpc.forEach((j: string) => {
+      if (filterRPCs([j]).length === 0) {
+        debugLog(`Removing rpc ${j} from ${key}`)
+      }
+    })
     i.rpc = Array.from(new Set(filterRPCs(i.rpc)));
     if (key.endsWith('-mainnet') || key.endsWith('_mainnet')) {
       const shortName = key.slice(0, -8)
@@ -106,9 +113,10 @@ function filterRPCs(rpc: string[]): string[] {
   return rpc.filter((i: string) => {
     if (blacklist.includes(i)) return false // remove rpcs returning bad block heights etc
     if (i.endsWith('/demo')) return false // remove demo rpc
+    if (!i.startsWith('http')) return false // remove demo rpc
     if (i.includes('$')) return false // remove anything where api key is injected
     // reject websocket, http, testnet, devnet, and anything with '='
-    if (/(wss\:|ws\:|http\:|test|devnet|terminet\.io|huobichain\.com|getblock\.io|bitstack\.com|nodereal.io\/v1|pokt\.network|ankr\.com|histori\.xyz|chainstacklabs\.com|owlracle\.info\=)/.test(i)) return false // remove anything with blacklisted words
+    if (/(wss\:|ws\:|http\:|test|devnet|terminet\.io|huobichain\.com|getblock\.io|bitstack\.com|nodereal.io\/v1|pokt\.network|ankr\.com|histori\.xyz|chainstacklabs\.com|owlracle\.info|owlracle\.info|blastapi\.io\=)/.test(i)) return false // remove anything with blacklisted words
     return true
   }).map((i: string) => {
     if (i.endsWith('/')) return i.slice(0, -1)
