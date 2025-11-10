@@ -29,6 +29,20 @@ async function getChainData() {
   }
 }
 
+function addToProviderList(chainData: any, label: string) {
+  providerList[label] = {
+    rpc: chainData.rpc,
+    chainId: chainData.chainId
+  }
+  let explorer = chainData.explorers?.[0]?.url
+  if (explorer) providerList[label].explorer = explorer
+}
+
+const allowedDuplicateNames: { [key: string]: string } = {
+  'BESC HYPERCHAIN': 'besc_hyperchain',
+  'BeanEco SmartChain': 'beaneco'
+}
+
 async function main() {
   const oldProviders = await fetchJson(`https://unpkg.com/@defillama/sdk@latest/build/providers.json`)
   let chainData = await getChainData()
@@ -51,20 +65,16 @@ async function main() {
     .process(async (i: any) => {
       i.rpc = await filterForWorkingRPCs(i.rpc.map((j: any) => j.url), i.name, i.chainId)
       if (!i.rpc.length) return;
-      if (providerIDMap[i.chainId]) {
+      if (Object.keys(allowedDuplicateNames).includes(i.name)) {
+        addToProviderList(i, allowedDuplicateNames[i.name])
+      } else if (providerIDMap[i.chainId]) {
         const isBEVM = i.chainId + '' === '11501'  // bevm chain id clashes with 
         if (!isBEVM)
           providerIDMap[i.chainId].push(...i.rpc)
       } else if (providerList[i.shortName.toLowerCase()]) {
         debugLog(`Duplicate short name ${i.chainId} for ${i.shortName}, doing nothing`)
       } else {
-        const label = i.shortName.toLowerCase().replace(/-/g, '_')
-        providerList[label] = {
-          rpc: i.rpc,
-          chainId: i.chainId
-        }
-        let explorer = i.explorers?.[0]?.url
-        if (explorer) providerList[label].explorer = explorer
+        addToProviderList(i, i.shortName.toLowerCase().replace(/-/g, '_'))
       }
     })
 
