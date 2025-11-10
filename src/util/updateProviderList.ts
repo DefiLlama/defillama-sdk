@@ -39,7 +39,7 @@ function addToProviderList(chainData: any, label: string) {
 }
 
 const allowedDuplicateNames: { [key: string]: string } = {
-  'BESC HYPERCHAIN': 'besc_hyperchain',
+  'BESC HYPERCHAIN': 'besc',
   'BeanEco SmartChain': 'beaneco'
 }
 
