@@ -4,6 +4,12 @@ import {
   getLatestBlock,
 } from "./index";
 
+import {
+  isEvmChain,
+  getEVMChainSet,
+  getEVMProvidersConfigMap,
+} from "../generalUtil";
+
 import ChainApi from "../ChainApi";
 
 
@@ -279,4 +285,82 @@ test("sushiswap getLogs follow the old API", async () => {
     },
   ]);
   expect(logs.map((i: any) => i.logIndex)).toEqual([81, 202]);
+});
+
+test("isEvmChain", () => {
+  // Test EVM chains
+  expect(isEvmChain('ethereum')).toBe(true);
+  expect(isEvmChain('bsc')).toBe(true);
+  expect(isEvmChain('polygon')).toBe(true);
+  expect(isEvmChain('arbitrum')).toBe(true);
+  expect(isEvmChain('optimism')).toBe(true);
+  expect(isEvmChain('avax')).toBe(true);
+  expect(isEvmChain('fantom')).toBe(true);
+  
+  // Test non-EVM chains
+  expect(isEvmChain('solana')).toBe(false);
+  expect(isEvmChain('bitcoin')).toBe(false);
+  expect(isEvmChain('cosmos')).toBe(false);
+  expect(isEvmChain('terra')).toBe(false);
+  
+  // Test edge cases
+  expect(isEvmChain('')).toBe(false);
+  expect(isEvmChain('unknown')).toBe(false);
+  expect(isEvmChain(undefined as any)).toBe(false);
+  expect(isEvmChain(null as any)).toBe(false);
+});
+
+test("getEVMChainSet", () => {
+  const evmChains = getEVMChainSet();
+  
+  // Test that it returns a Set
+  expect(evmChains).toBeInstanceOf(Set);
+  
+  // Test that common EVM chains are included
+  expect(evmChains.has('ethereum')).toBe(true);
+  expect(evmChains.has('bsc')).toBe(true);
+  expect(evmChains.has('polygon')).toBe(true);
+  expect(evmChains.has('arbitrum')).toBe(true);
+  expect(evmChains.has('optimism')).toBe(true);
+  expect(evmChains.has('avax')).toBe(true);
+  
+  // Test that non-EVM chains are not included
+  expect(evmChains.has('solana')).toBe(false);
+  expect(evmChains.has('bitcoin')).toBe(false);
+  expect(evmChains.has('cosmos')).toBe(false);
+  
+  // Test that the Set is not empty
+  expect(evmChains.size).toBeGreaterThan(0);
+});
+
+test("getEVMProvidersConfigMap", () => {
+  const providersConfig = getEVMProvidersConfigMap();
+  
+  // Test that it returns an object
+  expect(typeof providersConfig).toBe('object');
+  expect(providersConfig).not.toBeNull();
+  
+  // Test that common EVM chains have provider configurations
+  expect(providersConfig.ethereum).toBeDefined();
+  expect(providersConfig.bsc).toBeDefined();
+  expect(providersConfig.polygon).toBeDefined();
+  expect(providersConfig.arbitrum).toBeDefined();
+  
+  // Test that provider configs have expected structure
+  if (providersConfig.ethereum) {
+    expect(typeof providersConfig.ethereum).toBe('object');
+  }
+  
+  // Test that non-EVM chains are not in the config
+  expect(providersConfig.solana).toBeUndefined();
+  expect(providersConfig.bitcoin).toBeUndefined();
+  
+  // Test that the config is not empty
+  expect(Object.keys(providersConfig).length).toBeGreaterThan(0);
+  
+  // Test consistency with getEVMChainSet
+  const evmChains = getEVMChainSet();
+  Object.keys(providersConfig).forEach(chain => {
+    expect(evmChains.has(chain)).toBe(true);
+  });
 });
