@@ -235,6 +235,8 @@ test("imports", async () => {
         "fetchJson": [Function],
         "formError": [Function],
         "formErrorString": [Function],
+        "getEVMChainSet": [Function],
+        "getEVMProvidersConfigMap": [Function],
         "getHash": [Function],
         "getProviderUrl": [Function],
         "getTimestamp": [Function],
@@ -242,6 +244,7 @@ test("imports", async () => {
         "humanizeNumber": {
           "humanizeNumber": [Function],
         },
+        "isEvmChain": [Function],
         "mergeBalances": [Function],
         "normalizeAddress": [Function],
         "postJson": [Function],

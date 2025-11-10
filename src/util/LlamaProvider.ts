@@ -15,6 +15,14 @@ type ProviderWithURL = {
   provider: AbstractProvider;
 }
 
+type ProviderConfigMap = {
+  [chain: string]: {
+    rpc?: string[],
+    chainId?: number,
+    explorer?: string,
+  }
+}
+
 const rpcRequestCounter = {} as Record<string, number>
 
 
@@ -169,6 +177,29 @@ export class LlamaProvider extends FallbackProvider {
 
 }
 
+export function getEVMProvidersConfigMap(): ProviderConfigMap {
+  return buildProviders ?? providerList
+}
+
+let evmChainSet : Set<string> | null = null
+
+export function getEVMChainSet(): Set<string> {
+  if (!evmChainSet) {
+    const pList = getEVMProvidersConfigMap()
+    evmChainSet = new Set(Object.keys(pList))
+  }
+  return evmChainSet
+}
+
+export function isEvmChain(chain: string): boolean {
+  const pList = getEVMProvidersConfigMap()
+  if (pList[chain]) return true
+
+  // check if we have RPC config for this chain via env variable
+  // let rpcList: (string | undefined) = getChainRPCs(chain, undefined)  // skip this check as it can be true for non-evm chains like solana as well
+
+  return false
+}
 
 function createProvider(name: string, rpcString: string, chainId = 400069, archivalRPCList: string[] = []): AbstractProvider | null {
   chainId = getChainId(name, chainId)
@@ -223,7 +254,7 @@ export function getProvider(chain: Chain = "ethereum", _getArchivalNode = false)
   let chainKey = chain
   if (getEnvValue('HISTORICAL')) chainKey = chain + '_historical'
   if (providers[chainKey]) return providers[chainKey]
-  const pList: any = buildProviders ?? providerList
+  const pList: any = getEVMProvidersConfigMap()
 
   // use RPC from env variable if set else use RPC from providers.json
   let rpcList: (string | undefined) = getChainRPCs(rpcKey, pList[chain]?.rpc)

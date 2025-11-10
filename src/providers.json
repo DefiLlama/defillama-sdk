@@ -729,5 +729,16 @@
     ],
     "chainId": 42793,
     "explorer": "https://explorer.etherlink.com"
+  },
+  "besc": {
+    "rpc": [
+      "https://rpc.beschyperchain.com"
+    ],
+    "chainId": 2372,
+    "explorer": "https://explorer.beschyperchain.com"
+  },
+  "beaneco": {
+    "rpc": [],
+    "chainId": 535037
   }
 }
