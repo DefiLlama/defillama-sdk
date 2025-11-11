@@ -5,3 +5,4 @@ node_modules
 local_cache
 chainlistOrgCache.json
 depRepos
+*.log
