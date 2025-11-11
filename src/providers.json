@@ -740,5 +740,24 @@
   "beaneco": {
     "rpc": [],
     "chainId": 535037
+  },
+  "nibiru": {
+    "rpc": [
+      "https://evm-rpc.archive.nibiru.fi"
+    ],
+    "chainId": 6900
+  },
+  "camp": {
+    "rpc": [],
+    "chainId": 484
+  },
+  "plume_mainnet": {
+    "rpc": [],
+    "chainId": 98866,
+    "explorer": "https://explorer.plume.org"
+  },
+  "dchainmainnet": {
+    "rpc": [],
+    "chainId": 2716446429837000
   }
 }
