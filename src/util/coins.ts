@@ -10,6 +10,7 @@ type CoinsApiData = {
   symbol: string;
   timestamp: number;
   PK?: string;
+  isDistressed?: boolean;
 };
 
 type McapsApiData = {
