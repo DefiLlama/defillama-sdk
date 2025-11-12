@@ -39,6 +39,7 @@ export class Balances {
   chain: Chain | string;
   timestamp?: number;
   _balances: BalancesV1;
+  _llamaBalancesObject: boolean; // internal flag to identify llama Balances objects
   _breakdownBalances: { [key: string]: Balances };
 
   constructor(params: {
@@ -49,6 +50,7 @@ export class Balances {
     this.timestamp = params.timestamp
     this._balances = {}
     this._breakdownBalances = {}
+    this._llamaBalancesObject = true
   }
 
   _add(token: string, balance: any, optionsOrLabel?: BalancesOptionsWithLabel, options?: BalancesOptions) {
@@ -221,7 +223,7 @@ export class Balances {
 
       // add a humanized value field so it's easier to read big numbers
       tokenData.forEach((i: any) => {
-        i.valueHN = humanizeNumber(i.value)  
+        i.valueHN = humanizeNumber(i.value)
       })
 
       debugData.tokenData = tokenData
@@ -277,9 +279,9 @@ export class Balances {
 
   subtract(balances: BalancesV1 | Balances, optionsOrLabel?: BalancesOptionsWithLabel, options?: BalancesOptions) {
     options = getOptions({ optionsOrLabel, options })
-    if (balances instanceof Balances) {
+    if (typeof balances === 'object' && balances !== null && (balances as any)._llamaBalancesObject) {
       if (balances === this) return;
-      balances = balances.getBalances()
+      balances = (balances as Balances).getBalances()
     }
     Object.entries(balances).forEach(([token, balance]) => {
       this._add(token, Number(balance) * -1, { skipChain: true, label: options!.label })

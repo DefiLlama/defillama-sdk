@@ -87,7 +87,7 @@ export function sumSingleBalance(
     if (typeof balance.toString === 'function')
       balance = balance.toString()
     else
-      throw new Error('Invalid balance value:' + balance)
+      throw new Error('Invalid balance value:' + balance + ' ' + token)
   }
 
   if (typeof balance === 'number' || (balances[token] && typeof balances[token] === 'number')) {
@@ -107,7 +107,7 @@ export function sumSingleBalance(
   function isValidNumber(value: any) {
     if (typeof value === 'bigint') return;
     if ([null, undefined].includes(value) || isNaN(+value))
-      throw new Error(`Invalid balance: ${balance}`)
+      throw new Error(`Invalid balance: ${balance} - ${token}`)
   }
 }
 
