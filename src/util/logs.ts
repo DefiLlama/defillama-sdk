@@ -12,6 +12,7 @@ import {
 import runInPromisePool from "./promisePool";
 import { ENV_CONSTANTS } from "./env";
 import { getHash, tronToEvmAddress } from "./common";
+import { enrichEthersArgsWithNamedProperties, padTopic32 } from "./logs.decode.shared";
 
 const currentVersion = "v3";
 
@@ -418,7 +419,14 @@ export async function getLogParams(
     );
 
   let iface: Interface | undefined;
-  if (eventAbi) iface = new Interface([eventAbi]);
+  let event: EventFragment | null = null;
+  if (eventAbi) {
+    iface = new Interface([eventAbi]);
+    const fragments = iface.fragments.filter(f => f.type === 'event');
+    if (fragments.length > 0) {
+      event = fragments[0] as EventFragment;
+    }
+  }
 
   if (!topics?.length) {
     if (topic) topic = toFilterTopic(topic);
@@ -434,19 +442,18 @@ export async function getLogParams(
     // normalize indexer payload
     if (isIndexerCall) {
       log.address = log.source;
-      log.logIndex = log.log_index;
-      log.index = log.log_index;
+      // Preserve logIndex/index if already set by normalizeLog, otherwise set from log_index
+      if (log.logIndex === undefined && log.index === undefined) {
+        log.logIndex = log.log_index;
+        log.index = log.log_index;
+      }
       log.transactionHash = log.transaction_hash;
       log.blockNumber = parseInt(log.block_number);
 
       // Ensure topics are properly formatted
       const topics = [log.topic0, log.topic1, log.topic2, log.topic3]
         .filter(Boolean)
-        .map((t: string) => {
-          if (!t) return null;
-          const topic = t.startsWith("0x") ? t : `0x${t}`;
-          return ethers.zeroPadValue(topic, 32);
-        });
+        .map(padTopic32);
 
       // Ensure first topic (event signature) is present
       if (!topics[0]) {
@@ -484,11 +491,7 @@ export async function getLogParams(
     if (!log.topics && log._originalTopics) {
       log.topics = [log._originalTopics.topic0, log._originalTopics.topic1, log._originalTopics.topic2, log._originalTopics.topic3]
         .filter(Boolean)
-        .map((t: string) => {
-          if (!t) return null;
-          const topic = t.startsWith("0x") ? t : `0x${t}`;
-          return ethers.zeroPadValue(topic, 32);
-        });
+        .map(padTopic32);
     }
 
     // Restore transaction hash if it was lost
@@ -496,11 +499,21 @@ export async function getLogParams(
       log.transactionHash = log._originalTransactionHash;
     }
 
-    const parsed = iface.parseLog(log);
-    if (!parsed && !allowParseFailure)
-      throw new Error(`Failed to parse log: ${JSON.stringify(log.transactionHash)}`);
+    let parsed: any = null;
+    if (!iface) {
+      log.args = undefined;
+    } else {
+      parsed = iface.parseLog(log);
+      if (!parsed && !allowParseFailure)
+        throw new Error(`Failed to parse log: ${JSON.stringify(log.transactionHash)}`);
 
-    log.args = parsed?.args;
+      // Enrich args with named properties to match Viem output structure
+      if (parsed?.args && event && iface) {
+        log.args = enrichEthersArgsWithNamedProperties(parsed.args, event, iface);
+      } else {
+        log.args = parsed?.args;
+      }
+    }
     if (entireLog) log.parsedLog = parsed;
 
     return onlyArgs ? log.args : log;

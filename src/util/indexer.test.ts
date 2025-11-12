@@ -233,3 +233,76 @@ test("Indexer - getTransactions - unknown chain", async () => {
     to_block: 19001067,
   })).rejects.toThrow();
 });
+
+test("Indexer - getLogs - Viem vs Ethers comparison", async () => {
+  const testConfig = {
+    target: contract,
+    eventAbi,
+    fromBlock: 16310967,
+    toBlock: 16610967,
+    chain: 'ethereum',
+    entireLog: true,
+  };
+
+  // Convert BigInt to string immediately to avoid Jest serialization issues
+  function convertBigIntToString(obj: any): any {
+    if (obj === null || obj === undefined) return obj;
+    if (typeof obj === 'bigint') return obj.toString();
+    if (Array.isArray(obj)) return obj.map(convertBigIntToString);
+    if (typeof obj === 'object') {
+      const converted: any = {};
+      for (const key in obj) {
+        converted[key] = convertBigIntToString(obj[key]);
+      }
+      return converted;
+    }
+    return obj;
+  }
+
+  const viemLogsRaw = await getLogs({
+    ...testConfig,
+    decoderType: "viem",
+  });
+  const viemLogs = convertBigIntToString(viemLogsRaw);
+
+  const ethersLogsRaw = await getLogs({
+    ...testConfig,
+    decoderType: "ethers",
+  });
+  const ethersLogs = convertBigIntToString(ethersLogsRaw);
+
+  expect(viemLogs.length).toBe(ethersLogs.length);
+  expect(viemLogs.length).toBeGreaterThan(0);
+
+  function normalizeArgsForComparison(args: any): any {
+    if (!args) return args;
+    
+    const sorted = Object.keys(args).sort().reduce((acc: any, key: string) => {
+      acc[key] = args[key];
+      return acc;
+    }, {} as any);
+    
+    return sorted;
+  }
+
+  for (let i = 0; i < viemLogs.length; i++) {
+    const viemLog = viemLogs[i];
+    const ethersLog = ethersLogs[i];
+
+    // Compare basic fields
+    expect(viemLog.transactionHash).toBe(ethersLog.transactionHash);
+    expect(viemLog.logIndex ?? viemLog.index).toBe(ethersLog.logIndex ?? ethersLog.index);
+    expect(viemLog.blockNumber).toBe(ethersLog.blockNumber);
+    expect((viemLog.address ?? viemLog.source)?.toLowerCase()).toBe(
+      (ethersLog.address ?? ethersLog.source)?.toLowerCase()
+    );
+
+    // Compare args if present
+    if (viemLog.args || ethersLog.args) {
+      const viemArgs = normalizeArgsForComparison(viemLog.args);
+      const ethersArgs = normalizeArgsForComparison(ethersLog.args);
+
+      expect(viemArgs).toEqual(ethersArgs);
+    }
+  }
+});
