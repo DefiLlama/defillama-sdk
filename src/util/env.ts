@@ -10,6 +10,7 @@ const defaultEnvValues = {
   INTERNAL_SDK_CACHE_FILE: './cache.json',
   TRON_RPC_CONCURRENCY_LIMIT: '5',
   LLAMA_INDEXER_ADDRESS_CHUNK_SIZE: '20',
+  LLAMA_INDEXER_TIMEOUT_MS: '300000',
   TRON_WALLET_RPC: 'https://api.trongrid.io',
   // TRON_EVM_RPC: 'https://rpc.ankr.com/tron_jsonrpc', // no longer used
   NAKA_RPC: 'https://node.nakachain.xyz',

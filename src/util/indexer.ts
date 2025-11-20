@@ -15,7 +15,7 @@ const LLAMA_INDEXER_API_KEY = getEnvValue("LLAMA_INDEXER_API_KEY");
 const LLAMA_INDEXER_V2_ENDPOINT = getEnvValue("LLAMA_INDEXER_V2_ENDPOINT");
 const LLAMA_INDEXER_V2_API_KEY = getEnvValue("LLAMA_INDEXER_V2_API_KEY");
 const addressChunkSize = +getEnvValue("LLAMA_INDEXER_ADDRESS_CHUNK_SIZE")! || 100;
-const INDEXER_REQUEST_TIMEOUT_MS = +(getEnvValue("LLAMA_INDEXER_TIMEOUT_MS")) || 300_000;
+const INDEXER_REQUEST_TIMEOUT_MS = +getEnvValue("LLAMA_INDEXER_TIMEOUT_MS")!;
 
 // v1 chains (still used for balances endpoint) -------------------------------------------------
 const indexerChainIdChainMapping: { [key: number]: string } = {
