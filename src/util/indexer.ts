@@ -45,6 +45,7 @@ const indexer2ChainIdChainMapping: { [key: number]: string } = {
   1868: "soneium",
   80094: "berachain",
   999: "hyperliquid",
+  143: "monad",
 };
 
 /**
