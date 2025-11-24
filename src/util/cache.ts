@@ -229,7 +229,9 @@ export function getTempLocalCache({ file, defaultData = {}, clearAfter = ONE_WEE
 // this removes data only from the file cache, not from the R2 cache
 export async function deleteCache(file: string) {
   const filePath = getFilePath(file)
-  await fs.unlink(filePath)
+  await fs.unlink(filePath).catch(() => {
+    // ignore errors
+  })
 }
 
 export async function readExpiringJsonCache(file: string): Promise<any> {
@@ -238,7 +240,7 @@ export async function readExpiringJsonCache(file: string): Promise<any> {
   const data = await readCache(file, options)
   if (!data || Object.keys(data).length === 0) return null
   if (data.expiryTimestamp < (Date.now() / 1e3)) {
-    await deleteCache(file)
+    await deleteCache(`${file}-uncompressed`)
     return null
   }
   return data.data
