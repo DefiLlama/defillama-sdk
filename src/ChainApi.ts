@@ -93,7 +93,18 @@ export class ChainApi {
     this.stats[method] += value
   }
 
-  call(params: CallOptions) {
+  // autoset block if timestamp is older than 2 hours
+  async _setBlockFromTimestamp() {
+    if (this.timestamp && !this.block) {
+      const twoHoursAgo = Date.now() / 1000 - 2 * 60 * 60
+      if (this.timestamp > twoHoursAgo) return;
+      await this.getBlock()
+    }
+  }
+
+  async call(params: CallOptions) {
+    await this._setBlockFromTimestamp()
+
     this.addStat('call')
     return call({
       ...params,
@@ -102,14 +113,16 @@ export class ChainApi {
     })
   }
 
-  batchCall(params: CallOptions[]) {
+  async batchCall(params: CallOptions[]) {
     return Promise.all(params.map(i => this.call(i)))
   }
 
-  multiCall(params: MulticallOptions) {
+  async multiCall(params: MulticallOptions) {
     this.addStat('multiCall', params.calls.length, true)
     this.addStat('call')
 
+    await this._setBlockFromTimestamp()
+    
     return multiCall({
       ...params,
       block: this.block,
@@ -117,8 +130,10 @@ export class ChainApi {
     })
   }
 
-  fetchList(params: FetchListOptions) {
+  async fetchList(params: FetchListOptions) {
     this.addStat('fetchList')
+    await this._setBlockFromTimestamp()
+
     return fetchList({
       ...params,
       block: this.block,
@@ -126,7 +141,9 @@ export class ChainApi {
     })
   }
 
-  bytecodeCall(params: ByteCodeCallOptions) {
+  async bytecodeCall(params: ByteCodeCallOptions) {
+    await this._setBlockFromTimestamp()
+
     return bytecodeCall({
       ...params,
       block: this.block,
@@ -239,6 +256,8 @@ export class ChainApi {
     permitFailure = false,
     withTokenData = false,
   }: GetTokenBalancesOptions) {
+
+    await this._setBlockFromTimestamp()
 
     if (tokensAndOwners2.length)
       tokensAndOwners.push(...tokensAndOwners2[0].map((i: string, j: number) => [i, tokensAndOwners2[1][j]]) as any)
