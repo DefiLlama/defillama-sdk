@@ -22,6 +22,7 @@ const LLAMA_INDEXER_API_KEY = getEnvValue("LLAMA_INDEXER_API_KEY");
 const LLAMA_INDEXER_V2_ENDPOINT = getEnvValue("LLAMA_INDEXER_V2_ENDPOINT");
 const LLAMA_INDEXER_V2_API_KEY = getEnvValue("LLAMA_INDEXER_V2_API_KEY");
 const addressChunkSize = +getEnvValue("LLAMA_INDEXER_ADDRESS_CHUNK_SIZE")! || 100;
+const INDEXER_REQUEST_TIMEOUT_MS = +getEnvValue("LLAMA_INDEXER_TIMEOUT_MS")!;
 
 // v1 chains (still used for balances endpoint)
 const indexerChainIdChainMapping: { [key: number]: string } = {
@@ -82,14 +83,14 @@ const axiosInstances = {
   v1: axios.create({
     headers: { "x-api-key": indexerConfigs.v1.apiKey },
     baseURL: indexerConfigs.v1.endpoint,
-    timeout: 180_000
+    timeout: INDEXER_REQUEST_TIMEOUT_MS,
   }),
   v2: axios.create({
     headers: { "x-api-key": indexerConfigs.v2.apiKey },
     baseURL: indexerConfigs.v2.endpoint,
     httpAgent,
     httpsAgent,
-    timeout: 300_000
+    timeout: INDEXER_REQUEST_TIMEOUT_MS,
   }),
 };
 
