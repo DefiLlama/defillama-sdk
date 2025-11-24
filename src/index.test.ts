@@ -177,6 +177,7 @@ test("imports", async () => {
           "xdai",
           "unichain",
           "polygon",
+          "monad",
           "sonic",
           "op_bnb",
           "fantom",
