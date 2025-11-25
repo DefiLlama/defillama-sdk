@@ -11,7 +11,7 @@ const CONFIG = {
   collect:   true,
   fromBlock: 66214443,
   toBlock:   66329526,
-  limit:     50_000,
+  limit:     10_000,
   all:       false
 };
 
