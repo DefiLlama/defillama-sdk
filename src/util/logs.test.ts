@@ -295,3 +295,41 @@ test("onlyArgs=true returns ONLY the decoded arguments", async () => {
   expect((logs[0] as any).transactionHash).toBeUndefined();
   expect((logs[0] as any).blockNumber).toBeUndefined();
 });
+
+test("logs - onlyArgs are iterable arrays with named fields", async () => {
+  const event_swap = "event Swap(address indexed sender,address indexed to,uint256 amount0In,uint256 amount1In,uint256 amount0Out,uint256 amount1Out)";
+
+  const logs = await baseApi.getLogs({
+    target: "0x723aef6543aece026a15662be4d3fb3424d502a9",
+    eventAbi: event_swap,
+    fromBlock: 9003820,
+    toBlock: 9004822,
+    onlyArgs: true,
+    skipCache: true,
+    skipIndexer: true
+  });
+
+  expect(logs.length).toBe(1);
+
+  const args: any = logs[0];
+
+  expect(Array.isArray(args)).toBe(true);
+
+  expect(args.sender).toBe("0xcF77a3Ba9A5CA399B7c97c74d54e5b1Beb874E43");
+
+  const [sender, to, amount0In, amount1In, amount0Out, amount1Out] = args;
+
+  expect(sender).toBe("0xcF77a3Ba9A5CA399B7c97c74d54e5b1Beb874E43");
+  expect(to).toBe("0x1111111254EEB25477B68fb85Ed929f73A960582");
+  expect(amount0In).toBe(BigInt(0));
+  expect(amount1In).toBe(BigInt(1000));
+  expect(amount0Out).toBe(BigInt(21463255605));
+  expect(amount1Out).toBe(BigInt(0));
+
+  const totalAmount1In = logs.reduce(
+    (acc: any, [, , , amt]: any) => acc + BigInt(amt || 0),
+    BigInt(0),
+  );
+
+  expect(totalAmount1In).toBe(BigInt(1000));
+});

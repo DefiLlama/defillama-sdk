@@ -108,17 +108,24 @@ export function enrichEthersArgsWithNamedProperties(
     return ethersArgs;
   }
 
-  // Create a new args object with named properties
-  const enrichedArgs: any = Object.create(null);
+  const inputs = event.inputs;
+  const length = typeof ethersArgs.length === 'number' ? ethersArgs.length : inputs.length;
 
-  // Copy all existing properties (numeric and named if present)
-  for (const key in ethersArgs) {
-    if (ethersArgs.hasOwnProperty && !ethersArgs.hasOwnProperty(key)) continue;
-    enrichedArgs[key] = ethersArgs[key];
+  const enrichedArgs: any = new Array(length);
+
+  for (let i = 0; i < length; i++) {
+    if (i in ethersArgs) {
+      enrichedArgs[i] = ethersArgs[i];
+    }
   }
 
-  // Ensure named properties are present
-  const inputs = event.inputs;
+  for (const key in ethersArgs) {
+    if (!Object.prototype.hasOwnProperty.call(ethersArgs, key)) continue;
+    if (!/^\d+$/.test(key)) {
+      enrichedArgs[key] = ethersArgs[key];
+    }
+  }
+
   for (let i = 0; i < inputs.length; i++) {
     const input = inputs[i];
     const value = ethersArgs[i];
@@ -126,12 +133,10 @@ export function enrichEthersArgsWithNamedProperties(
       if (input.name && !(input.name in enrichedArgs)) {
         enrichedArgs[input.name] = value;
       }
-      enrichedArgs[i] = value;
+      if (!(i in enrichedArgs)) {
+        enrichedArgs[i] = value;
+      }
     }
-  }
-
-  if (typeof ethersArgs.length === 'number') {
-    enrichedArgs.length = ethersArgs.length;
   }
 
   return enrichedArgs;
@@ -143,13 +148,11 @@ export function buildEthersCompatibleArgs(
   normalizeFn: (value: any, type: string) => any = normalizeValueByType
 ): any {
   if (!decodedArgs) {
-    const args: any = Object.create(null);
-    args.length = eventInputs.length;
+    const args: any = new Array(eventInputs.length);
     return args;
   }
 
-  const args: any = Object.create(null);
-  args.length = eventInputs.length;
+  const args: any = new Array(eventInputs.length);
 
   try {
     if (Array.isArray(decodedArgs)) {
@@ -228,8 +231,7 @@ export function createViemFastPathBatchDecoder(eventAbi: string | any): ((logs: 
             ? decodeAbiParameters(nonIndexedTypes as any, logData as `0x${string}`)
             : [];
 
-          const args: any = Object.create(null);
-          args.length = inputs.length;
+          const args: any = new Array(inputs.length);
 
           let topicIdx = 1; // topics[0] = event signature
           let nonIndexedIdx = 0;
@@ -296,8 +298,7 @@ export function createViemFastPathBatchDecoder(eventAbi: string | any): ((logs: 
           out[i] = args;
         } catch (e) {
           // Fallback: return empty args on decode error
-          const args: any = Object.create(null);
-          args.length = inputs.length;
+          const args: any = new Array(inputs.length);
           out[i] = args;
         }
       }
