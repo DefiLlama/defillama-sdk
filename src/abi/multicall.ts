@@ -36,6 +36,8 @@ export const MULTICALL_ADDRESS_AURORA =
   "0xe0e3887b158F7F9c80c835a61ED809389BC08d1b";
 export const MULTICALL_ADDRESS_OPTIMISM =
   "0xD0E99f15B24F265074747B2A1444eB02b9E30422";
+export const MULTICALL_ADDRESS_MONAD =
+  "0xcA11bde05977b3631167028862bE2a173976CA11";
 
 export const AGGREGATE_SELECTOR = "0x252dba42";
 
@@ -213,6 +215,8 @@ function multicallAddress(chainId: number | BigInt) {
       return MULTICALL_ADDRESS_AURORA;
     case 10:
       return MULTICALL_ADDRESS_OPTIMISM;
+    case 143:
+      return MULTICALL_ADDRESS_MONAD;
     case 25:
       return "0x5e954f5972EC6BFc7dECd75779F10d848230345F"; // cronos
     case 288:
