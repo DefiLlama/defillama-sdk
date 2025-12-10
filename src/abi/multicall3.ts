@@ -192,7 +192,7 @@ const DEPLOYMENT_BLOCK = {
   stratis: 1420372,
   '0g': 6546802,
   besc: 1,
-  monad: 1,
+  monad: 9248132,
 } as {
   [key: string | Chain]: number
 }
