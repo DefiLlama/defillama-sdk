@@ -193,6 +193,13 @@ const DEPLOYMENT_BLOCK = {
   '0g': 6546802,
   besc: 1,
   monad: 9248132,
+  incentiv: 1036482,
+  bsquared: 1,
+  mantra: 1,
+  cross: 1,
+  doma: 1,
+  capx: 30800,
+  stable: 2423647,
 } as {
   [key: string | Chain]: number
 }
@@ -269,7 +276,7 @@ export default async function makeMultiCall(
     let output = null
     let error = null
     try {
-      output = convertResults(contractInterface.decodeFunctionResult(fd, values), { functionABI: fd, chain});
+      output = convertResults(contractInterface.decodeFunctionResult(fd, values), { functionABI: fd, chain });
     } catch (e) {
       error = e
       success = false
@@ -337,4 +344,5 @@ const CUSTOM_MULTICALL_ADDRESSES: { [key: string]: string } = {
   'eteria': '0x8cC688B1F99b651ee00bB0Cb0aae61F416F8384b',
   'xone': '0xe39d7BCDdaBBD0526D143185Fb7b459099Fd40c9',
   'besc': '0xBcdb671cBC7711fE533E8B46E52EbC1470145F67',
+  'capx': '0x8E1cd29c79dD1Dd4966Cd6A05EeC7d25B5f47f2b',
 }

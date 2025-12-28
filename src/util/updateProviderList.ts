@@ -180,6 +180,7 @@ const chainShortNameMapping = {
   xone: 'xoc',
   hydragon: 'hydra',
   camp: 'campmainnet',
+  mantra: 'mantrachain',
 }
 
 async function filterForWorkingRPCs(rpc: string[], chain: string, chainId: number): Promise<string[]> {
