@@ -200,6 +200,7 @@ const DEPLOYMENT_BLOCK = {
   doma: 1,
   capx: 30800,
   stable: 2423647,
+  megaeth: 1858081,
 } as {
   [key: string | Chain]: number
 }
