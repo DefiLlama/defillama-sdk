@@ -530,3 +530,133 @@ test("fetchList - targets 2", async () => {
     itemAbi: 'allPairs',
   })).toEqual(['0x9536A78440f72f5E9612949F1848fe5E9D4934CC','0x9536A78440f72f5E9612949F1848fe5E9D4934CC','0x9536A78440f72f5E9612949F1848fe5E9D4934CC',])
 });
+
+test("call with abis param", async () => {
+  expect(
+    await call({
+      target: "0x89d24a6b4ccb1b6faa2625fe562bdd9a23260359",
+      params: "0x3FfBa143f5e69Aa671C9f8e3843C88742b1FA2D9",
+      abis: [
+        "function balanceOf_non_existant(address) view returns (uint256)",
+        "erc20:balanceOf",
+      ],
+      block: 15997547,
+    })
+  ).toEqual("3914724000000000000");
+});
+
+test("call with abis param and withMetadata", async () => {
+  expect(
+    await call({
+      target: "0x89d24a6b4ccb1b6faa2625fe562bdd9a23260359",
+      params: "0x3FfBa143f5e69Aa671C9f8e3843C88742b1FA2D9",
+      abis: [
+        "function balanceOf_non_existant(address) view returns (uint256)",
+        "erc20:balanceOf",
+      ],
+      block: 15997547,
+      withMetadata: true,
+    })
+  ).toEqual({
+    output: "3914724000000000000",
+  });
+});
+
+test("call with field param", async () => {
+  expect(
+    await call({
+      target: "0xbb2b8038a1640196fbe3e38816f3e67cba72d940",
+      abi: "function getReserves() view returns (uint112 _reserve0, uint112 _reserve1, uint32 _blockTimestampLast)",
+      block: 15997547,
+      field: "_reserve0",
+    })
+  ).toEqual("22703861331");
+});
+
+test("call with field param and withMetadata", async () => {
+  expect(
+    await call({
+      target: "0xbb2b8038a1640196fbe3e38816f3e67cba72d940",
+      abi: "function getReserves() view returns (uint112 _reserve0, uint112 _reserve1, uint32 _blockTimestampLast)",
+      block: 15997547,
+      field: "_reserve1",
+      withMetadata: true,
+    })
+  ).toEqual({
+    output: "3120786254041482210638",
+  });
+});
+
+test("multiCall with abis param", async () => {
+  expect(
+    await multiCall({
+      calls: [
+        {
+          target: "0x0000000000085d4780B73119b644AE5ecd22b376",
+          params: "0xecd5e75afb02efa118af914515d6521aabd189f1",
+        },
+      ],
+      abis: [
+        "function balanceOf_non_existant(address) view returns (uint256)",
+        "erc20:balanceOf",
+      ],
+      block: 15997547,
+    })
+  ).toEqual([
+    "14625620499802070062319404",
+  ]);
+});
+
+test("multiCall with field param", async () => {
+  expect(
+    await multiCall({
+      calls: [
+        "0xbb2b8038a1640196fbe3e38816f3e67cba72d940",
+        "0xd3d2e2692501a5c9ca623199d38826e513033a17",
+      ],
+      abi: "function getReserves() view returns (uint112 _reserve0, uint112 _reserve1, uint32 _blockTimestampLast)",
+      block: 15997547,
+      field: "_reserve0",
+      permitFailure: true,
+    })
+  ).toEqual([
+    "22703861331",
+    "1428900635496571696616098",
+  ]);
+});
+
+test("multiCall with field param and withMetadata", async () => {
+  const response = await multiCall({
+    calls: [
+      "0xbb2b8038a1640196fbe3e38816f3e67cba72d940",
+    ],
+    abi: "function getReserves() view returns (uint112 _reserve0, uint112 _reserve1, uint32 _blockTimestampLast)",
+    block: 15997547,
+    field: "_blockTimestampLast",
+    withMetadata: true,
+  });
+  expect(response[0].output).toEqual("1668779963");
+});
+
+test("fetchList with field param", async () => {
+  const res = await fetchList({
+    chain: 'avax',
+    target: "0xeD380115259FcC9088c187Be1279678e23a6E565",
+    lengthAbi: "nextStrategyId",
+    itemAbi: "function strategyIdToMetadata(uint64 arg0) view returns (string, string, address strategy)",
+    field: "strategy",
+  });
+  expect(res[0]).toEqual("0x39471BEe1bBe79F3BFA774b6832D6a530edDaC6B");
+});
+
+test("fetchList with field param and withMetadata", async () => {
+  const res = await fetchList({
+    chain: 'avax',
+    target: "0xeD380115259FcC9088c187Be1279678e23a6E565",
+    lengthAbi: "nextStrategyId",
+    itemAbi: "function strategyIdToMetadata(uint64 arg0) view returns (string, string, address strategy)",
+    field: "strategy",
+    withMetadata: true,
+  });
+  expect(res[0].output).toEqual("0x39471BEe1bBe79F3BFA774b6832D6a530edDaC6B");
+});

@@ -108,6 +108,8 @@ function isValidTarget(target: string, chain?: string) {
 }
 
 export async function call(params: CallOptions): Promise<any> {
+  if (!params.abi) throw new Error('Missing ABI parameter ("abis" is supported only in abi2/ChainApi)!')
+
   if (params.chain === 'tron')
     fixTronCallParams(params)
 
@@ -178,6 +180,10 @@ export async function bytecodeCall(params: ByteCodeCallOptions): Promise<any> {
 }
 
 export async function multiCall(params: MulticallOptions): Promise<any> {
+
+  if (!params.abi) throw new Error('Missing ABI parameter ("abis" is supported only in abi2/ChainApi)!')
+
+
   fixBlockTag(params)
 
   if (params.chain === 'tron')

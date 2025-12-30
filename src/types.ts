@@ -16,7 +16,8 @@ export type CallsParams = {
 
 export type CallOptions = {
   target: Address;
-  abi: string | any;
+  abi?: string | any;
+  abis?: string[];
   block?: Block;
   params?: CallParams;
   chain?: Chain | string;
@@ -29,7 +30,8 @@ export type CallOptions = {
 export type Chain = string
 
 export type MulticallOptions = {
-  abi: string | any;
+  abi?: string | any;
+  abis?: string[];
   calls: CallsParams[] | (string | number)[];
   block?: Block;
   target?: Address; // Used when calls.target is not provided
