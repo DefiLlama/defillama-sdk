@@ -3,8 +3,12 @@ import * as abi1 from './index'
 import { debugLog } from "../util/debugLog";
 
 export async function call(params: CallOptions): Promise<any> {
+
+  if (params.abis)
+    return callWithAlternateAbis()
+
   try {
-    const response = await abi1.call(params)
+    const response = await abi1.call(params as any)  // abi v1 doesnt have support for 'abis' param
     if (params.field) response.output = response.output[params.field]
     if (params.withMetadata) return response
     return response.output
@@ -13,10 +17,28 @@ export async function call(params: CallOptions): Promise<any> {
     if (params.withMetadata) return { success: false, error: e }
     return null
   }
+
+  async function callWithAlternateAbis(): Promise<any> {
+    const { abis, ...restParams } = params
+
+    if (!abis || abis.length === 0) throw new Error('No alternate ABIs provided!')
+
+    for (let i = 0; i < abis.length - 1; i++) {
+      const res = await call({ ...restParams, abi: abis[i], permitFailure: true, withMetadata: true })
+      const response = params.withMetadata ? res : res.output
+      if (res.success) return response
+    }
+
+    const lastAbi = abis[abis.length - 1]
+    return call({ ...restParams, abi: lastAbi, })
+  }
 }
 
 export async function multiCall(params: MulticallOptions): Promise<any[]> {
   if (params.excludeFailed) params.permitFailure = true
+
+  if (params.abis) return multiCallWithAlternateAbis()
+
   params.calls = params.calls.map(i => {
     if (typeof i === 'object') return i
     if (typeof i === 'string') {
@@ -32,6 +54,48 @@ export async function multiCall(params: MulticallOptions): Promise<any[]> {
   if (params.field) output.forEach((i: any) => i.output = i.output[params.field!])
   if (params.withMetadata) return output
   return output.map((i: any) => i.output)
+
+  async function multiCallWithAlternateAbis(): Promise<any[]> {
+    const { abis, ...restParams } = params
+
+    if (!abis || abis.length === 0) throw new Error('No alternate ABIs provided!')
+
+    const outputs = []
+    for (let i = 0; i < abis.length; i++) {
+      const res = await multiCall({ ...restParams, abi: abis[i], permitFailure: true, withMetadata: true, excludeFailed: false, })
+      outputs.push(res)
+    }
+
+    let finalOutput: {
+      success: boolean;
+      output?: any;
+      error?: any;
+    }[] | any
+
+    const permitFailure = params.permitFailure || params.excludeFailed
+
+    outputs.forEach((res) => {
+      if (!finalOutput) { // First iteration
+        finalOutput = res
+        return;
+      }
+
+      res.forEach((callRes: any, idx: number) => {
+        if (finalOutput[idx]?.success) return;  // Already succeeded with an earlier ABI
+
+        finalOutput[idx] = callRes
+      })
+    })
+
+    if (!permitFailure)
+      finalOutput.forEach((data: any) => {
+        if (!data?.success) throw new Error(`All ABI alternatives failed for multiCall! Last error: ${data?.error}`)
+      })
+
+    if (params.excludeFailed) finalOutput = finalOutput.filter((i: any) => i?.success)
+    if (params.withMetadata) return finalOutput
+    return finalOutput.map((i: any) => i.output)
+  }
 }
 
 export async function fetchList(params: FetchListOptions) {

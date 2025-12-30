@@ -3,10 +3,11 @@ import _providerList from '../providers.json'
 import fs from 'fs'
 import { debugLog } from './debugLog';
 import PromisePool from '@supercharge/promise-pool';
-import { fetchJson, postJson } from '../generalUtil';
+import { fetchJson, postJson, runInPromisePool } from '../generalUtil';
 
 const concurrentCheckChains = +(process.env.SDK_BUILD_CONCURRENT_CHAINS || 7)
 const chainRemovalThreshold = +(process.env.SDK_BUILD_CHAIN_REMOVAL_THRESHOLD || 20)
+const droppedTestnetChainsSet = new Set<string>([])
 
 
 const providerList = _providerList as {
@@ -52,9 +53,12 @@ async function main() {
       const bannedRPCKeys = ['sepolia', 'goerli', 'devnet', 'holesky']
       const isTestnetKey = bannedKeys.some((j: string) => i.shortName.includes(j))
       const hasTestnetRPC = i.rpc.some((rpc: any) => bannedRPCKeys.some((k: string) => rpc?.url.includes(k)))
-      if (isTestnetKey || hasTestnetRPC)
-        console.log(`Excluding testnet chain ${i.name} (${i.shortName})`)
-      return !isTestnetKey && !hasTestnetRPC
+      const hasTestnetName = i.name?.toLowerCase().includes('testnet') || i.name?.toLowerCase().includes('devnet')
+      if (isTestnetKey || hasTestnetRPC || hasTestnetName){
+        droppedTestnetChainsSet.add(i.shortName)
+        // console.log(`Excluding testnet chain ${i.name} (${i.shortName})`)
+      }
+      return !isTestnetKey && !hasTestnetRPC && !hasTestnetName
     })
 
   // trim/remove mainnet|-mainnet|_mainnet from short names, preliminary rpc filtering
@@ -74,7 +78,7 @@ async function main() {
     i.rpc = i.rpc.filter((j: any) => {
       if (!j.url) return false;
       if (rpcFilterRegex.test(j.url)) {
-        console.log(`Removing blacklisted rpc ${j.url} from ${i.name}`)
+        // console.log(`Removing blacklisted rpc ${j.url} from ${i.name}`)
         return false // remove anything with blacklisted words
       }
       return true
@@ -125,19 +129,24 @@ async function main() {
   }
 
   const droppedChains = Object.keys(oldProviders).filter(oldChain => providerList[oldChain] === undefined)
-  if (droppedChains.length > chainRemovalThreshold) {
-    throw new Error(`Following chains used to be included but is not anymore, can the devs fix please?\n${droppedChains.join(', ')}`)
+  const filteredDroppedChains = droppedChains.filter(i => !droppedTestnetChainsSet.has(i) && !i.includes('test'))
+  console.log('Dropped chains before testnet filtering:', droppedChains.length)
+  console.log('Dropped chains after testnet filtering:', filteredDroppedChains.length)
+  if (filteredDroppedChains.length > chainRemovalThreshold) {
+    throw new Error(`Following chains used to be included but is not anymore, can the devs fix please?\n${filteredDroppedChains.join(', ')}`)
   }
 
   delete providerList.bitcoin // what were they smoking?
 
 
   const rpcCount = Object.values(providerList).reduce((acc, i) => acc + (i?.rpc.length ?? 0), 0)
+  const rpcCountOld = Object.values(oldProviders).reduce((acc: any, i: any) => acc + (i?.rpc.length ?? 0), 0)
   console.log('Final provider list:')
   console.log('Chain count:', Object.keys(providerList).length)
-  console.log('Dropped chain count:', droppedChains.length)
+  console.log('Dropped chain count:', filteredDroppedChains.length)
   console.log('RPC count:', rpcCount)
-  console.log('Dropped chains:', droppedChains.join(', '))
+  console.log('RPC count current:', rpcCountOld)
+  console.log('Dropped chains:', filteredDroppedChains.join(', '))
 
   fs.writeFileSync(__dirname + '/../providers.json', JSON.stringify(providerList));
 }
@@ -185,27 +194,38 @@ const chainShortNameMapping = {
 }
 
 async function filterForWorkingRPCs(rpc: string[], chain: string, chainId: number): Promise<string[]> {
-  if (rpc.length < 10) return rpc
+  if (rpc.length < 4) return rpc
   rpc = filterRPCs(rpc)
+  const filteredRPCs: string[] = []
 
-  const promises = await Promise.all(rpc.map(async (i: string) => {
-    try {
-      const data = await postJson(i, {
-        jsonrpc: '2.0',
-        method: 'eth_blockNumber',
-        params: [],
-        id: 1
-      }, {
-        timeout: 30000
-      })
-      if (data.result) return true
-    } catch (e) {
-      console.log('ignoring bad rpc', chain, (e as any)?.message)
+  await runInPromisePool({
+    items: rpc,
+    concurrency: concurrentCheckChains,
+    permitFailure: true,
+    processor: async (i: string) => {
+      try {
+        const data = await postJson(i, {
+          jsonrpc: '2.0',
+          method: 'eth_chainId',
+          params: [],
+          id: 1
+        }, {
+          timeout: 60_000
+        })
+        if (data.result) {
+          const returnedChainId = parseInt(data.result, 16)
+          if (returnedChainId !== chainId) {
+            console.log(`RPC ${i} for ${chain} returned invalid chainId ${returnedChainId}, expected ${chainId}`)
+          }
+          filteredRPCs.push(i)
+        }
+      } catch (e) {
+        console.log('ignoring bad rpc', chain, (e as any)?.message)
+      }
     }
-    return false
-  }))
+  })
 
-  return rpc.filter((_i: string, index: number) => promises[index])
+  return filteredRPCs
 }
 
 main()
