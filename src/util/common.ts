@@ -89,7 +89,9 @@ export function sumSingleBalance(
     else
       throw new Error('Invalid balance value:' + balance + ' ' + token)
   }
-
+  if (!token || token.trim() === '') {
+    return;
+  }
   if (typeof balance === 'number' || (balances[token] && typeof balances[token] === 'number')) {
     const prevBalance = +(balances.hasOwnProperty(token) ? balances[token] : 0)
     if (typeof prevBalance !== 'number' || isNaN(prevBalance))

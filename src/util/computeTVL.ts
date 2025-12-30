@@ -37,6 +37,9 @@ export default async function computeTVL(balances: Balances, timestamp?: number,
   Object.entries(balances).forEach(([token, balance]) => {
     // if (+balance <= 0) return;
     if (+balance === 0) return;
+    if (!token || token.trim() === '') {
+      return;
+    }
     const key = tokenToKey(token).toLowerCase()
     let { price, confidence, decimals = 0, symbol = token } = priceCache[key] ?? {}
     if (!price || confidence < confidenceThreshold) return
