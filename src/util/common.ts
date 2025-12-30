@@ -90,7 +90,7 @@ export function sumSingleBalance(
       throw new Error('Invalid balance value:' + balance + ' ' + token)
   }
   if (!token || token.trim() === '') {
-    return;
+    throw new Error('Missing token address/symbol')
   }
   if (typeof balance === 'number' || (balances[token] && typeof balances[token] === 'number')) {
     const prevBalance = +(balances.hasOwnProperty(token) ? balances[token] : 0)
