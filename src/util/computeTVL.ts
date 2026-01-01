@@ -37,12 +37,18 @@ export default async function computeTVL(balances: Balances, timestamp?: number,
   Object.entries(balances).forEach(([token, balance]) => {
     // if (+balance <= 0) return;
     if (+balance === 0) return;
+    if (!token || token.trim() === '') {
+      return;
+    }
     const key = tokenToKey(token).toLowerCase()
     let { price, confidence, decimals = 0, symbol = token } = priceCache[key] ?? {}
     if (!price || confidence < confidenceThreshold) return
     const value = +balance * price / (10 ** decimals)
     usdTvl += value
+    
     if (symbol === 'ETH') symbol = 'WETH'
+    if (!symbol  || symbol.trim() === '') symbol = '-'
+    
     sumSingleBalance(usdTokenBalances, symbol, value)
     if (debug && !isNaN(+value)) debugData.tokenData.push({ symbol, value, token, price, confidence,  balance, decimals, })
   })
