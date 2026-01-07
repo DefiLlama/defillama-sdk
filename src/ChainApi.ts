@@ -73,7 +73,7 @@ export class ChainApi {
     this.chainId = providerList[this.chain]?.chainId
     this.storedKey = params.storedKey
     this.api = this
-    const uKey = `${params.protocol}:${this.storedKey}`
+    const uKey = this.storedKey ? `${params.protocol}:${this.storedKey}` : (params.protocol ? `${params.protocol}` : `chain-${this.chain}`)
     const stats = {
       meta: {
         chain: this.chain as string,
@@ -122,7 +122,7 @@ export class ChainApi {
     this.addStat('call')
 
     await this._setBlockFromTimestamp()
-    
+
     return multiCall({
       ...params,
       block: this.block,
@@ -152,7 +152,8 @@ export class ChainApi {
   }
 
   async getBlock(): Promise<number> {
-    this.addStat('getBlock')
+    if (!this.block) this.addStat('getBlock')
+
     if (!this.block) this.block = await getBlockNumber(this.chain as Chain, this.timestamp)
     return this.block as number
   }
@@ -336,7 +337,7 @@ export class ChainApi {
   }
 
   async getGasTokenBalance(owner: string, options?: GetTokenBalancesOptions) {
-    return (await this.getGasTokenBalances({ ...options, owner,}))[0]
+    return (await this.getGasTokenBalances({ ...options, owner, }))[0]
   }
 
   async getGasTokenBalances(options: GetTokenBalancesOptions) {
@@ -381,6 +382,10 @@ export class ChainApi {
   async getTransactionReceipt(tx: string) {
     this.addStat('getTransactionReceipt')
     return this.provider.getTransactionReceipt(tx)
+  }
+
+  getStats() {
+    return this.stats
   }
 }
 
