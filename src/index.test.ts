@@ -185,6 +185,7 @@ test("imports", async () => {
           "hyperliquid",
           "polygon_zkevm",
           "soneium",
+          "megaeth",
           "base",
           "mode",
           "arbitrum",
