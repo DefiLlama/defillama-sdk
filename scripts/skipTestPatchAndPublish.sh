@@ -16,6 +16,7 @@ if [[ $? -ne 0 ]] ; then
   echo "Failed to update providers"
   exit 1
 fi
+npm login
 npm publish
 git checkout master -- LICENSE
 git checkout master -- src/providers.json
