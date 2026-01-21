@@ -759,5 +759,15 @@
   "dchainmainnet": {
     "rpc": [],
     "chainId": 2716446429837000
+  },
+  "monad": {
+    "rpc": [
+      "https://rpc.monad.xyz",
+      "https://rpc1.monad.xyz",
+      "https://rpc2.monad.xyz",
+      "https://rpc3.monad.xyz",
+      "https://rpc4.monad.xyz"
+    ],
+    "chainId": 143
   }
 }
