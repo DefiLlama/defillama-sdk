@@ -201,6 +201,8 @@ const DEPLOYMENT_BLOCK = {
   capx: 30800,
   stable: 2423647,
   megaeth: 1858081,
+  injective: 1,
+  occ: 1,
 } as {
   [key: string | Chain]: number
 }

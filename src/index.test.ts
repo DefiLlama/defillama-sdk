@@ -5,8 +5,15 @@ type Chain = types.Chain;
 
 test("imports", async () => {
   const data = await import('./index')
+  let chainUtils: any = { ...data.chainUtils }
+
+  // exclude dynamic data from snapshot
+  delete chainUtils.chainKeyToChainLabelMap
+  delete chainUtils.chainLabelsToKeyMap
+
+
   const {providers, ...configCopy } = data.api2.config 
-  const dataCopy = { ...data, api2: { ...data.api2, config: configCopy } }
+  const dataCopy = { ...data, api2: { ...data.api2, config: configCopy }, chainUtils }
   let _testChainTypeImport: Chain
   let _testAddressTypeImport: Address = '0x'
 
@@ -115,6 +122,12 @@ test("imports", async () => {
         "readExpiringJsonCache": [Function],
         "writeCache": [Function],
         "writeExpiringJsonCache": [Function],
+      },
+      "chainUtils": {
+        "getChainKeyFromLabel": [Function],
+        "getChainLabelFromKey": [Function],
+        "sluggifyString": [Function],
+        "updateData": [Function],
       },
       "coins": {
         "getMcaps": [Function],

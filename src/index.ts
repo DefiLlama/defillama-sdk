@@ -18,6 +18,7 @@ export * as types from "./types";
 export * as tron from "./abi/tron";
 export * as erc20 from "./erc20";
 export * as coins from "./util/coins";
+export * as chainUtils from "./util/chainUtils";
 
 export const log = debugLog
 export const logTable = debugTable

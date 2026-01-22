@@ -4,6 +4,7 @@ import fs from 'fs'
 import { debugLog } from './debugLog';
 import PromisePool from '@supercharge/promise-pool';
 import { fetchJson, postJson, runInPromisePool } from '../generalUtil';
+import { updateData, chainKeyToChainLabelMap, chainLabelsToKeyMap } from '../util/chainUtils';
 
 const concurrentCheckChains = +(process.env.SDK_BUILD_CONCURRENT_CHAINS || 7)
 const chainRemovalThreshold = +(process.env.SDK_BUILD_CHAIN_REMOVAL_THRESHOLD || 20)
@@ -34,6 +35,25 @@ async function getChainData() {
 }
 
 async function main() {
+  const chainKeyLabelMapCountBefore = Object.keys(chainKeyToChainLabelMap).length
+  const chainLabelsKeyMapCountBefore = Object.keys(chainLabelsToKeyMap).length
+  await updateData()
+
+  const chainKeyLabelMapCountAfter = Object.keys(chainKeyToChainLabelMap).length
+  const chainLabelsKeyMapCountAfter = Object.keys(chainLabelsToKeyMap).length
+
+  if (chainKeyLabelMapCountAfter > chainKeyLabelMapCountBefore) {
+    console.log(`Updated chainKeyToChainLabelMap: ${chainKeyLabelMapCountBefore} -> ${chainKeyLabelMapCountAfter}`)
+  }
+  if (chainLabelsKeyMapCountAfter > chainLabelsKeyMapCountBefore) {
+    console.log(`Updated chainLabelsToKeyMap: ${chainLabelsKeyMapCountBefore} -> ${chainLabelsKeyMapCountAfter}`)
+  }
+
+  if (chainKeyLabelMapCountAfter < chainKeyLabelMapCountBefore)
+    throw new Error('chainKeyToChainLabelMap count decreased, please investigate')
+  if (chainLabelsKeyMapCountAfter < chainLabelsKeyMapCountBefore)
+    throw new Error('chainLabelsToKeyMap count decreased, please investigate')
+
   const oldProviders = await fetchJson(`https://unpkg.com/@defillama/sdk@latest/build/providers.json`)
   const currentChains = await fetchJson(`https://raw.githubusercontent.com/DefiLlama/DefiLlama-Adapters/refs/heads/main/projects/helper/chains.json`)
   const currentChainsSet = new Set(currentChains)
@@ -54,7 +74,7 @@ async function main() {
       const isTestnetKey = bannedKeys.some((j: string) => i.shortName.includes(j))
       const hasTestnetRPC = i.rpc.some((rpc: any) => bannedRPCKeys.some((k: string) => rpc?.url.includes(k)))
       const hasTestnetName = i.name?.toLowerCase().includes('testnet') || i.name?.toLowerCase().includes('devnet')
-      if (isTestnetKey || hasTestnetRPC || hasTestnetName){
+      if (isTestnetKey || hasTestnetRPC || hasTestnetName) {
         droppedTestnetChainsSet.add(i.shortName)
         // console.log(`Excluding testnet chain ${i.name} (${i.shortName})`)
       }
@@ -128,6 +148,15 @@ async function main() {
     providerList[key] = providerList[shorName]
   }
 
+  // add from the old providers any missing rpcs that is in the tvl chain list
+  Object.entries(oldProviders).forEach(([key, i]: any) => {
+    if (!currentChainsSet.has(key)) return;
+    if (providerList[key]) return;
+
+    console.log(`Adding missing chain ${key} from old providers`)
+    providerList[key] = i
+  })
+
   const droppedChains = Object.keys(oldProviders).filter(oldChain => providerList[oldChain] === undefined)
   const filteredDroppedChains = droppedChains.filter(i => !droppedTestnetChainsSet.has(i) && !i.includes('test'))
   console.log('Dropped chains before testnet filtering:', droppedChains.length)
@@ -141,12 +170,16 @@ async function main() {
 
   const rpcCount = Object.values(providerList).reduce((acc, i) => acc + (i?.rpc.length ?? 0), 0)
   const rpcCountOld = Object.values(oldProviders).reduce((acc: any, i: any) => acc + (i?.rpc.length ?? 0), 0)
+  const newlyAddedChains = Object.keys(providerList).filter(chain => oldProviders[chain] === undefined)
   console.log('Final provider list:')
   console.log('Chain count:', Object.keys(providerList).length)
+  console.log('Newly added chains count:', newlyAddedChains.length)
   console.log('Dropped chain count:', filteredDroppedChains.length)
   console.log('RPC count:', rpcCount)
   console.log('RPC count current:', rpcCountOld)
   console.log('Dropped chains:', filteredDroppedChains.join(', '))
+  console.log('Newly added chains:', newlyAddedChains.join(', '))
+
 
   fs.writeFileSync(__dirname + '/../providers.json', JSON.stringify(providerList));
 }
