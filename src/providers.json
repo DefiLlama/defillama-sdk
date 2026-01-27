@@ -759,5 +759,11 @@
   "dchainmainnet": {
     "rpc": [],
     "chainId": 2716446429837000
+  },
+  "citrea": {
+    "rpc": [
+      "https://rpc.mainnet.citrea.xyz"
+    ],
+    "chainId": 4114
   }
 }
