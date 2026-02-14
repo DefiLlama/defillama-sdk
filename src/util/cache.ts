@@ -263,6 +263,7 @@ export async function cachedFetch({
   fetcher,
   fetchOptions,
   errorOnNoCache = true,
+  cacheMaxAge = 0,
   writeCacheOptions = {
     skipCompression: true,
     skipR2CacheWrite: true,
@@ -278,6 +279,7 @@ export async function cachedFetch({
   fetcher?: () => Promise<any>,
   fetchOptions?: any,  // axios fetch options
   errorOnNoCache?: boolean,
+  cacheMaxAge?: number, // max age in ms before refetching, set to 0 to always refetch
   writeCacheOptions?: WriteCacheOptions,
   readCacheOptions?: ReadCacheOptions
 }) {
@@ -289,9 +291,23 @@ export async function cachedFetch({
 
   const fileKey = 'cached-fetch/' + key
 
+  // check local cache first
+  if (cacheMaxAge > 0) {
+    try {
+      const filePath = getFilePath(readCacheOptions.skipCompression ? `${fileKey}-uncompressed` : fileKey)
+      const stats = await fs.stat(filePath)
+      if (Date.now() - stats.mtimeMs < cacheMaxAge) {
+        const cachedData = await readCache(fileKey, readCacheOptions)
+        if (cachedData && Object.keys(cachedData).length > 0) return cachedData
+      }
+    } catch (error) {
+      // cache miss or stat error, proceed to fetch
+    }
+  }
+
   try {
 
-    let data: any 
+    let data: any
     if (fetcher) data = await fetcher()
     else {
       if (!endpoint) throw new Error('Either fetcher or endpoint is required for cachedFetch')
@@ -306,8 +322,8 @@ export async function cachedFetch({
 
     const errorMessage = formError(error).message
     debugLog('Error in cachedFetch:', errorMessage)
-    
-    // if fetch fails, read from cache
+
+    // if fetch fails, read from cache (regardless of age)
     const cachedData = await readCache(fileKey, readCacheOptions)
 
     if (!cachedData && errorOnNoCache)
