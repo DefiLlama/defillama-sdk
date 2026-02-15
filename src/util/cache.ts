@@ -249,7 +249,7 @@ export async function readExpiringJsonCache(file: string): Promise<any> {
 export async function writeExpiringJsonCache(file: string, data: any, {
   expireAfter = 60 * 60 * 24, // cache for 1 day by default
   expiryTimestamp,
-}: { expireAfter?: number, expiryTimestamp?: number }): Promise<void> {
+}: { expireAfter?: number, expiryTimestamp?: number } = {}): Promise<void> {
   file = 'expiring/' + file
   if (!expiryTimestamp) expiryTimestamp = Math.floor(Date.now() / 1e3) + expireAfter
   const options: WriteCacheOptions = { skipR2CacheWrite: true, skipCompression: true }
