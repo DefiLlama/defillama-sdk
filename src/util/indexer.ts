@@ -6,25 +6,20 @@ import { parser as streamJsonParser } from "stream-json";
 import { pick } from "stream-json/filters/Pick";
 import { streamArray } from "stream-json/streamers/StreamArray";
 import { sliceIntoChunks } from ".";
-import { ETHER_ADDRESS } from "../general";
 import { Address } from "../types";
 import { getBlockNumber } from "./blocks";
-import { readCache, writeCache } from "./cache";
-import { formError, getUniqueAddresses } from "./common";
+import { formError } from "./common";
 import { DEBUG_LEVEL2, debugLog } from "./debugLog";
 import { ENV_CONSTANTS, getEnvValue } from "./env";
 import { getLogParams, getLogs as getLogsParent } from "./logs";
 import { createViemFastPathBatchDecoder, normalizeLog } from "./logs.decode.shared";
 import { GetTransactionOptions } from "./transactions";
 
-const indexerURL = getEnvValue("LLAMA_INDEXER_ENDPOINT");
-const LLAMA_INDEXER_API_KEY = getEnvValue("LLAMA_INDEXER_API_KEY");
-const LLAMA_INDEXER_V2_ENDPOINT = getEnvValue("LLAMA_INDEXER_V2_ENDPOINT");
-const LLAMA_INDEXER_V2_API_KEY = getEnvValue("LLAMA_INDEXER_V2_API_KEY");
+const LLAMA_INDEXER_ENDPOINT = getEnvValue("LLAMA_INDEXER_V2_ENDPOINT");
+const LLAMA_INDEXER_API_KEY = getEnvValue("LLAMA_INDEXER_V2_API_KEY");
 const addressChunkSize = +getEnvValue("LLAMA_INDEXER_ADDRESS_CHUNK_SIZE")! || 100;
 const INDEXER_REQUEST_TIMEOUT_MS = +getEnvValue("LLAMA_INDEXER_TIMEOUT_MS")!;
 
-// v1 chains (still used for balances endpoint)
 const indexerChainIdChainMapping: { [key: number]: string } = {
   1: "ethereum",
   10: "optimism",
@@ -32,7 +27,6 @@ const indexerChainIdChainMapping: { [key: number]: string } = {
   100: "xdai",
   137: "polygon",
   204: "op_bnb",
-  250: "fantom",
   324: "era",
   1101: "polygon_zkevm",
   8453: "base",
@@ -44,11 +38,6 @@ const indexerChainIdChainMapping: { [key: number]: string } = {
   81457: "blast",
   534352: "scroll",
   146: "sonic",
-};
-
-// v2 chains (superset of v1)
-const indexer2ChainIdChainMapping: { [key: number]: string } = {
-  ...indexerChainIdChainMapping,
   130: "unichain",
   1868: "soneium",
   80094: "berachain",
@@ -58,73 +47,40 @@ const indexer2ChainIdChainMapping: { [key: number]: string } = {
   196: "xlayer"
 };
 
-interface IndexerConfig {
-  endpoint: string;
-  apiKey: string;
-  chainMapping: { [key: number]: string };
-}
-
-const indexerConfigs: Record<"v1" | "v2", IndexerConfig> = {
-  v1: {
-    endpoint: indexerURL,
-    apiKey: LLAMA_INDEXER_API_KEY,
-    chainMapping: indexerChainIdChainMapping,
-  },
-  v2: {
-    endpoint: LLAMA_INDEXER_V2_ENDPOINT,
-    apiKey: LLAMA_INDEXER_V2_API_KEY,
-    chainMapping: indexer2ChainIdChainMapping,
-  },
-} as const;
-
 // http agents for streaming (keep-alive)
 const httpAgent = new http.Agent({ keepAlive: true, maxSockets: 256, maxFreeSockets: 64 });
 const httpsAgent = new https.Agent({ keepAlive: true, maxSockets: 256, maxFreeSockets: 64 });
 
-const axiosInstances = {
-  v1: axios.create({
-    headers: { "x-api-key": indexerConfigs.v1.apiKey },
-    baseURL: indexerConfigs.v1.endpoint,
-    timeout: INDEXER_REQUEST_TIMEOUT_MS,
-  }),
-  v2: axios.create({
-    headers: { "x-api-key": indexerConfigs.v2.apiKey },
-    baseURL: indexerConfigs.v2.endpoint,
-    httpAgent,
-    httpsAgent,
-    timeout: INDEXER_REQUEST_TIMEOUT_MS,
-  }),
-};
+const axiosInstance = axios.create({
+  headers: { "x-api-key": LLAMA_INDEXER_API_KEY },
+  baseURL: LLAMA_INDEXER_ENDPOINT,
+  httpAgent,
+  httpsAgent,
+  timeout: INDEXER_REQUEST_TIMEOUT_MS,
+});
 
-function checkIndexerConfig(version: "v1" | "v2") {
-  const config = indexerConfigs[version];
-  if (!config.endpoint || !config.apiKey) throw new Error(`Llama Indexer ${version} URL/api key is not set`);
+function checkIndexerConfig() {
+  if (!LLAMA_INDEXER_ENDPOINT || !LLAMA_INDEXER_API_KEY) throw new Error(`Llama Indexer URL/api key is not set`);
 }
 
-function getChainId(chain: string, version: "v1" | "v2" = "v2"): number {
-  const chainId = Object.entries(indexerConfigs[version].chainMapping).find(([, chainName]) => chainName === chain)?.[0];
+function getChainId(chain: string): number {
+  const chainId = Object.entries(indexerChainIdChainMapping).find(([, chainName]) => chainName === chain)?.[0];
   if (!chainId) throw new Error("Chain not supported");
   return +chainId;
 }
 
-function getSupportedChains(version: "v1" | "v2" = "v2"): Set<string> {
-  return new Set(Object.values(indexerConfigs[version].chainMapping));
+function getSupportedChains(): Set<string> {
+  return new Set(Object.values(indexerChainIdChainMapping));
 }
 
-export const supportedChainSet = getSupportedChains("v1"); // legacy
-export const supportedChainSet2 = getSupportedChains("v2");
-
-const chainToIDMapping: Record<string, number> = {};
-Object.entries(indexerConfigs.v1.chainMapping).forEach(([id, chain]) => {
-  chainToIDMapping[chain] = +id;
-});
+export const supportedChainSet2 = getSupportedChains();
 
 type ChainIndexStatus = { [chain: string]: { block: number; timestamp: number } };
 const state: { timestamp?: number; chainIndexStatus: ChainIndexStatus | Promise<ChainIndexStatus> } = { chainIndexStatus: {} };
 const cacheTime = 1 * 60 * 1000; // 1 min
 
-async function getChainIndexStatus(version: "v1" | "v2" = "v2"): Promise<ChainIndexStatus> {
-  checkIndexerConfig(version);
+async function getChainIndexStatus(): Promise<ChainIndexStatus> {
+  checkIndexerConfig();
 
   if (state.timestamp && Date.now() - state.timestamp < cacheTime) return state.chainIndexStatus;
 
@@ -132,11 +88,11 @@ async function getChainIndexStatus(version: "v1" | "v2" = "v2"): Promise<ChainIn
   state.chainIndexStatus = (async () => {
     const {
       data: { syncStatus },
-    } = await axiosInstances[version].get(`/sync`).catch(e => { throw formError(e) });
+    } = await axiosInstance.get(`/sync`).catch((e: any) => { throw formError(e) });
 
     const info: ChainIndexStatus = {};
     syncStatus.forEach((d: any) => {
-      const chain = indexerConfigs[version].chainMapping[d.chain];
+      const chain = indexerChainIdChainMapping[d.chain];
       if (chain) {
         info[chain] = {
           block: d.lastIndexedBlock,
@@ -149,16 +105,6 @@ async function getChainIndexStatus(version: "v1" | "v2" = "v2"): Promise<ChainIn
 
   return state.chainIndexStatus;
 }
-
-enum TokenTypes {
-  ERC20 = "erc20",
-  ERC721 = "erc721",
-}
-
-type Cache = {
-  timestamp: number;
-  tokens: { [chain: string]: string[] };
-};
 
 export type IndexerGetLogsOptions = {
   target?: Address;
@@ -217,77 +163,6 @@ export type IndexerGetTokenTransfersOptions = {
   token?: string;
 };
 
-export async function getTokens(
-  address: string | string[],
-  {
-    onlyWhitelisted = true,
-    skipCacheRead = false,
-    skipCache = false,
-    chain,
-    tokenType,
-  }: {
-    onlyWhitelisted?: boolean;
-    skipCacheRead?: boolean;
-    skipCache?: boolean;
-    chain?: string;
-    tokenType?: TokenTypes;
-  } = {}
-) {
-  checkIndexerConfig("v1");
-
-  if (!address) throw new Error("Address is required either as a string or an array of strings");
-  if (Array.isArray(address) && !address.length) throw new Error("Address array cannot be empty");
-  if (Array.isArray(address)) address = address.join(",");
-  address = address.toLowerCase();
-
-  let chainId;
-  if (chain) chainId = chainToIDMapping[chain];
-
-  const project = "llama-indexer-cache";
-  const key = onlyWhitelisted ? address : `${address}/all`;
-  const file = `${project}/${key}`;
-  const timeNow = Math.floor(Date.now() / 1e3);
-  const THREE_DAYS = 3 * 24 * 3600;
-  let cache = {} as Cache;
-
-  if (!skipCacheRead && !skipCache) {
-    cache = (await readCache(file)) ?? ({} as Cache);
-    if (cache.timestamp && timeNow - cache.timestamp < THREE_DAYS) return cache.tokens;
-  }
-
-  if (ENV_CONSTANTS.GET_LOGS_INDEXER)
-    debugLog("[Indexer] Pulling tokens for " + address);
-
-  const tokens = cache.tokens ?? {};
-  const {
-    data: { balances },
-  } = await axiosInstances.v1(`/balances`, {
-    params: {
-      addresses: address,
-      chainId,
-      type: tokenType,
-    },
-  }).catch(e => { throw formError(e) })
-
-  balances
-    .filter((b: any) => +b.total_amount > 0)
-    .forEach((b: any) => {
-      const chain = indexerConfigs.v1.chainMapping[b.chain];
-      if (!chain) return;
-      if (!tokens[chain]) tokens[chain] = [];
-      tokens[chain].push(b.address);
-    });
-
-  const tokenCache = { timestamp: timeNow, tokens };
-  Object.entries(tokens).forEach(([chain, values]: any) => {
-    values.push(ETHER_ADDRESS);
-    tokens[chain] = getUniqueAddresses(values);
-  });
-
-  if (!skipCache) await writeCache(file, tokenCache);
-  return tokens;
-}
-
 // ---------------------------------------------------------------------------
 // Streaming support (disabled by default, opt-in via clientStreaming: true)
 // ---------------------------------------------------------------------------
@@ -304,7 +179,7 @@ async function streamJsonArrayFromIndexer(opts: {
   let bytesReceived = 0;
   let itemsProcessed = 0;
 
-  const res = await axiosInstances.v2.get(path, {
+  const res = await axiosInstance.get(path, {
     responseType: "stream",
     timeout: 0,
     maxContentLength: Infinity,
@@ -434,9 +309,9 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
   }
 
   // Ensure the indexer is synced far enough
-  checkIndexerConfig("v2");
-  const chainId = getChainId(chain, "v2");
-  const chainIndexStatus = await getChainIndexStatus("v2");
+  checkIndexerConfig();
+  const chainId = getChainId(chain);
+  const chainIndexStatus = await getChainIndexStatus();
   const lastIndexedBlock = chainIndexStatus[chain]?.block ?? 0;
   if (lastIndexedBlock < toBlock) {
 
@@ -697,7 +572,7 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
 
       const {
         data: { logs: _logs, totalCount },
-      } = await axiosInstances.v2(`/logs`, { params }).catch(e => { throw formError(e) })
+      } = await axiosInstance(`/logs`, { params }).catch(e => { throw formError(e) })
 
       const filtered = _logs.filter((l: any) => {
         const isWhitelisted = !addressSet.size || addressSet.has((l.source ?? l.address)?.toLowerCase?.());
@@ -788,8 +663,8 @@ export async function getTokenTransfers({
 }: IndexerGetTokenTransfersOptions) {
   if (!debugMode) debugMode = DEBUG_LEVEL2 && !!ENV_CONSTANTS.GET_LOGS_INDEXER;
 
-  checkIndexerConfig("v2");
-  const chainId = getChainId(chain, "v2");
+  checkIndexerConfig();
+  const chainId = getChainId(chain);
 
   const fromFilterEnabled = !!fromAddressFilter?.length;
   if (typeof fromAddressFilter === "string") fromAddressFilter = [fromAddressFilter];
@@ -816,7 +691,7 @@ export async function getTokenTransfers({
   const addresses = targets.join(",");
 
   // Ensure v2 indexer is up-to-date
-  const chainIndexStatus = await getChainIndexStatus("v2");
+  const chainIndexStatus = await getChainIndexStatus();
   const lastIndexedBlock = chainIndexStatus[chain]?.block ?? 0;
   if (lastIndexedBlock < toBlock) {
     throw new Error(
@@ -864,7 +739,7 @@ export async function getTokenTransfers({
 
     const {
       data: { transfers: _logs },
-    } = await axiosInstances.v2(`/token-transfers`, { params }).catch(e => { throw formError(e) })
+    } = await axiosInstance(`/token-transfers`, { params }).catch(e => { throw formError(e) })
 
     rawTransfers.push(..._logs);
     currentOffset += limit;
@@ -913,14 +788,14 @@ export async function getTransactions({
   transactionType = "from",
 }: GetTransactionOptions) {
   if (!debugMode) debugMode = DEBUG_LEVEL2 && !!ENV_CONSTANTS.GET_LOGS_INDEXER;
-  checkIndexerConfig("v2");
-  const chainId = getChainId(chain, "v2");
+  checkIndexerConfig();
+  const chainId = getChainId(chain);
 
   if ((!addresses || addresses.length === 0) && (!transaction_hashes || transaction_hashes.length === 0))
     throw new Error("You must provide at least 'addresses' or 'transaction_hashes'");
   if (!from_block || !to_block) throw new Error("'from_block' and 'to_block' are required to search for transactions");
 
-  const chainIndexStatus = await getChainIndexStatus("v2");
+  const chainIndexStatus = await getChainIndexStatus();
   const lastIndexedBlock = chainIndexStatus[chain]?.block ?? 0;
   if (to_block > lastIndexedBlock) {
     throw new Error(
@@ -956,7 +831,7 @@ export async function getTransactions({
     console.time(debugTimeKey);
   }
 
-  const { data: { transactions } } = await axiosInstances.v2(`/transactions`, { params }).catch(e => { throw formError(e) })
+  const { data: { transactions } } = await axiosInstance(`/transactions`, { params }).catch(e => { throw formError(e) })
 
   if (debugMode) {
     console.timeEnd(debugTimeKey);
@@ -991,7 +866,7 @@ export async function getTransactions({
 }
 
 export function isIndexerEnabled(chain?: string) {
-  if (!indexerConfigs.v2.endpoint) return false;
+  if (!LLAMA_INDEXER_ENDPOINT) return false;
   if (chain && !supportedChainSet2.has(chain)) return false;
   return true;
 }

@@ -1,16 +1,8 @@
 import { ChainApi } from "../ChainApi";
-import { getLogs, getTokens, getTokenTransfers, getTransactions } from "./indexer";
+import { getLogs, getTokenTransfers, getTransactions } from "./indexer";
 
 const contract = '0xf33c13da4425629c3f10635e4f935d8020f97D1F'
 const eventAbi = 'event MarketCreated(uint256 indexed mIndex, address hedge, address risk, address token, string name, int256 strikePrice)'
-
-test("Indexer - getTokens 1", async () => {
-  const arbitrumBridge = '0xa3A7B6F88361F48403514059F1F16C8E78d60EeC'
-  const res = await getTokens(arbitrumBridge, { skipCache: true })
-  const ethTokenSet = new Set(res['ethereum'].map((t: any) => t.toLowerCase()))
-  expect(ethTokenSet.has('0x0868da39ba4e8a083d6fede0536a11eed1337707')).toBe(true)
-  expect(ethTokenSet.has('0x0000000000000000000000000000000000000000')).toBe(true)
-});
 
 test("Indexer - getLogs", async () => {
 
@@ -182,17 +174,17 @@ test("Indexer - getTransactions", async () => {
   expect(tx.blockNumber).toBe(19000067)
   expect(tx.from).toBe('0x00a7227f026012459c218f0d9eaabd992bd48c56')
   expect(tx.to).toBe('0x28c6c06298d514db089934071355e5743bf21d60')
-  expect(tx.value).toBe('540432699734939000')
+  expect(tx.value).toBe(540432699734939000)
   expect(tx.gas).toBe(207128)
-  expect(tx.gasPrice).toBe('17883340967')
+  expect(tx.gasPrice).toBe(17883340967)
   expect(tx.nonce).toBe(68)
   expect(tx.input).toBe('0x')
   expect(tx.data).toBe('0x')
   expect(tx.type).toBe(2)
-  expect(tx.maxFeePerGas).toBe('24000000000')
-  expect(tx.maxPriorityFeePerGas).toBe('2000000000')
-  expect(tx.baseFeePerGas).toBe('0')
-  expect(tx.effectiveGasPrice).toBe('17883340967')
+  expect(tx.maxFeePerGas).toBe(24000000000)
+  expect(tx.maxPriorityFeePerGas).toBe(2000000000)
+  expect(tx.baseFeePerGas).toBe(15883340967)
+  expect(tx.effectiveGasPrice).toBe(17883340967)
   expect(tx.gasUsed).toBe(21000)
   expect(tx.cumulativeGasUsed).toBe(6678791)
   expect(tx.status).toBe(1)
