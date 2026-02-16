@@ -55,6 +55,7 @@ const indexer2ChainIdChainMapping: { [key: number]: string } = {
   999: "hyperliquid",
   143: "monad",
   4326: "megaeth",
+  196: "xlayer"
 };
 
 interface IndexerConfig {
