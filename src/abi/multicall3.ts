@@ -203,6 +203,8 @@ const DEPLOYMENT_BLOCK = {
   megaeth: 1858081,
   injective: 1,
   occ: 1,
+  pepu: 1,
+  citrea: 1,
 } as {
   [key: string | Chain]: number
 }
@@ -348,4 +350,6 @@ const CUSTOM_MULTICALL_ADDRESSES: { [key: string]: string } = {
   'xone': '0xe39d7BCDdaBBD0526D143185Fb7b459099Fd40c9',
   'besc': '0xBcdb671cBC7711fE533E8B46E52EbC1470145F67',
   'capx': '0x8E1cd29c79dD1Dd4966Cd6A05EeC7d25B5f47f2b',
+  'pepu': '0xBB6bf9447031408804af92aE6fBeDc002Dcb20aB',
+  'citrea': '0xA738e84fdE890Bc60b99AF7ccE43990E534304de',
 }
