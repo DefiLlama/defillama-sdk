@@ -9,10 +9,10 @@ const SWAP_ABI = 'event Swap(bytes32 indexed id, address indexed sender, int128 
 const CONFIG = {
   chain: "bsc",
   collect:   true,
-  fromBlock: 66214443,
+  fromBlock: 66319526,
   toBlock:   66329526,
-  limit:     10_000,
-  all:       false
+  limit:     5_000,
+  all:       true  // Set to true to ensure all configs return exactly the same set of logs
 };
 
 interface StreamingMetrics {
