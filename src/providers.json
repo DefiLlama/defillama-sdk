@@ -759,5 +759,12 @@
   "dchainmainnet": {
     "rpc": [],
     "chainId": 2716446429837000
+  },
+  "capx": {
+    "rpc": [
+      "https://capx-mainnet.calderachain.xyz/http",
+      "https://rpc.capx.ai"
+    ],
+    "chainId": 757
   }
 }
