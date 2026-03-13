@@ -759,5 +759,11 @@
   "dchainmainnet": {
     "rpc": [],
     "chainId": 2716446429837000
+  },
+  "plasma": {
+    "rpc": [
+      "https://rpc.plasma.to",
+    ],
+    "chainId": 9745
   }
 }
