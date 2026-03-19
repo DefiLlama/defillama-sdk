@@ -112,6 +112,13 @@
     "rpc": [],
     "chainId": 24
   },
+  "edgex": {
+    "rpc": [
+      "https://rpc.edgex.exchange",
+      "https://edge-mainnet.g.alchemy.com/public"
+    ],
+    "chainId": 3343
+  },
   "elastos": {
     "rpc": [
       "https://api.trinity-tech.cn/eth"
