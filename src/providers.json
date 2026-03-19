@@ -114,7 +114,6 @@
   },
   "edgex": {
     "rpc": [
-      "https://rpc.edgex.exchange",
       "https://edge-mainnet.g.alchemy.com/public"
     ],
     "chainId": 3343
