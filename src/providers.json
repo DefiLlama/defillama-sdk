@@ -116,7 +116,8 @@
     "rpc": [
       "https://edge-mainnet.g.alchemy.com/public"
     ],
-    "chainId": 3343
+    "chainId": 3343,
+    "explorer": "https://pro.edgex.exchange/en-US/explorer"
   },
   "elastos": {
     "rpc": [
