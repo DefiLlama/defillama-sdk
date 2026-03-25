@@ -205,6 +205,9 @@ const DEPLOYMENT_BLOCK = {
   occ: 1,
   pepu: 1,
   citrea: 1,
+  tempo: 1,
+  edegex: 1,
+  wchain: 2207643,
 } as {
   [key: string | Chain]: number
 }
