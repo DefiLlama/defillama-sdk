@@ -35,7 +35,10 @@ export async function writeLog(index: string, log: {
   const client = getClient()
   if (!client) return;
   index = addYearAndMonth(index)
-  log.timestamp = +Date.now()
+
+  if (!log.hasOwnProperty('timestamp'))
+    log.timestamp = +Date.now()
+
   try {
     await client.index({ index, body: log })
   } catch (error) {
