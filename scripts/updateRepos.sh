@@ -58,7 +58,7 @@ git add package.json pnpm-lock.yaml
 
 git commit -m "update @defillama/sdk version"
 git push
-cd ..
+cd ../..
 
 
 echo "Update peggedassets repo"
