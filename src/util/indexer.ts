@@ -329,6 +329,10 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
     const indexerLogs = await getLogs({ ...options, fromBlock, toBlock: breakBlock });
     const rpcLogs = await getLogsParent({ ...options, fromBlock: breakBlock + 1, toBlock, skipIndexer: true });
 
+    if (!flatten) {
+      return indexerLogs.map((bucket, i) => bucket.concat(rpcLogs[i]));
+    }
+
     return indexerLogs.concat(rpcLogs);
   }
 
