@@ -766,5 +766,12 @@
   "dchainmainnet": {
     "rpc": [],
     "chainId": 2716446429837000
+  },
+  "igra": {
+    "rpc": [
+      "https://rpc.igralabs.com:8545"
+    ],
+    "chainId": 38833,
+    "explorer": "https://explorer.igralabs.com"
   }
 }
