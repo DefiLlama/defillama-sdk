@@ -766,5 +766,9 @@
   "dchainmainnet": {
     "rpc": [],
     "chainId": 2716446429837000
+  },
+  "cabal": {
+    "rpc": ["https://jsonrpc-cabal-1.anvil.asia-southeast.initia.xyz"],
+    "chainId": 2630341494499703
   }
 }
