@@ -505,6 +505,123 @@ test("Balances - removeNegativeBalances cleans _balances, breakdown, and tagged"
   expect(balances.getTaggedBalances()['pool-B'].getBalances()).toEqual({ 'bsc:0003': 200 })
 })
 
+// --- regression tests for _usdBalances propagation across mutating methods ---
+
+test("Balances - addBalances transfers _usdBalances from source", async () => {
+  const a = new Balances({ chain: 'bsc' })
+  a.addUSDValue(100, { symbol: 'FOO' })
+  a.addUSDValue(25, { symbol: 'BAR' })
+
+  const b = new Balances({ chain: 'bsc' })
+  b.addBalances(a)
+
+  expect((b as any)._usdBalances).toEqual({ 'FOO': 100, 'BAR': 25 })
+  expect(await b.getUSDValue()).toEqual(125)
+})
+
+test("Balances - addBalances accumulates _usdBalances across multiple sources", async () => {
+  const dest = new Balances({ chain: 'bsc' })
+  dest.addUSDValue(10, { symbol: 'FOO' })
+
+  const src1 = new Balances({ chain: 'bsc' })
+  src1.addUSDValue(20, { symbol: 'FOO' })
+  src1.addUSDValue(30, { symbol: 'BAR' })
+
+  const src2 = new Balances({ chain: 'bsc' })
+  src2.addUSDValue(5, { symbol: 'BAR' })
+
+  dest.addBalances(src1)
+  dest.addBalances(src2)
+
+  expect((dest as any)._usdBalances).toEqual({ 'FOO': 30, 'BAR': 35 })
+  expect(await dest.getUSDValue()).toEqual(65)
+})
+
+test("Balances - clone preserves _usdBalances", async () => {
+  const a = new Balances({ chain: 'bsc' })
+  a.addUSDValue(100, { symbol: 'FOO' })
+  a.add('tether', 50, { skipChain: true })
+
+  const c = a.clone()
+  expect((c as any)._usdBalances).toEqual({ 'FOO': 100 })
+  expect(c.getBalances()).toEqual({ 'tether': 50 })
+  expect(await c.getUSDValue()).toEqual(150)
+})
+
+test("Balances - clone with ratio scales both _balances and _usdBalances", async () => {
+  const a = new Balances({ chain: 'bsc' })
+  a.addUSDValue(100, { symbol: 'FOO' })
+  a.add('tether', 200, { skipChain: true })
+
+  const c = a.clone(0.5)
+  expect((c as any)._usdBalances).toEqual({ 'FOO': 50 })
+  expect(c.getBalances()).toEqual({ 'tether': 100 })
+  expect(await c.getUSDValue()).toEqual(150)
+})
+
+test("Balances - resizeBy scales _usdBalances", async () => {
+  const balances = new Balances({ chain: 'bsc' })
+  balances.addUSDValue(100, { symbol: 'FOO' })
+  balances.addUSDValue(40, { symbol: 'BAR' })
+
+  balances.resizeBy(0.5)
+  expect((balances as any)._usdBalances).toEqual({ 'FOO': 50, 'BAR': 20 })
+  expect(await balances.getUSDValue()).toEqual(70)
+
+  balances.resizeBy(2)
+  expect((balances as any)._usdBalances).toEqual({ 'FOO': 100, 'BAR': 40 })
+})
+
+test("Balances - subtract subtracts _usdBalances from source Balances instance", async () => {
+  const a = new Balances({ chain: 'bsc' })
+  a.addUSDValue(100, { symbol: 'FOO' })
+  a.addUSDValue(50, { symbol: 'BAR' })
+
+  const b = new Balances({ chain: 'bsc' })
+  b.addUSDValue(30, { symbol: 'FOO' })
+  b.addUSDValue(10, { symbol: 'BAR' })
+
+  a.subtract(b)
+  expect((a as any)._usdBalances).toEqual({ 'FOO': 70, 'BAR': 40 })
+  expect(await a.getUSDValue()).toEqual(110)
+})
+
+test("Balances - subtract handles mixed _balances and _usdBalances source", async () => {
+  const a = new Balances({ chain: 'bsc' })
+  a.add('tether', 200, { skipChain: true })
+  a.addUSDValue(100, { symbol: 'FOO' })
+
+  const b = new Balances({ chain: 'bsc' })
+  b.add('tether', 50, { skipChain: true })
+  b.addUSDValue(40, { symbol: 'FOO' })
+
+  a.subtract(b)
+  expect(a.getBalances()).toEqual({ 'tether': 150 })
+  expect((a as any)._usdBalances).toEqual({ 'FOO': 60 })
+  expect(await a.getUSDValue()).toEqual(210)
+})
+
+test("Balances - removeTokenBalance cleans _usdBalances", () => {
+  const balances = new Balances({ chain: 'bsc' })
+  balances.addUSDValue(100, { symbol: 'FOO' })
+  balances.addUSDValue(50, { symbol: 'BAR' })
+  balances.add('tether', 10, { skipChain: true })
+
+  balances.removeTokenBalance('FOO')
+  expect((balances as any)._usdBalances).toEqual({ 'BAR': 50 })
+  expect(balances.getBalances()).toEqual({ 'tether': 10 })
+})
+
+test("Balances - removeNegativeBalances cleans negative entries from _usdBalances", () => {
+  const balances = new Balances({ chain: 'bsc' })
+  balances.addUSDValue(100, { symbol: 'FOO' })
+  balances.addUSDValue(-50, { symbol: 'BAR' })
+  balances.addUSDValue(0, { symbol: 'BAZ' })
+
+  balances.removeNegativeBalances()
+  expect((balances as any)._usdBalances).toEqual({ 'FOO': 100 })
+})
+
 test("Balances - debug", async () => {
   const balances = new Balances({ chain: 'bsc' })
   balances.addCGToken('tether', 1e6)

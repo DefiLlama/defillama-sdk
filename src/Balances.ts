@@ -203,6 +203,12 @@ export class Balances {
         })
       }
 
+      if (Object.keys(balancesInstance._usdBalances).length > 0) {
+        Object.entries(balancesInstance._usdBalances).forEach(([token, balance]) => {
+          this._add(token, balance, { ...options, skipChain: true, isUSDValue: true })
+        })
+      }
+
       balances = balancesInstance.getBalances()
 
     }
@@ -218,6 +224,9 @@ export class Balances {
     const regex = new RegExp(token, 'i')
     Object.keys(this._balances).forEach((i: string) => {
       if (regex.test(i)) delete this._balances[i]
+    })
+    Object.keys(this._usdBalances).forEach((i: string) => {
+      if (regex.test(i)) delete this._usdBalances[i]
     })
 
     this._breakdownBalancesAction('removeTokenBalance', [token])
@@ -247,6 +256,7 @@ export class Balances {
     usdTokenBalances: BalancesV1;
     rawTokenBalances: BalancesV1;
     labelBreakdown?: { [key: string]: number };
+    tagBreakdown?: { [key: string]: number };
     debugData?: { tokenData: { balance: string | number, price: number, decimals: number, value: number, confidence: number, token: string, symbol: string }[] }
   }> {
     let { usdTvl, usdTokenBalances, debugData } = await computeTVL(this.getBalances(), this.timestamp, { debug }) as any
@@ -315,6 +325,9 @@ export class Balances {
     Object.keys(this._balances).forEach((token) => {
       this._balances[token] = Number(this._balances[token]) * ratio
     })
+    Object.keys(this._usdBalances).forEach((token) => {
+      this._usdBalances[token] = Number(this._usdBalances[token]) * ratio
+    })
 
     this._breakdownBalancesAction('resizeBy', [ratio])
     this._taggedBalancesAction('resizeBy', [ratio])
@@ -350,7 +363,11 @@ export class Balances {
     options = getOptions({ optionsOrLabel, options })
     if (isLlamaBalancesObject(balances)) {
       if (balances === this) return;
-      balances = (balances as Balances).getBalances()
+      const balancesInstance = balances as Balances
+      Object.entries(balancesInstance._usdBalances).forEach(([token, balance]) => {
+        this._add(token, Number(balance) * -1, { skipChain: true, label: options!.label, isUSDValue: true })
+      })
+      balances = balancesInstance.getBalances()
     }
     Object.entries(balances).forEach(([token, balance]) => {
       this._add(token, Number(balance) * -1, { skipChain: true, label: options!.label })
@@ -365,6 +382,9 @@ export class Balances {
   removeNegativeBalances() {
     Object.keys(this._balances).forEach((token) => {
       if (Number(this._balances[token]) <= 0) delete this._balances[token]
+    })
+    Object.keys(this._usdBalances).forEach((token) => {
+      if (Number(this._usdBalances[token]) <= 0) delete this._usdBalances[token]
     })
 
     this._breakdownBalancesAction('removeNegativeBalances')
