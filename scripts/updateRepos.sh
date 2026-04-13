@@ -75,3 +75,19 @@ git add package.json pnpm-lock.yaml
 git commit -m "update @defillama/sdk version"
 git push
 cd ..
+
+
+echo "Update emissions repo"
+
+[ ! -d "emissions-adapters" ] && git clone git@github.com:DefiLlama/emissions-adapters.git
+
+cd emissions-adapters
+git stash
+git checkout master
+git pull
+pnpm i
+pnpm update @defillama/sdk
+git add package.json pnpm-lock.yaml
+git commit -m "update @defillama/sdk version"
+git push
+cd ..
