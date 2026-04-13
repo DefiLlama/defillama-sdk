@@ -402,9 +402,9 @@ test("Balances - addUSDValue via addCGToken(tether) path", async () => {
 
 test("Balances - addUSDValue with symbol stores in _usdBalances", async () => {
   const balances = new Balances({ chain: 'bsc' })
-  balances.addUSDValue(100, { symbol: 'FOO' })
-  balances.addUSDValue(50, { symbol: 'FOO' })
-  balances.addUSDValue(25, { symbol: 'BAR' })
+  balances.addUSDValue(100, { id: 'FOO' })
+  balances.addUSDValue(50, { id: 'FOO' })
+  balances.addUSDValue(25, { id: 'BAR' })
   // _usdBalances is used directly (no price lookup needed)
   expect((balances as any)._usdBalances).toEqual({ 'FOO': 150, 'BAR': 25 })
   expect(await balances.getUSDValue()).toEqual(175)
@@ -423,7 +423,7 @@ test("Balances - isUSDValue routes directly to _usdBalances (skips price cache)"
 test("Balances - getUSDJSONs includes _usdBalances in usdTokenBalances and total", async () => {
   const balances = new Balances({ chain: 'bsc' })
   balances.add('tether', 100, { skipChain: true })
-  balances.addUSDValue(50, { symbol: 'FOO' })
+  balances.addUSDValue(50, { id: 'FOO' })
   const { usdTvl, usdTokenBalances } = await balances.getUSDJSONs()
   expect(usdTvl).toEqual(150)
   expect(usdTokenBalances['FOO']).toEqual(50)
@@ -509,8 +509,8 @@ test("Balances - removeNegativeBalances cleans _balances, breakdown, and tagged"
 
 test("Balances - addBalances transfers _usdBalances from source", async () => {
   const a = new Balances({ chain: 'bsc' })
-  a.addUSDValue(100, { symbol: 'FOO' })
-  a.addUSDValue(25, { symbol: 'BAR' })
+  a.addUSDValue(100, { id: 'FOO' })
+  a.addUSDValue(25, { id: 'BAR' })
 
   const b = new Balances({ chain: 'bsc' })
   b.addBalances(a)
@@ -521,14 +521,14 @@ test("Balances - addBalances transfers _usdBalances from source", async () => {
 
 test("Balances - addBalances accumulates _usdBalances across multiple sources", async () => {
   const dest = new Balances({ chain: 'bsc' })
-  dest.addUSDValue(10, { symbol: 'FOO' })
+  dest.addUSDValue(10, { id: 'FOO' })
 
   const src1 = new Balances({ chain: 'bsc' })
-  src1.addUSDValue(20, { symbol: 'FOO' })
-  src1.addUSDValue(30, { symbol: 'BAR' })
+  src1.addUSDValue(20, { id: 'FOO' })
+  src1.addUSDValue(30, { id: 'BAR' })
 
   const src2 = new Balances({ chain: 'bsc' })
-  src2.addUSDValue(5, { symbol: 'BAR' })
+  src2.addUSDValue(5, { id: 'BAR' })
 
   dest.addBalances(src1)
   dest.addBalances(src2)
@@ -539,7 +539,7 @@ test("Balances - addBalances accumulates _usdBalances across multiple sources", 
 
 test("Balances - clone preserves _usdBalances", async () => {
   const a = new Balances({ chain: 'bsc' })
-  a.addUSDValue(100, { symbol: 'FOO' })
+  a.addUSDValue(100, { id: 'FOO' })
   a.add('tether', 50, { skipChain: true })
 
   const c = a.clone()
@@ -550,7 +550,7 @@ test("Balances - clone preserves _usdBalances", async () => {
 
 test("Balances - clone with ratio scales both _balances and _usdBalances", async () => {
   const a = new Balances({ chain: 'bsc' })
-  a.addUSDValue(100, { symbol: 'FOO' })
+  a.addUSDValue(100, { id: 'FOO' })
   a.add('tether', 200, { skipChain: true })
 
   const c = a.clone(0.5)
@@ -561,8 +561,8 @@ test("Balances - clone with ratio scales both _balances and _usdBalances", async
 
 test("Balances - resizeBy scales _usdBalances", async () => {
   const balances = new Balances({ chain: 'bsc' })
-  balances.addUSDValue(100, { symbol: 'FOO' })
-  balances.addUSDValue(40, { symbol: 'BAR' })
+  balances.addUSDValue(100, { id: 'FOO' })
+  balances.addUSDValue(40, { id: 'BAR' })
 
   balances.resizeBy(0.5)
   expect((balances as any)._usdBalances).toEqual({ 'FOO': 50, 'BAR': 20 })
@@ -574,12 +574,12 @@ test("Balances - resizeBy scales _usdBalances", async () => {
 
 test("Balances - subtract subtracts _usdBalances from source Balances instance", async () => {
   const a = new Balances({ chain: 'bsc' })
-  a.addUSDValue(100, { symbol: 'FOO' })
-  a.addUSDValue(50, { symbol: 'BAR' })
+  a.addUSDValue(100, { id: 'FOO' })
+  a.addUSDValue(50, { id: 'BAR' })
 
   const b = new Balances({ chain: 'bsc' })
-  b.addUSDValue(30, { symbol: 'FOO' })
-  b.addUSDValue(10, { symbol: 'BAR' })
+  b.addUSDValue(30, { id: 'FOO' })
+  b.addUSDValue(10, { id: 'BAR' })
 
   a.subtract(b)
   expect((a as any)._usdBalances).toEqual({ 'FOO': 70, 'BAR': 40 })
@@ -589,11 +589,11 @@ test("Balances - subtract subtracts _usdBalances from source Balances instance",
 test("Balances - subtract handles mixed _balances and _usdBalances source", async () => {
   const a = new Balances({ chain: 'bsc' })
   a.add('tether', 200, { skipChain: true })
-  a.addUSDValue(100, { symbol: 'FOO' })
+  a.addUSDValue(100, { id: 'FOO' })
 
   const b = new Balances({ chain: 'bsc' })
   b.add('tether', 50, { skipChain: true })
-  b.addUSDValue(40, { symbol: 'FOO' })
+  b.addUSDValue(40, { id: 'FOO' })
 
   a.subtract(b)
   expect(a.getBalances()).toEqual({ 'tether': 150 })
@@ -603,8 +603,8 @@ test("Balances - subtract handles mixed _balances and _usdBalances source", asyn
 
 test("Balances - removeTokenBalance cleans _usdBalances", () => {
   const balances = new Balances({ chain: 'bsc' })
-  balances.addUSDValue(100, { symbol: 'FOO' })
-  balances.addUSDValue(50, { symbol: 'BAR' })
+  balances.addUSDValue(100, { id: 'FOO' })
+  balances.addUSDValue(50, { id: 'BAR' })
   balances.add('tether', 10, { skipChain: true })
 
   balances.removeTokenBalance('FOO')
@@ -614,9 +614,9 @@ test("Balances - removeTokenBalance cleans _usdBalances", () => {
 
 test("Balances - removeNegativeBalances cleans negative entries from _usdBalances", () => {
   const balances = new Balances({ chain: 'bsc' })
-  balances.addUSDValue(100, { symbol: 'FOO' })
-  balances.addUSDValue(-50, { symbol: 'BAR' })
-  balances.addUSDValue(0, { symbol: 'BAZ' })
+  balances.addUSDValue(100, { id: 'FOO' })
+  balances.addUSDValue(-50, { id: 'BAR' })
+  balances.addUSDValue(0, { id: 'BAZ' })
 
   balances.removeNegativeBalances()
   expect((balances as any)._usdBalances).toEqual({ 'FOO': 100 })

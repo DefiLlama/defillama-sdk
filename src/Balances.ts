@@ -12,7 +12,7 @@ type BalancesOptions = {
   label?: string;
   tags?: string[];
   tag?: string;
-  symbol?: string; // used only in the addUSDValue function
+  id?: string; // used only in the addUSDValue function
   isUSDValue?: boolean; // if true, it means the balance being added is already in USD value, so we can store it directly in _usdBalances object instead of _balances
 }
 
@@ -160,8 +160,8 @@ export class Balances {
   addUSDValue(balance: any, optionsOrLabel?: BalancesOptionsWithLabel, options?: BalancesOptions) {
     options = getOptions({ optionsOrLabel, options })
 
-    if (options.symbol) {
-      this.add(options.symbol, balance, { ...options, isUSDValue: true, skipChain: true })
+    if (options.id) {
+      this.add(options.id, balance, { ...options, isUSDValue: true, skipChain: true })
       return;
     }
 
