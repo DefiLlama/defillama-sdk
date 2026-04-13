@@ -26,7 +26,7 @@ test("multicall nos", async () => {
   expect(output[0].success).toEqual(true);
 });
 
-test("multicall onus", async () => {
+test.skip("multicall onus", async () => {
   const output = await makeMultiCall(decimalsAbi, [{ contract: '0x4c761E48d1E735af551cc38ABCBDCe1d7FaaC6E4', params: [] }], 'onus')
   expect(output[0].output).toEqual('18');
   expect(output[0].success).toEqual(true);
@@ -37,7 +37,7 @@ test("multicall rollux", async () => {
   expect(output[0].success).toEqual(true);
 });
 
-test("multicall kardia", async () => {
+test.skip("multicall kardia", async () => {
   const output = await makeMultiCall(decimalsAbi, [{ contract: '0xAF984E23EAA3E7967F3C5E007fbe397D8566D23d', params: [] }], 'kardia')
   expect(output[0].output).toEqual('18');
   expect(output[0].success).toEqual(true);

@@ -275,6 +275,236 @@ test("Balances - isEmpty", async () => {
   expect(balances.isEmpty()).toBe(false)
 })
 
+// Simulate a Balances instance that came from a different copy of the package
+// (different module realm): `instanceof Balances` is false, but it carries
+// `_llamaBalancesObject: true` and exposes `getBalances()` / `hasBreakdownBalances()` etc.
+// The duck-type check should still recognize it.
+function makeForeignBalances(entries: Record<string, number>): any {
+  return {
+    _llamaBalancesObject: true,
+    _balances: { ...entries },
+    _breakdownBalances: {},
+    _taggedBalances: {},
+    _usdBalances: {},
+    chain: 'bsc',
+    getBalances() { return this._balances },
+    hasBreakdownBalances() { return false },
+    getBreakdownBalances() { return {} },
+    hasTaggedBalances() { return false },
+    getTaggedBalances() { return {} },
+  }
+}
+
+test("Balances - subtract accepts foreign-realm Balances (duck-type)", async () => {
+  const balances = new Balances({ chain: 'bsc' })
+  balances.add('0001', 300)
+  balances.add('tether', 300, { skipChain: true })
+
+  const foreign = makeForeignBalances({ 'bsc:0001': 100, 'tether': 50 })
+  balances.subtract(foreign)
+
+  expect(balances.getBalances()).toEqual({ 'bsc:0001': 200, 'tether': 250 })
+})
+
+test("Balances - subtract ignores self-reference via duck-type", async () => {
+  const balances = new Balances({ chain: 'bsc' })
+  balances.add('0001', 300)
+  // passing the instance to itself should short-circuit (not double-subtract)
+  balances.subtract(balances)
+  expect(balances.getBalances()).toEqual({ 'bsc:0001': 300 })
+})
+
+test("Balances - subtract with plain BalancesV1 still works", async () => {
+  const balances = new Balances({ chain: 'bsc' })
+  balances.add('0001', 300)
+  balances.subtract({ 'bsc:0001': 100 })
+  expect(balances.getBalances()).toEqual({ 'bsc:0001': 200 })
+})
+
+test("Balances - plain object lacking the llama flag is treated as BalancesV1", async () => {
+  // Guard against false positives in the duck-type check: a plain map of token->balance
+  // without the `_llamaBalancesObject` flag must be iterated as a BalancesV1, not unwrapped
+  // via .getBalances() like a Balances instance.
+  const balances = new Balances({ chain: 'bsc' })
+  balances.add('0001', 300)
+  const plain: any = { 'bsc:0001': 100 }
+  // Attach a non-enumerable getBalances that would return a wildly different value if
+  // (incorrectly) invoked by the duck-type branch.
+  Object.defineProperty(plain, 'getBalances', {
+    value: () => ({ 'bsc:0001': 999999 }),
+    enumerable: false,
+  })
+  balances.subtract(plain)
+  expect(balances.getBalances()).toEqual({ 'bsc:0001': 200 })
+})
+
+test("Balances - new instance has _llamaBalancesObject flag", () => {
+  const balances = new Balances({ chain: 'bsc' })
+  expect((balances as any)._llamaBalancesObject).toBe(true)
+})
+
+test("Balances - add/addBalances accept foreign-realm Balances (duck-type)", async () => {
+  const balances = new Balances({ chain: 'bsc' })
+  balances.add('0001', 100)
+
+  const foreign = makeForeignBalances({ 'bsc:0001': 50, 'tether': 25 })
+  // .add() should route to addBalances() via the duck-type branch
+  balances.add(foreign)
+  expect(balances.getBalances()).toEqual({ 'bsc:0001': 150, 'tether': 25 })
+
+  const balances2 = new Balances({ chain: 'bsc' })
+  balances2.addBalances(makeForeignBalances({ 'bsc:0001': 7 }))
+  expect(balances2.getBalances()).toEqual({ 'bsc:0001': 7 })
+})
+
+test("Balances - add with tag creates taggedBalances", () => {
+  const balances = new Balances({ chain: 'bsc' })
+  balances.add('0001', 100, { tag: 'pool-A' })
+  balances.add('0002', 200, { tag: 'pool-B' })
+  balances.add('0001', 50, { tag: 'pool-A' })
+
+  expect(balances.hasTaggedBalances()).toBe(true)
+  const tagged = balances.getTaggedBalances()
+  expect(tagged['pool-A'].getBalances()).toEqual({ 'bsc:0001': 150 })
+  expect(tagged['pool-B'].getBalances()).toEqual({ 'bsc:0002': 200 })
+  // main balances also accumulated
+  expect(balances.getBalances()).toEqual({ 'bsc:0001': 150, 'bsc:0002': 200 })
+})
+
+test("Balances - add with multiple tags shares entry across tags", () => {
+  const balances = new Balances({ chain: 'bsc' })
+  balances.add('0001', 100, { tags: ['lp', 'stable'] })
+  const tagged = balances.getTaggedBalances()
+  expect(tagged['lp'].getBalances()).toEqual({ 'bsc:0001': 100 })
+  expect(tagged['stable'].getBalances()).toEqual({ 'bsc:0001': 100 })
+})
+
+test("Balances - hasTaggedBalances is false for fresh/empty instance", () => {
+  const balances = new Balances({ chain: 'bsc' })
+  expect(balances.hasTaggedBalances()).toBe(false)
+  expect(balances.getTaggedBalances()).toEqual({})
+})
+
+test("Balances - tag + label combined", () => {
+  const balances = new Balances({ chain: 'bsc' })
+  balances.add('0001', 100, { label: 'myTokens', tag: 'pool-A' })
+  expect(balances.getBreakdownBalances()['myTokens'].getBalances()).toEqual({ 'bsc:0001': 100 })
+  expect(balances.getTaggedBalances()['pool-A'].getBalances()).toEqual({ 'bsc:0001': 100 })
+})
+
+test("Balances - addUSDValue via addCGToken(tether) path", async () => {
+  const balances = new Balances({ chain: 'bsc' })
+  balances.addUSDValue(250)
+  balances.addUSDValue(250)
+  // tether is always ~$1 via coingecko
+  expect(await balances.getUSDValue()).toEqual(500)
+})
+
+test("Balances - addUSDValue with symbol stores in _usdBalances", async () => {
+  const balances = new Balances({ chain: 'bsc' })
+  balances.addUSDValue(100, { symbol: 'FOO' })
+  balances.addUSDValue(50, { symbol: 'FOO' })
+  balances.addUSDValue(25, { symbol: 'BAR' })
+  // _usdBalances is used directly (no price lookup needed)
+  expect((balances as any)._usdBalances).toEqual({ 'FOO': 150, 'BAR': 25 })
+  expect(await balances.getUSDValue()).toEqual(175)
+})
+
+test("Balances - isUSDValue routes directly to _usdBalances (skips price cache)", async () => {
+  const balances = new Balances({ chain: 'bsc' })
+  // An unknown token that has no price would contribute $0 via the regular path,
+  // but with isUSDValue it's taken at face value.
+  balances.add('made-up-token-xyz', 123, { isUSDValue: true, skipChain: true })
+  expect(balances.getBalances()).toEqual({})
+  expect((balances as any)._usdBalances).toEqual({ 'made-up-token-xyz': 123 })
+  expect(await balances.getUSDValue()).toEqual(123)
+})
+
+test("Balances - getUSDJSONs includes _usdBalances in usdTokenBalances and total", async () => {
+  const balances = new Balances({ chain: 'bsc' })
+  balances.add('tether', 100, { skipChain: true })
+  balances.addUSDValue(50, { symbol: 'FOO' })
+  const { usdTvl, usdTokenBalances } = await balances.getUSDJSONs()
+  expect(usdTvl).toEqual(150)
+  expect(usdTokenBalances['FOO']).toEqual(50)
+})
+
+test("Balances - getUSDJSONs labelBreakdown reflects label totals", async () => {
+  const balances = new Balances({ chain: 'bsc' })
+  balances.add('tether', 100, { skipChain: true, label: 'stablecoins' })
+  balances.add('tether', 200, { skipChain: true, label: 'stablecoins' })
+  balances.addCGToken('tether', 50, { label: 'other' })
+  const { labelBreakdown, usdTvl } = await balances.getUSDJSONs()
+  expect(labelBreakdown).toBeDefined()
+  expect(labelBreakdown!['stablecoins']).toEqual(300)
+  expect(labelBreakdown!['other']).toEqual(50)
+  expect(usdTvl).toEqual(350)
+})
+
+test("Balances - getUSDJSONs tagBreakdown reflects tag totals", async () => {
+  const balances = new Balances({ chain: 'bsc' })
+  balances.add('tether', 100, { skipChain: true, tag: 'pool-A' })
+  balances.add('tether', 200, { skipChain: true, tag: 'pool-B' })
+  // same token shared across tags — tag totals can overlap
+  balances.add('tether', 50, { skipChain: true, tags: ['pool-A', 'pool-B'] })
+  const res: any = await balances.getUSDJSONs()
+  expect(res.tagBreakdown).toBeDefined()
+  expect(res.tagBreakdown['pool-A']).toEqual(150)
+  expect(res.tagBreakdown['pool-B']).toEqual(250)
+  expect(res.usdTvl).toEqual(350)
+})
+
+test("Balances - clone mirrors both breakdown and tags", async () => {
+  const balances = new Balances({ chain: 'bsc' })
+  balances.add('0001', 100, { tag: 'pool-A', label: 'myTokens' })
+  balances.add('0002', 200, { tag: 'pool-B', label: 'myTokens' })
+  const cloned = balances.clone()
+  expect(cloned.getBalances()).toEqual({ 'bsc:0001': 100, 'bsc:0002': 200 })
+  expect(cloned.hasBreakdownBalances()).toBe(true)
+  expect(cloned.getBreakdownBalances()['myTokens'].getBalances()).toEqual({ 'bsc:0001': 100, 'bsc:0002': 200 })
+  expect(cloned.hasTaggedBalances()).toBe(true)
+  expect(cloned.getTaggedBalances()['pool-A'].getBalances()).toEqual({ 'bsc:0001': 100 })
+  expect(cloned.getTaggedBalances()['pool-B'].getBalances()).toEqual({ 'bsc:0002': 200 })
+})
+
+test("Balances - addBalances merges tags across instances", () => {
+  const a = new Balances({ chain: 'bsc' })
+  a.add('0001', 100, { tag: 'pool-A' })
+
+  const b = new Balances({ chain: 'bsc' })
+  b.add('0001', 50, { tag: 'pool-A' })
+  b.add('0002', 300, { tag: 'pool-B' })
+
+  a.addBalances(b)
+  expect(a.getBalances()).toEqual({ 'bsc:0001': 150, 'bsc:0002': 300 })
+  expect(a.getTaggedBalances()['pool-A'].getBalances()).toEqual({ 'bsc:0001': 150 })
+  expect(a.getTaggedBalances()['pool-B'].getBalances()).toEqual({ 'bsc:0002': 300 })
+})
+
+test("Balances - removeNegativeBalances cleans _balances, breakdown, and tagged", () => {
+  const balances = new Balances({ chain: 'bsc' })
+  balances.add('0001', 100)
+  balances.add('0002', 50, { label: 'myTokens', tag: 'pool-A' })
+  balances.add('0003', 200, { label: 'myTokens', tag: 'pool-B' })
+  // push two tokens into negative territory across main, breakdown, and tags
+  balances.subtract({ 'bsc:0001': 150, 'bsc:0002': 100 })
+  balances.getBreakdownBalances()['myTokens'].subtract({ 'bsc:0002': 100 })
+  balances.getTaggedBalances()['pool-A'].subtract({ 'bsc:0002': 100 })
+
+  expect(balances.getBalances()).toEqual({ 'bsc:0001': -50, 'bsc:0002': -50, 'bsc:0003': 200 })
+  expect(balances.getBreakdownBalances()['myTokens'].getBalances()).toEqual({ 'bsc:0002': -50, 'bsc:0003': 200 })
+  expect(balances.getTaggedBalances()['pool-A'].getBalances()).toEqual({ 'bsc:0002': -50 })
+
+  balances.removeNegativeBalances()
+
+  expect(balances.getBalances()).toEqual({ 'bsc:0003': 200 })
+  // breakdown should have been cleaned recursively
+  expect(balances.getBreakdownBalances()['myTokens'].getBalances()).toEqual({ 'bsc:0003': 200 })
+  // tagged should have been cleaned recursively as well
+  expect(balances.getTaggedBalances()['pool-A'].getBalances()).toEqual({})
+  expect(balances.getTaggedBalances()['pool-B'].getBalances()).toEqual({ 'bsc:0003': 200 })
+})
+
 test("Balances - debug", async () => {
   const balances = new Balances({ chain: 'bsc' })
   balances.addCGToken('tether', 1e6)
