@@ -768,7 +768,17 @@
     "chainId": 2716446429837000
   },
   "cabal": {
-    "rpc": ["https://jsonrpc-cabal-1.anvil.asia-southeast.initia.xyz"],
+    "rpc": [
+      "https://jsonrpc-cabal-1.anvil.asia-southeast.initia.xyz"
+    ],
     "chainId": 2630341494499703
+  },
+  "morph": {
+    "rpc": [
+      "https://rpc-hoodi.morphl2.io",
+      "https://explorer.morphl2.io/api/eth-rpc"
+    ],
+    "chainId": 2910,
+    "explorer": "https://explorer.morphl2.io"
   }
 }
