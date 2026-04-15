@@ -1,4 +1,4 @@
-npm login
+
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 ROOT_DIR=$SCRIPT_DIR/..
 
@@ -10,6 +10,8 @@ git pull
 git checkout master -- src/providers.json # reset file else version patching wont work
 npm version patch
 git push
+
+# regen build and update providers list
 rm -rf build
 rm LICENSE
 npm run update-providers
@@ -17,7 +19,13 @@ if [[ $? -ne 0 ]] ; then
   echo "Failed to update providers"
   exit 1
 fi
+
+
+read -p "Ready to npm login and npm publish. Press enter to continue, Ctrl+C to abort..." _ack
+npm login
 npm publish
+
+# reset the files we changed
 git checkout master -- LICENSE
 git checkout master -- src/providers.json
 git push --tags
