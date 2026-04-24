@@ -14,13 +14,19 @@ fi
 git checkout master -- src/providers.json # reset file else version patching wont work
 npm version patch
 git push
+
 rm -rf build
 rm LICENSE
+
+
 npm run update-providers
 if [[ $? -ne 0 ]] ; then
   echo "Providers update failed, fix it before publishing new version"
   exit 1
 fi
+
+
+read -p "Ready to npm login and npm publish. Press enter to continue, Ctrl+C to abort..." _ack
 npm login
 npm publish
 git checkout master -- LICENSE

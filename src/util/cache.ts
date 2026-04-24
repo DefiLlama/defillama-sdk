@@ -125,6 +125,8 @@ export async function writeCache(file: string, data: any, options: WriteCacheOpt
 
     return fileData
   } catch (error) {
+    if (typeof data === 'object' && data !== null && Object.keys(data).length === 0) return;
+
     debugLog('Error writing cache:', error)
   }
 }
