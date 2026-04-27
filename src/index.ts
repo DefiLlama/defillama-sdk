@@ -1,8 +1,8 @@
-import { debugLog, debugTable } from "./util/debugLog"
+import { debugLog, debugTable } from "./util/debugLog";
 
-export { ChainApi } from './ChainApi'
-export { Balances } from './Balances'
-export { getProvider, setProvider, } from './general'  // need to rethink usage of providers in server repo, it is initally empty
+export { ChainApi } from "./ChainApi";
+export { Balances } from "./Balances";
+export { getProvider, setProvider } from "./general"; // need to rethink usage of providers in server repo, it is initally empty
 export * as util from "./generalUtil";
 export * as cache from "./util/cache";
 export { getLogs as getEventLogs } from "./util/logs";
@@ -20,6 +20,6 @@ export * as erc20 from "./erc20";
 export * as coins from "./util/coins";
 export * as chainUtils from "./util/chainUtils";
 
-export const log = debugLog
-export const logTable = debugTable
-export const humanizeNumber = humanN.humanizeNumber
+export const log = debugLog;
+export const logTable = debugTable;
+export const humanizeNumber = humanN.humanizeNumber;

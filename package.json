@@ -14,7 +14,7 @@
     "test-debug": "TEST_MODE=true jest",
     "update-providers": "bun src/util/updateProviderList.ts",
     "remove-rpcs": "bun src/util/removeRedundantRPCs.ts",
-    "format": "prettier --write \"src/**/*.ts\"",
+    "format": "biome format --write src",
     "prepublishOnly": "bun run build"
   },
   "repository": {
@@ -39,6 +39,7 @@
     "viem": "^2.38.6"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.4.13",
     "@types/jest": "^29.2.3",
     "@types/stream-json": "^1.7.8",
     "jest": "^29.3.1",
