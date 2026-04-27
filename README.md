@@ -1,10 +1,10 @@
 # sdk
 
 ```
-npm i
-npm run build
-npm t
-npm run format
+bun i
+bun run build
+bun test
+bun run format
 ```
 
 ### Publish

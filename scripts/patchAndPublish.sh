@@ -5,8 +5,8 @@ cd $ROOT_DIR
 
 git checkout master
 git pull
-npm run update-providers
-npm run test
+bun run update-providers
+bun run test
 if [[ $? -ne 0 ]] ; then
   echo "Unit test failed, fix it before publishing new version"
   exit 1
@@ -19,7 +19,7 @@ rm -rf build
 rm LICENSE
 
 
-npm run update-providers
+bun run update-providers
 if [[ $? -ne 0 ]] ; then
   echo "Providers update failed, fix it before publishing new version"
   exit 1

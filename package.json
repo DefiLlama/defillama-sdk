@@ -4,18 +4,18 @@
   "description": "SDK for calculating TVL",
   "main": "build/index.js",
   "scripts": {
-    "start": "npm run build && node build/index.js",
+    "start": "bun run build && bun build/index.js",
     "pack-and-publish": "bash ./scripts/skipTestPatchAndPublish.sh",
     "build": "tsc",
     "watch": "tsc --watch",
     "load-providers": "mkdir -p build && wget https://unpkg.com/@defillama/sdk@latest/build/providers.json -O build/providers.json",
-    "test": "npm run load-providers && TEST_MODE=true LLAMA_DEBUG_MODE='' SDK_DEBUG='' LLAMA_DEBUG_LEVEL2=''  LLAMA_DEBUG_LEVEL3='' jest",
+    "test": "bun run load-providers && TEST_MODE=true LLAMA_DEBUG_MODE='' SDK_DEBUG='' LLAMA_DEBUG_LEVEL2=''  LLAMA_DEBUG_LEVEL3='' jest",
     "test-only": "echo 'skipped building providers.json' && TEST_MODE=true LLAMA_DEBUG_MODE='' SDK_DEBUG='' LLAMA_DEBUG_LEVEL2=''  LLAMA_DEBUG_LEVEL3='' jest",
     "test-debug": "TEST_MODE=true jest",
-    "update-providers": "ts-node src/util/updateProviderList.ts",
-    "remove-rpcs": "ts-node src/util/removeRedundantRPCs.ts",
+    "update-providers": "bun src/util/updateProviderList.ts",
+    "remove-rpcs": "bun src/util/removeRedundantRPCs.ts",
     "format": "prettier --write \"src/**/*.ts\"",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "bun run build"
   },
   "repository": {
     "type": "git",
@@ -43,7 +43,6 @@
     "@types/stream-json": "^1.7.8",
     "jest": "^29.3.1",
     "ts-jest": "^29.1.1",
-    "ts-node": "^10.9.1",
     "typescript": "^5.0.0"
   }
 }

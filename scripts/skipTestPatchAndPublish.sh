@@ -14,7 +14,7 @@ git push
 # regen build and update providers list
 rm -rf build
 rm LICENSE
-npm run update-providers
+bun run update-providers
 if [[ $? -ne 0 ]] ; then
   echo "Failed to update providers"
   exit 1
