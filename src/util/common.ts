@@ -1,6 +1,6 @@
 // keep no dependency here else it will create circular dependencies
 
-import axios, { AxiosError } from "axios";
+
 import * as ethers from "ethers";
 import * as TronAddressFormatter from "tron-format-address";
 import type { Balances, StringNumber, Address } from "../types";
@@ -199,7 +199,7 @@ export function getProviderUrl(provider: any) {
 }
 
 export function formErrorString(e: any, errorParams: any = {}) {
-	if (e instanceof AxiosError) {
+	if (e?.config?.url || e?.response?.status) {
 		let message = `[host: ${shortenString(e?.config?.url ?? "", 120)}] `;
 		// if (e?.config?.method === 'post' && e?.config?.data)
 		//   message += shortenString(`method: POST data: ${e?.config?.data} `)
@@ -376,18 +376,99 @@ export function formError(e: any, errorParams: any = {}): Error {
 	return error as Error;
 }
 
-export async function fetchJson(url: string, params: any = {}) {
-	const res = await axios(url, params).catch((e) => {
-		throw formError(e);
-	});
-	return res.data;
+function buildUrl(url: string, params?: Record<string, any>): string {
+	if (!params) return url;
+	const urlObj = new URL(url);
+	for (const [key, value] of Object.entries(params)) {
+		if (value !== undefined && value !== null) {
+			if (Array.isArray(value)) {
+				value.forEach((v) => urlObj.searchParams.append(key, String(v)));
+			} else {
+				urlObj.searchParams.set(key, String(value));
+			}
+		}
+	}
+	return urlObj.toString();
 }
 
-export async function postJson(url: string, data: any = {}, params: any = {}) {
-	const res = await axios.post(url, data, params).catch((e) => {
-		throw formError(e);
-	});
-	return res.data;
+async function fetchWithTimeout(
+	url: string,
+	init: RequestInit,
+	timeout?: number,
+) {
+	if (!timeout) return fetch(url, init);
+
+	const controller = new AbortController();
+	const id = setTimeout(() => controller.abort(), timeout);
+	try {
+		const res = await fetch(url, { ...init, signal: controller.signal });
+		clearTimeout(id);
+		return res;
+	} catch (e) {
+		clearTimeout(id);
+		throw e;
+	}
+}
+
+async function fetchJsonInternal(
+	url: string,
+	options: any,
+	method: string,
+	body?: any,
+) {
+	const finalUrl = buildUrl(url, options.params);
+
+	const headers: Record<string, string> = { ...options.headers };
+	if (body && !headers["Content-Type"] && !headers["content-type"]) {
+		headers["Content-Type"] = "application/json";
+	}
+
+	const init: RequestInit = {
+		method,
+		headers,
+		body: body
+			? typeof body === "string"
+				? body
+				: JSON.stringify(body)
+			: undefined,
+	};
+
+	const res = await fetchWithTimeout(finalUrl, init, options.timeout).catch(
+		(e) => {
+			throw formError(e);
+		},
+	);
+
+	if (!res.ok) {
+		let data: any;
+		try {
+			data = await res.json();
+		} catch {
+			try {
+				data = await res.text();
+			} catch {}
+		}
+		const error: any = new Error(`HTTP ${res.status}: ${res.statusText}`);
+		error.response = { status: res.status, data };
+		error.config = { url: finalUrl };
+		throw formError(error);
+	}
+
+	return res;
+}
+
+export async function fetchJson(url: string, options: any = {}) {
+	const res = await fetchJsonInternal(url, options, "GET");
+	return res.json();
+}
+
+export async function postJson(
+	url: string,
+	data: any = {},
+	options: any = {},
+) {
+	const res = await fetchJsonInternal(url, options, "POST", data);
+	return res.json();
 }
 
 export function tronToEvmAddress(address: string) {

@@ -21,7 +21,6 @@ import {
 } from "./env";
 import { debugLog, debugTable } from "./debugLog";
 import { Chain } from "../types";
-import axios from "axios";
 
 let buildProviders: any = undefined;
 if (process.env["TEST_MODE"]) {
@@ -355,26 +354,52 @@ function toHex(n: number | string) {
 	return "0x" + n.toString(16);
 }
 
+async function rpcFetch(url: string, body: any, timeoutMs?: number) {
+	const init: RequestInit = {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify(body),
+	};
+	if (timeoutMs) {
+		const controller = new AbortController();
+		const id = setTimeout(() => controller.abort(), timeoutMs);
+		try {
+			const res = await fetch(url, { ...init, signal: controller.signal });
+			clearTimeout(id);
+			if (!res.ok) {
+				const text = await res.text().catch(() => "");
+				throw new Error(`HTTP ${res.status}: ${text}`);
+			}
+			return res.json();
+		} catch (e) {
+			clearTimeout(id);
+			throw e;
+		}
+	}
+	const res = await fetch(url, init);
+	if (!res.ok) {
+		const text = await res.text().catch(() => "");
+		throw new Error(`HTTP ${res.status}: ${text}`);
+	}
+	return res.json();
+}
+
 const httpRPC = {
 	getBlockNumber: async (rpc: string): Promise<number> => {
 		const getData = async () => {
-			const data = (
-				await axios.post(
-					rpc,
-					{
-						jsonrpc: "2.0",
-						id: 1,
-						params: [],
-						method: "eth_blockNumber",
-					},
-					{
-						timeout: +(getEnvValue(
-							"LLAMA_PROVIDER_RPC_GET_BLOCKNUMBER_TIMEOUT",
-							"30000",
-						) as any),
-					},
-				)
-			).data;
+			const data = await rpcFetch(
+				rpc,
+				{
+					jsonrpc: "2.0",
+					id: 1,
+					params: [],
+					method: "eth_blockNumber",
+				},
+				+(getEnvValue(
+					"LLAMA_PROVIDER_RPC_GET_BLOCKNUMBER_TIMEOUT",
+					"30000",
+				) as any),
+			);
 			if (data.error) throw data.error;
 			return data.result;
 		};
@@ -389,9 +414,7 @@ const httpRPC = {
 	},
 	getBlock: async (rpc: string, params: any): Promise<any> => {
 		params[0] = toHex(params[0]);
-		const {
-			data: { result, error },
-		} = await axios.post(
+		const { result, error } = await rpcFetch(
 			rpc,
 			{
 				jsonrpc: "2.0",
@@ -399,12 +422,10 @@ const httpRPC = {
 				params,
 				method: "eth_getBlockByNumber",
 			},
-			{
-				timeout: +(getEnvValue(
-					"LLAMA_PROVIDER_RPC_GET_BLOCK_TIMEOUT",
-					"60000",
-				) as any),
-			},
+			+(getEnvValue(
+				"LLAMA_PROVIDER_RPC_GET_BLOCK_TIMEOUT",
+				"60000",
+			) as any),
 		);
 		if (error) throw error;
 		result.number = parseInt(result.number);
@@ -413,9 +434,7 @@ const httpRPC = {
 	},
 	getBalance: async (rpc: string, params: any): Promise<any> => {
 		params[1] = toHex(params[1]);
-		const {
-			data: { result, error },
-		} = await axios.post(
+		const { result, error } = await rpcFetch(
 			rpc,
 			{
 				jsonrpc: "2.0",
@@ -423,19 +442,17 @@ const httpRPC = {
 				params,
 				method: "eth_getBalance",
 			},
-			{
-				timeout: +(getEnvValue(
-					"LLAMA_PROVIDER_RPC_GET_BALANCE_TIMEOUT",
-					"30000",
-				) as any),
-			},
+			+(getEnvValue(
+				"LLAMA_PROVIDER_RPC_GET_BALANCE_TIMEOUT",
+				"30000",
+			) as any),
 		);
 		if (error) throw error;
 		return BigInt(result).toString();
 	},
 	call: async (rpc: string, params: any): Promise<any> => {
 		params[1] = toHex(params[1]);
-		const { data } = await axios.post(
+		const data = await rpcFetch(
 			rpc,
 			{
 				jsonrpc: "2.0",
@@ -443,12 +460,10 @@ const httpRPC = {
 				params,
 				method: "eth_call",
 			},
-			{
-				timeout: +(getEnvValue(
-					"LLAMA_PROVIDER_RPC_CALL_TIMEOUT",
-					"30000",
-				) as any),
-			},
+			+(getEnvValue(
+				"LLAMA_PROVIDER_RPC_CALL_TIMEOUT",
+				"30000",
+			) as any),
 		);
 		if (data.error) throw data.error;
 		return data.result;
@@ -456,9 +471,7 @@ const httpRPC = {
 	getLogs: async (rpc: string, params: any): Promise<any> => {
 		params[0].fromBlock = toHex(params[0].fromBlock);
 		params[0].toBlock = toHex(params[0].toBlock);
-		const {
-			data: { result, error },
-		} = await axios.post(
+		const { result, error } = await rpcFetch(
 			rpc,
 			{
 				jsonrpc: "2.0",
@@ -466,12 +479,10 @@ const httpRPC = {
 				params,
 				method: "eth_getLogs",
 			},
-			{
-				timeout: +(getEnvValue(
-					"LLAMA_PROVIDER_RPC_GET_LOGS_TIMEOUT",
-					"30000",
-				) as any),
-			},
+			+(getEnvValue(
+				"LLAMA_PROVIDER_RPC_GET_LOGS_TIMEOUT",
+				"30000",
+			) as any),
 		);
 		if (error) throw error;
 		result.forEach((i: any) => {
@@ -483,9 +494,7 @@ const httpRPC = {
 		return result;
 	},
 	getTransaction: async (rpc: string, params: any): Promise<any> => {
-		const {
-			data: { result, error },
-		} = await axios.post(
+		const { result, error } = await rpcFetch(
 			rpc,
 			{
 				jsonrpc: "2.0",
@@ -493,12 +502,10 @@ const httpRPC = {
 				params,
 				method: "eth_getTransactionByHash",
 			},
-			{
-				timeout: +(getEnvValue(
-					"LLAMA_PROVIDER_RPC_GET_TRANSACTION_TIMEOUT",
-					"180000",
-				) as any),
-			},
+			+(getEnvValue(
+				"LLAMA_PROVIDER_RPC_GET_TRANSACTION_TIMEOUT",
+				"180000",
+			) as any),
 		);
 		if (error) throw error;
 		if (!result) return null;
@@ -508,9 +515,7 @@ const httpRPC = {
 		return result;
 	},
 	getTransactionReceipt: async (rpc: string, params: any): Promise<any> => {
-		const {
-			data: { result, error },
-		} = await axios.post(
+		const { result, error } = await rpcFetch(
 			rpc,
 			{
 				jsonrpc: "2.0",
@@ -518,12 +523,10 @@ const httpRPC = {
 				params,
 				method: "eth_getTransactionReceipt",
 			},
-			{
-				timeout: +(getEnvValue(
-					"LLAMA_PROVIDER_RPC_GET_TXN_RECEIPT_TIMEOUT",
-					"180000",
-				) as any),
-			},
+			+(getEnvValue(
+				"LLAMA_PROVIDER_RPC_GET_TXN_RECEIPT_TIMEOUT",
+				"180000",
+			) as any),
 		);
 		if (error) throw error;
 		if (!result) return null;

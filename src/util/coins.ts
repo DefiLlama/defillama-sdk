@@ -1,7 +1,6 @@
-import axios from "axios";
 import { getEnvValue } from "./env";
 import runInPromisePool from "./promisePool";
-import { formError, sleepRandom } from "./common";
+import { formError, postJson, sleepRandom } from "./common";
 import { sliceIntoChunks } from ".";
 
 type CoinsApiData = {
@@ -99,12 +98,12 @@ async function getPricesData(
 		processor: async (body: any) => {
 			if (!body.coins.length) return;
 			const res = await restCallWrapper(() =>
-				axios.post(`https://coins.llama.fi/${subRoute}`, body, {
+				postJson(`https://coins.llama.fi/${subRoute}`, body, {
 					headers: { "Content-Type": "application/json" },
 					params: { source: "internal", apikey: coinsApiKey },
 				}),
 			);
-			const data = dataType === "price" ? res.data.coins : res.data;
+			const data = dataType === "price" ? res.coins : res;
 
 			Object.entries(data).forEach(([PK, value]) => {
 				const pkNormalized = PK.toLowerCase();

@@ -340,7 +340,7 @@ export async function cachedFetch({
 	endpoint?: string;
 	postData?: any;
 	fetcher?: () => Promise<any>;
-	fetchOptions?: any; // axios fetch options
+	fetchOptions?: any; // fetch options (params, headers, timeout)
 	errorOnNoCache?: boolean;
 	cacheMaxAge?: number; // max age in ms before refetching, set to 0 to always refetch
 	writeCacheOptions?: WriteCacheOptions;

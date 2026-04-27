@@ -1,6 +1,3 @@
-import axios from "axios";
-import http from "http";
-import https from "https";
 import { Readable } from "stream";
 import { parser as streamJsonParser } from "stream-json";
 import { pick } from "stream-json/filters/Pick";
@@ -51,25 +48,39 @@ const indexerChainIdChainMapping: { [key: number]: string } = {
 	196: "xlayer",
 };
 
-// http agents for streaming (keep-alive)
-const httpAgent = new http.Agent({
-	keepAlive: true,
-	maxSockets: 256,
-	maxFreeSockets: 64,
-});
-const httpsAgent = new https.Agent({
-	keepAlive: true,
-	maxSockets: 256,
-	maxFreeSockets: 64,
-});
+function getIndexerUrl(path: string, params?: any): string {
+	const url = new URL(path, LLAMA_INDEXER_ENDPOINT);
+	if (params) {
+		for (const [key, value] of Object.entries(params)) {
+			if (value !== undefined && value !== null) {
+				url.searchParams.set(key, String(value));
+			}
+		}
+	}
+	return url.toString();
+}
 
-const axiosInstance = axios.create({
-	headers: { "x-api-key": LLAMA_INDEXER_API_KEY },
-	baseURL: LLAMA_INDEXER_ENDPOINT,
-	httpAgent,
-	httpsAgent,
-	timeout: INDEXER_REQUEST_TIMEOUT_MS,
-});
+async function indexerFetch(path: string, params?: any) {
+	const url = getIndexerUrl(path, params);
+	const res = await fetch(url, {
+		headers: { "x-api-key": LLAMA_INDEXER_API_KEY },
+	});
+	if (!res.ok) {
+		let data: any;
+		try {
+			data = await res.json();
+		} catch {
+			try {
+				data = await res.text();
+			} catch {}
+		}
+		const error: any = new Error(`HTTP ${res.status}: ${res.statusText}`);
+		error.response = { status: res.status, data };
+		error.config = { url };
+		throw formError(error);
+	}
+	return res.json();
+}
 
 function checkIndexerConfig() {
 	if (!LLAMA_INDEXER_ENDPOINT || !LLAMA_INDEXER_API_KEY)
@@ -107,9 +118,7 @@ async function getChainIndexStatus(): Promise<ChainIndexStatus> {
 
 	state.timestamp = Date.now();
 	state.chainIndexStatus = (async () => {
-		const {
-			data: { syncStatus },
-		} = await axiosInstance.get(`/sync`).catch((e: any) => {
+		const { syncStatus } = await indexerFetch(`/sync`).catch((e: any) => {
 			throw formError(e);
 		});
 
@@ -214,31 +223,30 @@ async function streamJsonArrayFromIndexer(opts: {
 	let bytesReceived = 0;
 	let itemsProcessed = 0;
 
-	const res = await axiosInstance
-		.get(path, {
-			responseType: "stream",
-			timeout: 0,
-			maxContentLength: Infinity,
-			maxBodyLength: Infinity,
-			headers: { Accept: "application/json", "Accept-Encoding": "gzip" },
+	const url = getIndexerUrl(path);
+	let res: Response | null;
+	try {
+		res = await fetch(url, {
+			headers: {
+				"x-api-key": LLAMA_INDEXER_API_KEY,
+				Accept: "application/json",
+				"Accept-Encoding": "gzip",
+			},
 			signal: controller.signal,
-		})
-		.catch((e) => {
-			if (axios.isCancel(e) || (e as any)?.code === "ERR_CANCELED")
-				return { data: null } as any;
-			throw formError(e);
 		});
-
-	if (!res?.data) return;
+	} catch (e: any) {
+		if (e?.name === "AbortError" || e?.code === "ABORT_ERR") return;
+		throw formError(e);
+	}
+	if (!res?.body) return;
 
 	await new Promise<void>((resolve, reject) => {
-		const stream = res.data as Readable;
+		const stream = Readable.fromWeb(res.body as any);
 
 		const isCancellationError = (err: any): boolean =>
-			err?.name === "CanceledError" ||
+			err?.name === "AbortError" ||
 			err?.message?.includes("aborted") ||
-			axios.isCancel(err) ||
-			err?.code === "ERR_CANCELED";
+			err?.code === "ABORT_ERR";
 
 		const handleError = (err: any) =>
 			isCancellationError(err) ? resolve() : reject(err);
@@ -664,9 +672,7 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
 				noTarget,
 			};
 
-			const {
-				data: { logs: _logs, totalCount },
-			} = await axiosInstance(`/logs`, { params }).catch((e) => {
+			const { logs: _logs, totalCount } = await indexerFetch(`/logs`, params).catch((e) => {
 				throw formError(e);
 			});
 
@@ -853,9 +859,7 @@ export async function getTokenTransfers({
 				throw new Error("Invalid transferType");
 		}
 
-		const {
-			data: { transfers: _logs },
-		} = await axiosInstance(`/token-transfers`, { params }).catch((e) => {
+		const { transfers: _logs } = await indexerFetch(`/token-transfers`, params).catch((e) => {
 			throw formError(e);
 		});
 
@@ -961,9 +965,7 @@ export async function getTransactions({
 		console.time(debugTimeKey);
 	}
 
-	const {
-		data: { transactions },
-	} = await axiosInstance(`/transactions`, { params }).catch((e) => {
+	const { transactions } = await indexerFetch(`/transactions`, params).catch((e) => {
 		throw formError(e);
 	});
 
