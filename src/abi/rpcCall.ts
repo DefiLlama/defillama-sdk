@@ -8,75 +8,75 @@ const emitter = new EventEmitter();
 emitter.setMaxListeners(500000);
 
 export async function call(
-	provider: ethers.AbstractProvider,
-	data: ethers.JsonRpcTransactionRequest,
-	block?: string | number,
-	chain?: string,
-	options = { retry: true },
+  provider: ethers.AbstractProvider,
+  data: ethers.JsonRpcTransactionRequest,
+  block?: string | number,
+  chain?: string,
+  options = { retry: true },
 ): Promise<any> {
-	const retry = options.retry ?? true;
-	(data as any).blockTag = block;
-	if (!chain) chain = "noChain";
-	const counter: Counter = getChainCounter(chain);
-	const currentId = counter.requestCount++;
-	const eventId = `${chain}-${currentId}`;
-	let chainMaxParallelCalls = getMaxParallelRequests(chain);
-	if (!provider) throw new Error("Provider not found for chain: " + chain);
+  const retry = options.retry ?? true;
+  (data as any).blockTag = block;
+  if (!chain) chain = "noChain";
+  const counter: Counter = getChainCounter(chain);
+  const currentId = counter.requestCount++;
+  const eventId = `${chain}-${currentId}`;
+  let chainMaxParallelCalls = getMaxParallelRequests(chain);
+  if (!provider) throw new Error("Provider not found for chain: " + chain);
 
-	if (counter.activeWorkers > chainMaxParallelCalls) {
-		counter.queue.push(eventId);
-		await once(emitter, eventId);
-	}
+  if (counter.activeWorkers > chainMaxParallelCalls) {
+    counter.queue.push(eventId);
+    await once(emitter, eventId);
+  }
 
-	counter.activeWorkers++;
+  counter.activeWorkers++;
 
-	if (DEBUG_ENABLED) {
-		const showEveryX = counter.queue.length > 100 ? 50 : 10; // show log fewer times if lot more are queued up
-		if (currentId % showEveryX === 0)
-			debugLog(
-				`chain: ${chain} request #: ${currentId} queue: ${counter.queue.length} active requests: ${counter.activeWorkers}`,
-			);
-	}
+  if (DEBUG_ENABLED) {
+    const showEveryX = counter.queue.length > 100 ? 50 : 10; // show log fewer times if lot more are queued up
+    if (currentId % showEveryX === 0)
+      debugLog(
+        `chain: ${chain} request #: ${currentId} queue: ${counter.queue.length} active requests: ${counter.activeWorkers}`,
+      );
+  }
 
-	let response;
-	try {
-		response = await provider.call(data as any);
-		onComplete();
-	} catch (e) {
-		onComplete();
-		if (retry)
-			return call(provider, data, block, chain, { ...options, retry: false });
-		throw e;
-	}
+  let response;
+  try {
+    response = await provider.call(data as any);
+    onComplete();
+  } catch (e) {
+    onComplete();
+    if (retry)
+      return call(provider, data, block, chain, { ...options, retry: false });
+    throw e;
+  }
 
-	return response;
+  return response;
 
-	function onComplete() {
-		counter.activeWorkers--;
-		if (counter.queue.length) {
-			const nextRequestId = counter.pickFromTop
-				? counter.queue.shift()
-				: counter.queue.pop();
-			counter.pickFromTop = !counter.pickFromTop;
-			emitter.emit(<string>nextRequestId);
-		}
-	}
+  function onComplete() {
+    counter.activeWorkers--;
+    if (counter.queue.length) {
+      const nextRequestId = counter.pickFromTop
+        ? counter.queue.shift()
+        : counter.queue.pop();
+      counter.pickFromTop = !counter.pickFromTop;
+      emitter.emit(<string>nextRequestId);
+    }
+  }
 }
 
 function getChainCounter(chain: string) {
-	if (!COUNTERS[chain])
-		COUNTERS[chain] = {
-			activeWorkers: 0,
-			queue: [],
-			requestCount: 0,
-			pickFromTop: true,
-		};
-	return COUNTERS[chain];
+  if (!COUNTERS[chain])
+    COUNTERS[chain] = {
+      activeWorkers: 0,
+      queue: [],
+      requestCount: 0,
+      pickFromTop: true,
+    };
+  return COUNTERS[chain];
 }
 
 interface Counter {
-	activeWorkers: number;
-	requestCount: number;
-	queue: string[];
-	pickFromTop: boolean;
+  activeWorkers: number;
+  requestCount: number;
+  queue: string[];
+  pickFromTop: boolean;
 }
