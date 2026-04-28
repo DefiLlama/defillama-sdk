@@ -82,7 +82,8 @@ export async function readCache(file: string, options: ReadCacheOptions = {}): P
       const r2Data = await getR2JSONString(currentVersion + '/' + file)
 
       if (r2Data) {
-        await writeCache(file, r2Data, { alreadyCompressed: true, skipR2CacheWrite: true, skipCompression: options.skipCompression })
+        // `file` already carries the `-uncompressed` suffix (added above), so omit skipCompression here to avoid writeCache appending it again
+        await writeCache(file, r2Data, { alreadyCompressed: true, skipR2CacheWrite: true })
         return r2Data
       }
     }
