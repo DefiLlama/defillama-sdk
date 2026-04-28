@@ -208,6 +208,7 @@ const DEPLOYMENT_BLOCK = {
   tempo: 1,
   edegex: 1,
   wchain: 2207643,
+  fluent: 754598
 } as {
   [key: string | Chain]: number
 }
