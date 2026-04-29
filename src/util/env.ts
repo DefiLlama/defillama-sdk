@@ -114,6 +114,9 @@ export function getArchivalRPCs(chain: string): string[] {
 
 export function getChainRPCs(chain: string, defaultList: string[] = []): string | undefined {
   const envValue = getEnvRPC(chain)
+  // When <CHAIN>_RPC is set, replace the default list. Set <CHAIN>_RPC_APPEND=true
+  // to keep the legacy behaviour of appending defaults to the user-provided list.
+  if (envValue && !getBoolEnvValue(`${chain}_RPC_APPEND`, false)) return envValue
   if (defaultList.length) {
     const listString = defaultList.join(',')
     if (envValue) return envValue + ',' + listString

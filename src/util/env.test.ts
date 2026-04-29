@@ -169,3 +169,26 @@ test("getChainRPCs", async () => {
   expect(chainRPCsAfter).toBe('http://localhost:8545,http://localhost:8546') // value from process.env
   delete process.env['TESTCHAIN_RPC'];
 });
+
+test("getChainRPCs with default list and no env var returns defaults", async () => {
+  const defaults = ['https://default-1.example', 'https://default-2.example']
+  expect(getChainRPCs("testchain", defaults)).toBe(defaults.join(','))
+});
+
+test("getChainRPCs env var replaces defaults (issue #162)", async () => {
+  // Repro: user sets POLYGON_RPC but the SDK still hits dead default RPCs.
+  // Expectation: when <CHAIN>_RPC is set, the env value REPLACES the default list.
+  process.env['TESTCHAIN_RPC'] = 'http://user.example';
+  const defaults = ['http://dead-rpc.example', 'http://another-dead.example']
+  expect(getChainRPCs("testchain", defaults)).toBe('http://user.example')
+  delete process.env['TESTCHAIN_RPC'];
+});
+
+test("getChainRPCs with <CHAIN>_RPC_APPEND=true preserves legacy merge behaviour", async () => {
+  process.env['TESTCHAIN_RPC'] = 'http://user.example';
+  process.env['TESTCHAIN_RPC_APPEND'] = 'true';
+  const defaults = ['http://default.example']
+  expect(getChainRPCs("testchain", defaults)).toBe('http://user.example,http://default.example')
+  delete process.env['TESTCHAIN_RPC'];
+  delete process.env['TESTCHAIN_RPC_APPEND'];
+});
