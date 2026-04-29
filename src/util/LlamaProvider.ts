@@ -25,6 +25,39 @@ type ProviderConfigMap = {
 
 const rpcRequestCounter = {} as Record<string, number>
 
+const RPC_QUARANTINE_THRESHOLD = +(process.env.LLAMA_SDK_RPC_QUARANTINE_THRESHOLD ?? 5)
+const RPC_QUARANTINE_MS = +(process.env.LLAMA_SDK_RPC_QUARANTINE_MS ?? 10 * 60 * 1000)
+const rpcFailureCount = {} as Record<string, number>
+const rpcQuarantineUntil = {} as Record<string, number>
+
+export function isRPCQuarantined(url: string): boolean {
+  const until = rpcQuarantineUntil[url]
+  if (!until) return false
+  if (Date.now() >= until) {
+    delete rpcQuarantineUntil[url]
+    rpcFailureCount[url] = 0
+    return false
+  }
+  return true
+}
+
+export function recordRPCFailure(url: string): void {
+  rpcFailureCount[url] = (rpcFailureCount[url] ?? 0) + 1
+  if (rpcFailureCount[url] >= RPC_QUARANTINE_THRESHOLD && !rpcQuarantineUntil[url]) {
+    rpcQuarantineUntil[url] = Date.now() + RPC_QUARANTINE_MS
+    debugLog(`Quarantining RPC ${url} for ${RPC_QUARANTINE_MS}ms after ${rpcFailureCount[url]} consecutive failures`)
+  }
+}
+
+export function recordRPCSuccess(url: string): void {
+  if (rpcFailureCount[url]) rpcFailureCount[url] = 0
+}
+
+export function _resetRPCQuarantineForTests(): void {
+  for (const k of Object.keys(rpcFailureCount)) delete rpcFailureCount[k]
+  for (const k of Object.keys(rpcQuarantineUntil)) delete rpcQuarantineUntil[k]
+}
+
 
 export class LlamaProvider extends FallbackProvider {
   isCustomLlamaProvider = true
@@ -148,6 +181,12 @@ export class LlamaProvider extends FallbackProvider {
 
     runners = runners.slice(0, attempts)
 
+    // Skip RPCs currently in quarantine. If every candidate is quarantined,
+    // fall back to trying them anyway so we never hard-fail purely due to
+    // quarantine state — better to make a best-effort attempt.
+    const liveRunners = runners.filter(r => !isRPCQuarantined(r.url))
+    if (liveRunners.length) runners = liveRunners
+
     // print stats every 5 minutes
     let currentTimeMS = Date.now()
     if (currentTimeMS - lastPrintTimeMS > 1000 * 60 * 5) {
@@ -165,9 +204,11 @@ export class LlamaProvider extends FallbackProvider {
     for (const runner of runners) {
       try {
         const result = await (httpRPC as any)[method](runner.url, params)
+        recordRPCSuccess(runner.url)
         return result
       } catch (e: any) {
         // console.log('failed', runner.url, (e as any).message)
+        recordRPCFailure(runner.url)
         errors.push({ host: runner.url, error: (e?.message ?? e) })
       }
     }
