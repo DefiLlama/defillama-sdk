@@ -780,5 +780,12 @@
     ],
     "chainId": 2910,
     "explorer": "https://explorer.morphl2.io"
+  },
+  "tempo": {
+    "rpc": [
+      "https://rpc.mainnet.tempo.xyz"
+    ],
+    "chainId": 4217,
+    "explorer": "https://explore.mainnet.tempo.xyz"
   }
 }
