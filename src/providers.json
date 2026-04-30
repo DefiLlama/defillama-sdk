@@ -780,5 +780,12 @@
     ],
     "chainId": 2910,
     "explorer": "https://explorer.morphl2.io"
+  },
+  "gensyn": {
+    "rpc": [
+      "https://gensyn-mainnet.g.alchemy.com/public"
+    ],
+    "chainId": 685689,
+    "explorer": "https://gensyn-mainnet.explorer.alchemy.com"
   }
 }
