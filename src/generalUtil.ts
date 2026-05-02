@@ -1,4 +1,5 @@
 import * as blocks from "./computeTVL/blocks";
+import * as discord from "./util/discord";
 import * as humanizeNumber from "./computeTVL/humanizeNumber";
 export { sliceIntoChunks, normalizeAddress, getTimestamp, tableToString, } from "./util";
 export { isEvmChain, getEVMChainSet, getEVMProvidersConfigMap, } from "./util/LlamaProvider";
@@ -13,4 +14,4 @@ export {
   sleep, sleepRandom, getHash,
 } from './util/common'
 
-export { blocks, humanizeNumber, }
+export { blocks, humanizeNumber, discord, }
