@@ -775,10 +775,10 @@
   },
   "morph": {
     "rpc": [
-      "https://rpc-hoodi.morphl2.io",
+      "https://rpc.morphl2.io",
       "https://explorer.morphl2.io/api/eth-rpc"
     ],
-    "chainId": 2910,
+    "chainId": 2818,
     "explorer": "https://explorer.morphl2.io"
   }
 }
