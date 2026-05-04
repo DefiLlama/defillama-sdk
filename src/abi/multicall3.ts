@@ -232,6 +232,7 @@ export default async function makeMultiCall(
   const contractInterface = new ethers.Interface([functionABI])
   let fd = contractInterface.fragments[0] as ethers.FunctionFragment
   const failedEncodingIndexes: number[] = []
+  const failedEncodingErrors: { [idx: number]: Error } = {}
   const goodEncodingIndexes: number[] = []
   const goodCalls: any = []
 
@@ -252,6 +253,7 @@ export default async function makeMultiCall(
       }
     } catch (e) {
       failedEncodingIndexes.push(idx)
+      failedEncodingErrors[idx] = e instanceof Error ? e : new Error(String(e))
     }
   })
 
@@ -263,7 +265,7 @@ export default async function makeMultiCall(
     const responses: any[] = []
 
     failedEncodingIndexes.forEach(idx => {
-      responses[idx] = { input: { params: calls[idx].params, target: calls[idx].contract }, success: false, output: null, error: new Error('Bad encoding') }
+      responses[idx] = { input: { params: calls[idx].params, target: calls[idx].contract }, success: false, output: null, error: failedEncodingErrors[idx] ?? new Error('Bad encoding') }
     })
 
     goodEncodingIndexes.forEach((goodIdx, i) => {
