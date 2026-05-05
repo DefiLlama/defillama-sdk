@@ -225,6 +225,9 @@ test("imports", async () => {
       "lookupBlock": [Function],
     },
     "convertToBigInt": [Function],
+    "discord": {
+      "sendMessage": [Function],
+    },
     "evmToTronAddress": [Function],
     "fetchJson": [Function],
     "formError": [Function],
