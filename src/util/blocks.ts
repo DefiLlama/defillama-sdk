@@ -150,7 +150,7 @@ type ChainBlockCache = {
 let lastBlockCacheSave = Date.now()
 const blockCacheSaveInterval = 1000 * 60 * 5; // 5 minutes 
 
-const { data: blockTimeCache, saveCacheFile: saveBlockCacheFile }: { data: ChainBlockCache, saveCacheFile: Function } = getTempLocalCache({ file: 'BlockCache.json', defaultData: {}, clearAfter: ONE_WEEK, returnWithSaveFunction: true });
+const { data: blockTimeCache, saveCacheFile: saveBlockCacheFile }: { data: ChainBlockCache, saveCacheFile: Function } = getTempLocalCache({ file: 'BlockCache-v1.json', defaultData: {}, clearAfter: ONE_WEEK, returnWithSaveFunction: true });
 
 function validateCurrentBlock(block: Block, chain: Chain = 'ethereum') {
   // sometimes the chain is halted or facing issues, so we skip the validation for those chains
