@@ -1,5 +1,7 @@
 import { sumMultiBalanceOf, sumSingleBalance, mergeBalances, removeTokenBalance, sumChainTvls, convertToBigInt, } from "./generalUtil";
 import ChainApi from "./ChainApi";
+import { Balances } from "./Balances";
+import { normalizeBalances } from "./util";
 import { getHash, sleep, sleepRandom, sliceIntoChunks, normalizeAddress } from "./generalUtil";
 
 test("sumMultiBalanceOf", () => {
@@ -111,6 +113,53 @@ test("sumSingleBalance with numbers", () => {
   sumSingleBalance(balances, 'dummy', BigInt(170))
   sumSingleBalance(balances, 'dummy', veryBigNumber)
   expect(balances['dummy']/veryBigNumber).toBeCloseTo(2)
+});
+
+test("sumSingleBalance preserves unsafe integer strings exactly", () => {
+  const balances: any = {}
+  sumSingleBalance(balances, 'dummy', '9007199254740993')
+  expect(balances.dummy).toBe('9007199254740993')
+});
+
+test("Balances.add preserves unsafe integer strings through chain-token balances", () => {
+  const balances = new Balances({ chain: 'bsc' })
+  balances.add('0x000', '9007199254740993')
+  expect(balances.getBalances()).toEqual({ 'bsc:0x000': '9007199254740993' })
+});
+
+test("ChainApi preserves exact raw integer balances returned by adapters", () => {
+  const api = new ChainApi({ chain: 'ethereum' })
+  api.add('0x000', '1234567890123456789012345')
+  api.addGasToken(BigInt('1000000000000000001'))
+
+  expect(api.getBalances()).toEqual({
+    'ethereum:0x000': '1234567890123456789012345',
+    'ethereum:0x0000000000000000000000000000000000000000': '1000000000000000001',
+  })
+});
+
+test("normalizeBalances accepts gas-token balances produced by ChainApi", () => {
+  const api = new ChainApi({ chain: 'ethereum' })
+  api.addGasToken('1731174581703269000170')
+
+  expect(normalizeBalances(api.getBalances() as any)).toEqual({
+    'ethereum:0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2': '1731174581703269000170',
+  })
+});
+
+test("sumSingleBalance preserves exact BigInt aggregation beyond Number precision", () => {
+  const balances: any = {}
+  sumSingleBalance(balances, 'dummy', '1731174581703269000000')
+  sumSingleBalance(balances, 'dummy', BigInt(170))
+  expect(balances.dummy).toBe('1731174581703269000170')
+});
+
+test("sumSingleBalance keeps number-valued balances on the number path", () => {
+  const balances: any = {}
+  sumSingleBalance(balances, 'dummy', 1.5)
+  sumSingleBalance(balances, 'dummy', '2.25')
+  expect(balances.dummy).toBe(3.75)
+  expect(typeof balances.dummy).toBe('number')
 });
 
 test("sumChainTvls", async () => {
