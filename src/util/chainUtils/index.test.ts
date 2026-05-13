@@ -4,6 +4,7 @@ import {
   sluggifyString,
   getChainKeyFromLabel,
   getChainLabelFromKey,
+  getSluggifiedChainLabel,
   getDeadChains,
   getDeadChainsSet,
   isDeadChain,
@@ -292,6 +293,36 @@ describe('chainUtils', () => {
     })
   })
 
+  describe('getSluggifiedChainLabel', () => {
+    test('returns the sluggified canonical label for a known key', () => {
+      expect(getSluggifiedChainLabel('ethereum')).toBe('ethereum')
+      expect(getSluggifiedChainLabel('bsc')).toBe('bsc')
+    })
+    test('Optimism', () => {
+      expect(getSluggifiedChainLabel('Optimism')).toBe('op-mainnet')
+      expect(getSluggifiedChainLabel('OP Mainnet')).toBe('op-mainnet')
+    })
+
+    test('normalizes aliases of the same chain to one slug', () => {
+      // 'Avalanche' and 'avax' both resolve to key 'avax' -> label 'Avalanche' -> slug 'avalanche'
+      expect(getSluggifiedChainLabel('Avalanche')).toBe('avalanche')
+      expect(getSluggifiedChainLabel('avax')).toBe('avalanche')
+      expect(getSluggifiedChainLabel('Avalanche')).toBe(getSluggifiedChainLabel('avax'))
+    })
+
+    test('slug reflects the canonical label, not the compact key', () => {
+      // key 'astrzk' has label 'Astar zkEVM' -> slug 'astar-zkevm'
+      expect(getSluggifiedChainLabel('Astar zkEVM')).toBe('astar-zkevm')
+      // key 'arbitrum_nova' has label 'Arbitrum Nova' -> slug 'arbitrum-nova'
+      expect(getSluggifiedChainLabel('Arbitrum Nova')).toBe('arbitrum-nova')
+    })
+
+    test('unknown labels round-trip through the underscore key form', () => {
+      // unknown -> key 'some_unknown_xyz' -> label capitalized -> slug keeps underscores
+      expect(getSluggifiedChainLabel('Some Unknown XYZ')).toBe('some_unknown_xyz')
+    })
+  })
+
   describe('getDeadChains', () => {
     test('returns an array of dead chain keys', () => {
       const result = getDeadChains()
@@ -453,5 +484,6 @@ describe('chainUtils', () => {
 
       consoleErrorSpy.mockRestore()
     })
+
   })
 })

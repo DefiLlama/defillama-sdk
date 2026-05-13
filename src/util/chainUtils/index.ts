@@ -64,6 +64,13 @@ Object.entries(chainLabelsToKeyMap as any).forEach(([label, id]: any) => {
   _chainLabelToChainIdCache[sluggifyString(label)] = id
 })
 
+// this is needed because multiple labels can point to the same chain key, so we need to ensure that while writing/reading from the cache, we always use the same label irrespective what is passed in
+// now, Avalance, Avax, avalanche -> avalanche
+export function getSluggifiedChainLabel(label: string): string {
+  const chainKey = getChainKeyFromLabel(label)
+  label = getChainLabelFromKey(chainKey)
+  return sluggifyString(label)
+}
 
 // to be used if we are unsure if a label exists in our system, if it is known, use chainLabelsToKeyMap instead
 export function getChainKeyFromLabel(label: string): string {

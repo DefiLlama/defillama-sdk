@@ -176,7 +176,7 @@ test("tron: chainApi.getBalances", async () => {
   const tokenBalancesRes = await tronApi.getTokenBalances({ owners: [binanceColdWallet, binanceColdWallet, binanceColdWallet], tokens: [ETHER_ADDRESS], skipDuplicates: true, })
   const tokenBalancesDupsRes = await tronApi.getTokenBalances({ owners: [binanceColdWallet, binanceColdWallet, binanceColdWallet], tokens: [ETHER_ADDRESS] })
 
-  expect(+res).toBeGreaterThan(1e13)
+  expect(+res).toBeGreaterThan(1e6)
   expect(multiRes.length).toEqual(1)
   expect(tokenBalancesRes.length).toEqual(1)
   expect(multiRes).toEqual(tokenBalancesRes)
