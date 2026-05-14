@@ -407,6 +407,7 @@ function multicallAddress(chainId: number | BigInt) {
     case 1110: return '0x114575812CF34299cd65BD251C798608fa805433'; // grx
     case 1990: return '0xfD4014ba4dDB610A1587501378Fa52eee6C3a07B'; // qiev3
     case 38833: return '0x7B2Fa3e6CE90Ce6037395630a4C6DF45B7ef25Af'; // igra
+    case 8721: return '0x965b692662d431cc4714f4E6d1191b0B18733243'; // ebchain
     default:
       return null;
   }

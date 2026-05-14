@@ -204,6 +204,7 @@ const DEPLOYMENT_BLOCK = {
   injective: 1,
   occ: 1,
   pepu: 1,
+  ebchain: 1,
   citrea: 1,
   tempo: 1,
   edegex: 1,
@@ -354,5 +355,6 @@ const CUSTOM_MULTICALL_ADDRESSES: { [key: string]: string } = {
   'besc': '0xBcdb671cBC7711fE533E8B46E52EbC1470145F67',
   'capx': '0x8E1cd29c79dD1Dd4966Cd6A05EeC7d25B5f47f2b',
   'pepu': '0xBB6bf9447031408804af92aE6fBeDc002Dcb20aB',
+  'ebchain': '0x965b692662d431cc4714f4E6d1191b0B18733243',
   'citrea': '0xA738e84fdE890Bc60b99AF7ccE43990E534304de',
 }
