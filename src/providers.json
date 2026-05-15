@@ -780,5 +780,11 @@
     ],
     "chainId": 2818,
     "explorer": "https://explorer.morphl2.io"
+  },
+  "strato": {
+    "rpc": [
+      "https://noderpc.strato.nexus/rpc"
+    ],
+    "chainId": 123354377739506
   }
 }
