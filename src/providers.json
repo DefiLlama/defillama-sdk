@@ -788,8 +788,4 @@
     "chainId": 123354377739506,
     "explorer": "https://stratoscan.strato.nexus/"
   },
-  "srx": {
-    "rpc": [],
-    "chainId": 7119
-  }
 }
