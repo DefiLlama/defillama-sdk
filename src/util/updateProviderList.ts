@@ -220,6 +220,7 @@ const chainShortNameMapping = {
   elsm: 'ely',
   tac: 'tacchain',
   xone: 'xoc',
+  wchain: 'wcn',
   hydragon: 'hydra',
   camp: 'campmainnet',
   mantra: 'mantrachain',
