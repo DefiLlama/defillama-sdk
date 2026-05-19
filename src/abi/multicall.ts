@@ -408,6 +408,7 @@ function multicallAddress(chainId: number | BigInt) {
     case 1990: return '0xfD4014ba4dDB610A1587501378Fa52eee6C3a07B'; // qiev3
     case 38833: return '0x7B2Fa3e6CE90Ce6037395630a4C6DF45B7ef25Af'; // igra
     case 8721: return '0x965b692662d431cc4714f4E6d1191b0B18733243'; // ebchain
+    case 7119: return '0xFd4b34b5763f54a580a0d9f7997A2A993ef9ceE9'; // sentrix
     default:
       return null;
   }
