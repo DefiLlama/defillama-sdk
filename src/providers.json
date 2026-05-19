@@ -3,12 +3,6 @@
     "rpc": [],
     "chainId": 1
   },
-  "ebchain": {
-    "rpc": [
-      "https://rpc.ebcscan.net"
-    ],
-    "chainId": 8721
-  },
   "bsc": {
     "rpc": [
       "https://bsc-dataseed.binance.org/"
