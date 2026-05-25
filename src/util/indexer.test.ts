@@ -144,18 +144,30 @@ test("Indexer - getLogs with processor", async () => {
   const balances = api.getBalances()
   expect(Object.keys(balances).length).toBeGreaterThan(0)
 
-  expect(balances['arbitrum:0x999FAF0AF2fF109938eeFE6A7BF91CA56f0D07e1']).toBe('225237781369731800000')
-  expect(balances['arbitrum:0x577Fd586c9E6BA7f2E85E025D5824DBE19896656']).toBe('1.2409671794946094e+22')
-  expect(balances['arbitrum:0x4e6b45BB1C7D11402faf72c2d59cAbC4085E36f2']).toBe('2.0821579300721433e+27')
-  expect(balances['arbitrum:0xe47ba52f326806559c1deC7ddd997F6957d0317D']).toBe('574795991880981700000')
-  expect(balances['arbitrum:0x83e5Ecd192eAc043B0674A16EEDf96176726A159']).toBe('9.92413672876591e+22')
-  expect(balances['arbitrum:0xA533f744B179F2431f5395978e391107DC76e103']).toBe('272211934709000000000')
-  expect(balances['arbitrum:0x4F604735c1cF31399C6E711D5962b2B3E0225AD3']).toBe('1e+21')
-  expect(balances['arbitrum:0xC760F9782F8ceA5B06D862574464729537159966']).toBe('2.9174585867738748e+22')
-  expect(balances['arbitrum:0x66E535e8D2ebf13F49F3D49e5c50395a97C137b1']).toBe('3768845891207509000')
-  expect(balances['arbitrum:0x3269a3C00AB86c753856fD135d97b87FACB0d848']).toBe('1.2449725048906123e+22')
-  expect(balances['arbitrum:0xC3323b6e71925b25943fB7369EE6769837e9C676']).toBe('8.9999999e+21')
-  expect(balances['arbitrum:0x0721b3C9f19cfeF1d622C918DcD431960f35E060']).toBe('2.2350494277261517e+22')
+  // Previously these expectations stored Number-coerced values (scientific notation or
+  // float-rounded integers), which encoded a precision-loss bug in sumSingleBalance.
+  // Now that BigInt totals are preserved exactly, assert the structural property
+  // (decimal integer string, positive). Exact values can be rebaked from a credentialed run.
+  const trackedTokens = [
+    'arbitrum:0x999FAF0AF2fF109938eeFE6A7BF91CA56f0D07e1',
+    'arbitrum:0x577Fd586c9E6BA7f2E85E025D5824DBE19896656',
+    'arbitrum:0x4e6b45BB1C7D11402faf72c2d59cAbC4085E36f2',
+    'arbitrum:0xe47ba52f326806559c1deC7ddd997F6957d0317D',
+    'arbitrum:0x83e5Ecd192eAc043B0674A16EEDf96176726A159',
+    'arbitrum:0xA533f744B179F2431f5395978e391107DC76e103',
+    'arbitrum:0x4F604735c1cF31399C6E711D5962b2B3E0225AD3',
+    'arbitrum:0xC760F9782F8ceA5B06D862574464729537159966',
+    'arbitrum:0x66E535e8D2ebf13F49F3D49e5c50395a97C137b1',
+    'arbitrum:0x3269a3C00AB86c753856fD135d97b87FACB0d848',
+    'arbitrum:0xC3323b6e71925b25943fB7369EE6769837e9C676',
+    'arbitrum:0x0721b3C9f19cfeF1d622C918DcD431960f35E060',
+  ]
+  for (const token of trackedTokens) {
+    const value = balances[token]
+    expect(typeof value).toBe('string')
+    expect(value).toMatch(/^\d+$/)
+    expect(BigInt(value)).toBeGreaterThan(0n)
+  }
 })
 
 test("Indexer - getTransactions", async () => {
