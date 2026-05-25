@@ -135,7 +135,7 @@ export const getLatestBlock = getCurrentChainBlock
 
 const intialBlocks = {
   planq: 14000000,
-  sei: 78353999,
+  sei: 150023881,
   terra: 4724001,
   crab: 4969901
 } as {
