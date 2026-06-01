@@ -550,7 +550,8 @@
     "zklink": "zkLink Nova",
     "zksync": "ZKsync Lite",
     "zora": "Zora",
-    "zyx": "ZYX"
+    "zyx": "ZYX",
+    "ladychain": "LadyChain"
   },
   "chainLabelsToKeyMap": {
     "0G": "0g",
@@ -1149,6 +1150,7 @@
     "zkLink": "zklink",
     "zkLink Nova": "zklink",
     "zkSync": "zksync",
-    "zkSync Era": "era"
+    "zkSync Era": "era",
+    "LadyChain": "ladychain"
   }
 }
