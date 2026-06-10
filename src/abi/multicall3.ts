@@ -210,6 +210,7 @@ const DEPLOYMENT_BLOCK = {
   edegex: 1,
   wchain: 2207643,
   fluent: 754598
+  ladychain: 1,
 } as {
   [key: string | Chain]: number
 }
@@ -357,4 +358,5 @@ const CUSTOM_MULTICALL_ADDRESSES: { [key: string]: string } = {
   'pepu': '0xBB6bf9447031408804af92aE6fBeDc002Dcb20aB',
   'ebc': '0x965b692662d431cc4714f4E6d1191b0B18733243',
   'citrea': '0xA738e84fdE890Bc60b99AF7ccE43990E534304de',
+  'ladychain': '0x36b580266BD2B9581B805BF99D0Db92FbC9CAa56',
 }
