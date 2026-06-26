@@ -7,6 +7,10 @@ const whitelistedEnvConstants = [
 const isDebugLevel3 = process.env.LLAMA_SDK_DEBUG_LEVEL_3 === 'true'
 
 const defaultEnvValues = {
+  EVMOS_MULTICALL_CHUNK_SIZE: "3", // evmos reduced gas limit, this is a workaround to make multicall work
+  CRONOS_MULTICALL_CHUNK_SIZE: "10", // cronos reduced gas limit, this is a workaround to make multicall work
+  HEDERA_MULTICALL_CHUNK_SIZE: "50", // cronos reduced gas limit, this is a workaround to make multicall work
+  KATANA_MULTICALL_CHUNK_SIZE: "50",
   INTERNAL_SDK_CACHE_FILE: './cache.json',
   TRON_RPC_CONCURRENCY_LIMIT: '5',
   LLAMA_INDEXER_ADDRESS_CHUNK_SIZE: '20',

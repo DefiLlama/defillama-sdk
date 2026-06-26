@@ -209,7 +209,9 @@ const DEPLOYMENT_BLOCK = {
   tempo: 1,
   edegex: 1,
   wchain: 2207643,
-  fluent: 754598
+  fluent: 754598,
+  pharos: 1,
+  anubi: 1,
 } as {
   [key: string | Chain]: number
 }
@@ -357,4 +359,5 @@ const CUSTOM_MULTICALL_ADDRESSES: { [key: string]: string } = {
   'pepu': '0xBB6bf9447031408804af92aE6fBeDc002Dcb20aB',
   'ebc': '0x965b692662d431cc4714f4E6d1191b0B18733243',
   'citrea': '0xA738e84fdE890Bc60b99AF7ccE43990E534304de',
+  'anubi': '0x2BaB36196519Ce9Cc31Bc4899FCBB8124A413b02',
 }
