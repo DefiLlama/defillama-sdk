@@ -787,5 +787,14 @@
     ],
     "chainId": 123354377739506,
     "explorer": "https://stratoscan.strato.nexus/"
+  },
+  "0g": {
+    "rpc": [
+      "https://0g.drpc.org",
+      "https://16661.rpc.thirdweb.com",
+      "https://evmrpc.0g.ai"
+    ],
+    "chainId": 16661,
+    "explorer": "https://chainscan.0g.ai"
   }
 }
