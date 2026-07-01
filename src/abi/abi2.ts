@@ -26,7 +26,7 @@ export async function call(params: CallOptions): Promise<any> {
     for (let i = 0; i < abis.length - 1; i++) {
       const res = await call({ ...restParams, abi: abis[i], permitFailure: true, withMetadata: true })
       const response = params.withMetadata ? res : res.output
-      if (res.success) return response
+      if (res.success !== false) return response
     }
 
     const lastAbi = abis[abis.length - 1]
