@@ -791,8 +791,7 @@
   "0g": {
     "rpc": [
       "https://0g.drpc.org",
-      "https://16661.rpc.thirdweb.com",
-      "https://evmrpc.0g.ai"
+      "https://16661.rpc.thirdweb.com"
     ],
     "chainId": 16661,
     "explorer": "https://chainscan.0g.ai"
