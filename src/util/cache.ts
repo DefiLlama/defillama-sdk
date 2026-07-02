@@ -66,26 +66,49 @@ export async function readCache(file: string, options: ReadCacheOptions = {}): P
 
 
   async function readFile() {
-    const filePath = getFilePath(file)
     try {
-      if (options.checkIfRecent) {
-        const stats = await fs.stat(filePath)
-        if (Date.now() - stats.mtimeMs > ONE_DAY_IN_MS)
-          throw new Error('File too old, read from R2 instead')
-      }
-      if (options.readFromR2Cache) throw new Error('Read from R2 cache')
-      const data = await fs.readFile(filePath)
+      const data = await readDataFromLocal(options.readFromR2Cache ?? false)
       return data
     } catch (error) {
       // debugLog('Error reading cache:', error)
-      if (options.skipR2Cache) return;
-      const r2Data = await getR2JSONString(currentVersion + '/' + file)
+      return readDataFromR2()
+    }
+  }
+
+  async function readDataFromLocal(readFromR2Cache: boolean) {
+    const filePath = getFilePath(file)
+    if (options.checkIfRecent) {
+      const stats = await fs.stat(filePath)
+      if (Date.now() - stats.mtimeMs > ONE_DAY_IN_MS)
+        throw new Error('File too old, read from R2 instead')
+    }
+    if (readFromR2Cache) throw new Error('Read from R2 cache')
+
+    const data = await fs.readFile(filePath)
+    return data
+  }
+
+  async function readDataFromR2() {
+    if (options.skipR2Cache) return;
+    try {
+      const r2Data = await getR2JSONString(currentVersion + '/' + file, { throwErrorOnFail: options.readFromR2Cache ?? false })
 
       if (r2Data) {
         // `file` already carries the `-uncompressed` suffix (added above), so omit skipCompression here to avoid writeCache appending it again
         await writeCache(file, r2Data, { alreadyCompressed: true, skipR2CacheWrite: true })
         return r2Data
       }
+    } catch (error) {
+
+      if (options.readFromR2Cache) {
+        // if we were forced to read from R2 cache, try reading from local cache if R2 fails
+        try {
+           const data = await readDataFromLocal(false)  
+           return data
+        } catch (_e) {}
+      }
+
+      return {}
     }
   }
 }
