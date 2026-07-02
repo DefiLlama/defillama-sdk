@@ -19,6 +19,7 @@ type McapsApiData = {
 };
 
 const coinsApiKey = getEnvValue("COINS_API_KEY")
+const proApiKey = getEnvValue("INTERNAL_API_KEY")
 const bodySize = 100;
 
 function getBodies(readKeys: string[], timestamp: number | "now") {
@@ -46,8 +47,28 @@ async function restCallWrapper(
     if (retries <= 0)
       throw formError(e);
   }
-  await sleepRandom(5_000 + 10_000, 5_000);
+  await sleepRandom(2_000 + 10_000, 2_000);
   return restCallWrapper(request, retries, name);
+}
+
+async function fetchWithProFallback(body: any, subRoute: string) {
+  // if pro api key is set, try the pro route first and fall back to the normal route on failure
+  if (proApiKey) {
+    try {
+      return await restCallWrapper(() => axios.post(
+        `https://pro-api.llama.fi/${proApiKey}/coins/${subRoute}`, body, {
+        headers: { "Content-Type": "application/json" },
+      }), 2);
+    } catch (e) {
+      // fall through to the normal route below
+    }
+  }
+
+  return restCallWrapper(() => axios.post(
+    `https://coins.llama.fi/${subRoute}`, body, {
+    headers: { "Content-Type": "application/json" },
+    params: { source: "internal", apikey: coinsApiKey },
+  }));
 }
 
 const priceCacheAll: { [timestamp: string]: { [PK: string]: any } } = {
@@ -97,11 +118,7 @@ async function getPricesData(
     concurrency: 10,
     processor: async (body: any,) => {
       if (!body.coins.length) return;
-      const res = await restCallWrapper(() => axios.post(
-        `https://coins.llama.fi/${subRoute}`, body, {
-        headers: { "Content-Type": "application/json" },
-        params: { source: "internal", apikey: coinsApiKey },
-      }));
+      const res = await fetchWithProFallback(body, subRoute);
       const data = dataType === "price" ? res.data.coins : res.data
 
       Object.entries(data).forEach(([PK, value]) => {

@@ -34,14 +34,18 @@ export async function storeR2JSONString(filename: string, body: string | Buffer)
   return R2.send(command)
 }
 
-export async function getR2JSONString(filename: string) {
+export async function getR2JSONString(filename: string, { throwErrorOnFail = false } = {}) {
   try {
 
     if (!R2) return await _fetchData()
     const command = new GetObjectCommand({ Bucket: datasetBucket, Key: getKey(filename), });
     const { Body } = await R2.send(command);
     return await Body.transformToString()
+
   } catch (e) {
+
+    if (throwErrorOnFail) throw e
+
     return {}
   }
 
