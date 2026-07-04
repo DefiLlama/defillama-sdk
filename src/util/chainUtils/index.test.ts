@@ -323,6 +323,9 @@ describe('chainUtils', () => {
         'https://api.llama.fi/overview/_internal/chain-name-id-map-v2'
       )
       expect(fs.writeFileSync).toHaveBeenCalled()
+
+      expect(getChainKeyFromLabel('New Chain')).toBe('newchain')
+      expect(getChainLabelFromKey('newchain')).toBe('New Chain')
     })
 
     test('handles fetch errors gracefully', async () => {

@@ -20,6 +20,8 @@ export async function updateData(): Promise<void> {
 
     for (const [key, value] of Object.entries(remoteData.chainLabelsToKeyMap)) {
       (chainLabelsToKeyMap as any)[key] = value
+      _chainLabelToChainIdCache[key] = value as string
+      _chainLabelToChainIdCache[sluggifyString(key)] = value as string
     }
 
     // Save to data.json file
