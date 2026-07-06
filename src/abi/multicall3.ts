@@ -215,6 +215,7 @@ const DEPLOYMENT_BLOCK = {
   robinhood: 1,
   srx: 1,
   xo: 1,
+  rls: 1,
 } as {
   [key: string | Chain]: number
 }
