@@ -246,15 +246,17 @@ export default async function makeMultiCall(
     try {
 
       const data = contractInterface.encodeFunctionData(fd, call.params)
-      if (call.contract?.startsWith('0x')) {
-        const _isValidAddress = ethers.getAddress(call.contract); // Validates and checksums the address
+      let contract = call.contract
+      if (contract?.startsWith('0x')) {
+        contract = contract.toLowerCase() // lowercase so a bad EIP-55 checksum does not reject the call - single `call` passes the target as-is to eth_call, so multiCall should accept the same input
+        const _isValidAddress = ethers.getAddress(contract); // Validates the address
       }
 
       goodCalls.push(call)
       goodEncodingIndexes.push(idx)
 
       return {
-        to: call.contract,
+        to: contract,
         data,
       }
     } catch (e) {

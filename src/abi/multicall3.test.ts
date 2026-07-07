@@ -72,6 +72,26 @@ test("multicall invalid call", async () => {
   expect(output[1].success).toEqual(false);
 });
 
+test("multicall bad EIP-55 checksum target", async () => {
+  // single `call` accepts mixed-case targets without validating the checksum, multiCall should behave the same
+  const output = await makeMultiCall(decimalsAbi, [
+    { contract: '0xdAC17F958D2ee523a2206206994597C13D831Ec7', params: [] }, // invalid checksum (Ec7 instead of ec7)
+  ], 'ethereum')
+  expect(output[0].output).toEqual('6');
+  expect(output[0].success).toEqual(true);
+});
+
+test("multicall malformed target fails encoding", async () => {
+  const output = await makeMultiCall(decimalsAbi, [
+    { contract: '0xdac17f958d2ee523a2206206994597c13d831ec7', params: [] },
+    { contract: '0x1234', params: [] }, // not an address
+  ], 'ethereum')
+  expect(output[0].output).toEqual('6');
+  expect(output[0].success).toEqual(true);
+  expect(output[1].output).toEqual(null);
+  expect(output[1].success).toEqual(false);
+});
+
 test("set multicall via env", async () => {
   const testChain = 'env_multicall_chain'
   const fakeRPC = 'https://env_multicall_chain.org/'
