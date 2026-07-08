@@ -4,16 +4,19 @@ type Address = types.Address;
 type Chain = types.Chain;
 
 test("imports", async () => {
-  const data = await import('./index')
+  let data = await import('./index')
   let chainUtils: any = { ...data.chainUtils }
+  expect(data.providerListJSON).toBeDefined()
+  expect(data.providerListJSON.ethereum).toBeDefined()
 
   // exclude dynamic data from snapshot
   delete chainUtils.chainKeyToChainLabelMap
   delete chainUtils.chainLabelsToKeyMap
-
-
-  const {providers, ...configCopy } = data.api2.config 
+  
+  
+  const {providers,  ...configCopy } = data.api2.config 
   const dataCopy = { ...data, api2: { ...data.api2, config: configCopy }, chainUtils }
+  delete (dataCopy as any).providerListJSON
   let _testChainTypeImport: Chain
   let _testAddressTypeImport: Address = '0x'
 
@@ -126,6 +129,9 @@ test("imports", async () => {
   "chainUtils": {
     "getChainKeyFromLabel": [Function],
     "getChainLabelFromKey": [Function],
+    "getDeadChains": [Function],
+    "getDeadChainsSet": [Function],
+    "isDeadChain": [Function],
     "sluggifyString": [Function],
     "updateData": [Function],
   },

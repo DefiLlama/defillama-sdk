@@ -19,7 +19,9 @@ export * as tron from "./abi/tron";
 export * as erc20 from "./erc20";
 export * as coins from "./util/coins";
 export * as chainUtils from "./util/chainUtils";
+import _providerListJSON from "./providers.json";
 
 export const log = debugLog
 export const logTable = debugTable
 export const humanizeNumber = humanN.humanizeNumber
+export const providerListJSON = _providerListJSON as { [chain: string]: { rpc: string[], chainId: number, explorer?: string } }

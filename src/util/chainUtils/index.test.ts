@@ -4,6 +4,9 @@ import {
   sluggifyString,
   getChainKeyFromLabel,
   getChainLabelFromKey,
+  getDeadChains,
+  getDeadChainsSet,
+  isDeadChain,
   updateData,
 } from './index'
 
@@ -285,6 +288,100 @@ describe('chainUtils', () => {
       for (const { key, expectedStart } of testCases) {
         const result = getChainLabelFromKey(key)
         expect(result.charAt(0)).toBe(expectedStart)
+      }
+    })
+  })
+
+  describe('getDeadChains', () => {
+    test('returns an array of dead chain keys', () => {
+      const result = getDeadChains()
+      expect(Array.isArray(result)).toBe(true)
+      expect(result.length).toBeGreaterThan(0)
+    })
+
+    test('every entry is a string', () => {
+      for (const key of getDeadChains()) {
+        expect(typeof key).toBe('string')
+      }
+    })
+
+    test('contains known dead chains', () => {
+      const result = getDeadChains()
+      expect(result).toContain('astrzk')
+      expect(result).toContain('corn')
+    })
+
+    test('returns the same reference on repeated calls', () => {
+      expect(getDeadChains()).toBe(getDeadChains())
+    })
+  })
+
+  describe('getDeadChainsSet', () => {
+    test('returns a Set of dead chain keys', () => {
+      const result = getDeadChainsSet()
+      expect(result).toBeInstanceOf(Set)
+      expect(result.size).toBeGreaterThan(0)
+    })
+
+    test('contains known dead chains', () => {
+      const result = getDeadChainsSet()
+      expect(result.has('astrzk')).toBe(true)
+      expect(result.has('corn')).toBe(true)
+    })
+
+    test('does not contain live chains', () => {
+      const result = getDeadChainsSet()
+      expect(result.has('ethereum')).toBe(false)
+      expect(result.has('arbitrum')).toBe(false)
+    })
+
+    test('set contents match getDeadChains array', () => {
+      const set = getDeadChainsSet()
+      const array = getDeadChains()
+      expect(set.size).toBe(array.length)
+      for (const key of array) {
+        expect(set.has(key)).toBe(true)
+      }
+    })
+
+    test('returns the same reference on repeated calls', () => {
+      expect(getDeadChainsSet()).toBe(getDeadChainsSet())
+    })
+  })
+
+  describe('isDeadChain', () => {
+    test('returns true for a dead chain key', () => {
+      expect(isDeadChain('astrzk')).toBe(true)
+      expect(isDeadChain('corn')).toBe(true)
+    })
+
+    test('returns false for a live chain key', () => {
+      expect(isDeadChain('ethereum')).toBe(false)
+      expect(isDeadChain('arbitrum')).toBe(false)
+    })
+
+    test('returns true for a dead chain given by label', () => {
+      // 'Astar zkEVM' maps to key 'astrzk', which is a dead chain
+      expect(getChainKeyFromLabel('Astar zkEVM')).toBe('astrzk')
+      expect(isDeadChain('Astar zkEVM')).toBe(true)
+    })
+
+    test('returns true for a dead chain given by its own label', () => {
+      // 'Corn' sluggifies to key 'corn'
+      expect(isDeadChain('Corn')).toBe(true)
+    })
+
+    test('returns false for an unknown chain', () => {
+      expect(isDeadChain('some-nonexistent-chain-xyz')).toBe(false)
+    })
+
+    test('returns false for empty string', () => {
+      expect(isDeadChain('')).toBe(false)
+    })
+
+    test('is consistent with getDeadChainsSet', () => {
+      for (const key of getDeadChainsSet()) {
+        expect(isDeadChain(key)).toBe(true)
       }
     })
   })

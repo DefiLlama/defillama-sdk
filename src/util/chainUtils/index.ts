@@ -1,4 +1,4 @@
-import { chainKeyToChainLabelMap, chainLabelsToKeyMap, } from './data.json'
+import { chainKeyToChainLabelMap, chainLabelsToKeyMap, deadChains, } from './data.json'
 import fs from 'fs'
 import path from 'path'
 
@@ -6,6 +6,8 @@ interface ChainInfo {
   [key: string]: any
 }
 
+const deadChainsArray: string[] = Object.keys(deadChains)
+const deadChainsSet: Set<string> = new Set(deadChainsArray)
 export { chainKeyToChainLabelMap, chainLabelsToKeyMap, }
 
 export async function updateData(): Promise<void> {
@@ -22,11 +24,22 @@ export async function updateData(): Promise<void> {
       (chainLabelsToKeyMap as any)[key] = value
     }
 
+    // dead chains are pulled from the `deadFrom` field on chainCoingeckoIds entries in https://api.llama.fi/config
+    const configResponse = await fetch('https://api.llama.fi/config')
+    const config: ChainInfo = await configResponse.json()
+    for (const [label, value] of Object.entries(config.chainCoingeckoIds ?? {})) {
+      const deadFrom = (value as any)?.deadFrom
+      if (!deadFrom) continue
+      const key = getChainKeyFromLabel(label)
+        ; (deadChains as any)[key] = deadFrom
+    }
+
     // Save to data.json file
     const dataFilePath = path.join(__dirname, 'data.json')
     fs.writeFileSync(dataFilePath, JSON.stringify({
       chainKeyToChainLabelMap: sortJSONData(chainKeyToChainLabelMap),
       chainLabelsToKeyMap: sortJSONData(chainLabelsToKeyMap),
+      deadChains: sortJSONData(deadChains),
     }, null, 2))
   } catch (error) {
     console.error('Error updating chain data:', error)
@@ -79,4 +92,21 @@ export function getChainLabelFromKey(id: string): string { // prefers new name
 
   (chainKeyToChainLabelMap as ChainInfo)[id] = value
   return value
+}
+
+
+// returns the map of dead chains keyed by chain key, with the date (YYYY-MM-DD) the chain was marked dead as the value
+export function getDeadChains(): string[] {
+  return deadChainsArray
+}
+
+// returns a Set of dead chain keys (cached)
+export function getDeadChainsSet(): Set<string> {
+  return deadChainsSet
+}
+
+// returns true if the given chain (by key or label) is dead
+export function isDeadChain(chainKeyOrLabel: string): boolean {
+  if (deadChainsSet.has(chainKeyOrLabel)) return true
+  return deadChainsSet.has(getChainKeyFromLabel(chainKeyOrLabel))
 }
