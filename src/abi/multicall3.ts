@@ -7,6 +7,9 @@ import { call } from './index'
 // https://www.multicall3.com/deployments
 const MULTICALL_V3_ADDRESS = '0xca11bde05977b3631167028862be2a173976ca11'
 
+const TRY_AGGREGATE_ABI = 'function tryAggregate(bool requireSuccess, tuple(address target, bytes callData)[] calls) payable returns (tuple(bool success, bytes returnData)[] returnData)'
+const AGGREGATE3_ABI = 'function aggregate3(tuple(address target, bool allowFailure, bytes callData)[] calls) payable returns (tuple(bool success, bytes returnData)[] returnData)'
+
 const DEPLOYMENT_BLOCK = {
   ethereum: 14353601,
   ethf: 14353601,
@@ -216,6 +219,7 @@ const DEPLOYMENT_BLOCK = {
   srx: 1,
   xo: 1,
   rls: 1,
+  adi: 32217,
 } as {
   [key: string | Chain]: number
 }
@@ -282,10 +286,12 @@ export default async function makeMultiCall(
 
   let returnValues: any
   try {
-    await _call()
+    // tryAggregate: (requireSuccess, [(target, callData)])
+    await _call(TRY_AGGREGATE_ABI, [false, contractCalls.map((call: any) => [call.to, call.data])])
   } catch (e) {
-    // debugLog(chain, 'Multicall failed, retrying call...')
-    await _call()
+    // some Multicall3 deployments don't implement tryAggregate but do implement aggregate3
+    // aggregate3: ([(target, allowFailure, callData)])
+    await _call(AGGREGATE3_ABI, [contractCalls.map((call: any) => [call.to, true, call.data])])
   }
 
   return returnValues.map(([success, values]: any, index: number) => {
@@ -308,9 +314,9 @@ export default async function makeMultiCall(
     return res;
   });
 
-  async function _call() {
+  async function _call(abi: string, params: any[]) {
     const multicallAddress = getMulticallAddress(chain, block) as string
-    const { output: returnData } = await call({ chain, block, target: multicallAddress, abi: 'function tryAggregate(bool requireSuccess, tuple(address target, bytes callData)[] calls) payable returns (tuple(bool success, bytes returnData)[] returnData)', params: [false, contractCalls.map((call: any) => [call.to, call.data])] })
+    const { output: returnData } = await call({ chain, block, target: multicallAddress, abi, params })
     returnValues = returnData;
   }
 }
@@ -366,4 +372,5 @@ const CUSTOM_MULTICALL_ADDRESSES: { [key: string]: string } = {
   'anubi': '0x2BaB36196519Ce9Cc31Bc4899FCBB8124A413b02',
   'srx': '0xFd4b34b5763f54a580a0d9f7997A2A993ef9ceE9',
   'xo': '0x7c6d6eAafF566E3B8a6D072ca1825E8F18141fDb',
+  'adi': '0x73df6E8F0D112D22bD672952323b43d6893AB6D2'
 }
