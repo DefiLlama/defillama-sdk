@@ -9,7 +9,7 @@ const MULTICALL_V3_ADDRESS = '0xca11bde05977b3631167028862be2a173976ca11'
 
 const TRY_AGGREGATE_ABI = 'function tryAggregate(bool requireSuccess, tuple(address target, bytes callData)[] calls) payable returns (tuple(bool success, bytes returnData)[] returnData)'
 const AGGREGATE3_ABI = 'function aggregate3(tuple(address target, bool allowFailure, bytes callData)[] calls) payable returns (tuple(bool success, bytes returnData)[] returnData)'
-
+const AGGREGATE3_ONLY_CHAINS = new Set<string>()
 const DEPLOYMENT_BLOCK = {
   ethereum: 14353601,
   ethf: 14353601,
@@ -285,13 +285,16 @@ export default async function makeMultiCall(
   }
 
   let returnValues: any
-  try {
-    // tryAggregate: (requireSuccess, [(target, callData)])
-    await _call(TRY_AGGREGATE_ABI, [false, contractCalls.map((call: any) => [call.to, call.data])])
-  } catch (e) {
-    // some Multicall3 deployments don't implement tryAggregate but do implement aggregate3
-    // aggregate3: ([(target, allowFailure, callData)])
-    await _call(AGGREGATE3_ABI, [contractCalls.map((call: any) => [call.to, true, call.data])])
+  const aggregate3Params = [contractCalls.map((call: any) => [call.to, true, call.data])]
+  if (AGGREGATE3_ONLY_CHAINS.has(chain)) {
+    await _call(AGGREGATE3_ABI, aggregate3Params)
+  } else {
+    try {
+      await _call(TRY_AGGREGATE_ABI, [false, contractCalls.map((call: any) => [call.to, call.data])])
+    } catch (e) {
+      await _call(AGGREGATE3_ABI, aggregate3Params)
+      AGGREGATE3_ONLY_CHAINS.add(chain)
+    }
   }
 
   return returnValues.map(([success, values]: any, index: number) => {
