@@ -225,6 +225,7 @@ const chainShortNameMapping = {
   camp: 'campmainnet',
   mantra: 'mantrachain',
   saga: 'sagaevm',
+  robinhood: 'robinhoodchain',
 }
 
 async function filterForWorkingRPCs(rpc: string[], chain: string, chainId: number): Promise<string[]> {
