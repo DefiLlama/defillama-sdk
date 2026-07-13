@@ -216,6 +216,7 @@ const DEPLOYMENT_BLOCK = {
   srx: 1,
   xo: 1,
   rls: 1,
+  quai: 1,
 } as {
   [key: string | Chain]: number
 }
@@ -366,4 +367,5 @@ const CUSTOM_MULTICALL_ADDRESSES: { [key: string]: string } = {
   'anubi': '0x2BaB36196519Ce9Cc31Bc4899FCBB8124A413b02',
   'srx': '0xFd4b34b5763f54a580a0d9f7997A2A993ef9ceE9',
   'xo': '0x7c6d6eAafF566E3B8a6D072ca1825E8F18141fDb',
+  'quai': '0x00567637197E6554e2CF47a3988Cb7B819f4E92C',
 }
