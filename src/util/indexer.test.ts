@@ -166,7 +166,7 @@ test("Indexer - getLogs with processor", async () => {
     const value = balances[token]
     expect(typeof value).toBe('string')
     expect(value).toMatch(/^\d+$/)
-    expect(BigInt(value)).toBeGreaterThan(0n)
+    expect(BigInt(value)).toBeGreaterThan(0)
   }
 })
 
