@@ -629,3 +629,16 @@ test("Balances - debug", async () => {
   const { debugData: { tokenData } }: any = await balances.getUSDJSONs({ debug: true, debugOptions: { printTokenTable: false } })
   expect(tokenData.length).toBe(1)  // it should skip ethereum as it's less than 1% of total (10,000 USDT)
 })
+
+test("Balances - getUSDValue sums string _usdBalances numerically (not concat)", async () => {
+  const b = new Balances({})
+  b.addUSDValue('100', { id: 'FOO' })
+  b.addUSDValue('50', { id: 'BAR' })
+  expect(await b.getUSDValue()).toEqual(150)
+})
+
+test("Balances - getUSDValue with bigint _usdBalances input", async () => {
+  const b = new Balances({})
+  b.addUSDValue(BigInt(100), { id: 'FOO' })
+  expect(await b.getUSDValue()).toEqual(100)
+})
