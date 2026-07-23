@@ -235,7 +235,7 @@ export class Balances {
 
   async getUSDValue() {
     let { usdTvl } = await computeTVL(this.getBalances(), this.timestamp) as any
-    usdTvl = Object.values(this._usdBalances as any).reduce((a, b: any) => a + b, usdTvl as number)
+    usdTvl = Object.values(this._usdBalances as any).reduce((a: number, b: any) => a + Number(b), usdTvl as number)
     return usdTvl as number
   }
 
