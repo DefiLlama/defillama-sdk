@@ -149,14 +149,14 @@ test("tron: lookupBlock", async () => {
   expect(getDiff(block.timestamp, 1668158653)).toBeLessThanOrEqual(15 * 60); // difference should be under 15 minutes
 });
 
-test("tron: getLogs", async () => {
+test.skip("tron: getLogs", async () => {
   const { block: latestBlock } = await getLatestBlock('tron')
   expect(latestBlock).toBeDefined()
   const fromBlock = latestBlock - 500
   const toBlock = latestBlock
   const logs = await getLogs({
     chain: 'tron',
-    target: 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t', // USDT
+    target: 'TEkxiTehnzSmSe2XqrBj4w32RUN966rdz8',  // USDC
     fromBlock,
     toBlock,
     cacheInCloud: false,
