@@ -659,4 +659,73 @@ test("order is maintained in multicall", async () => {
   for (let i = 0; i < largeMulticall.calls.length; i++) {
     expect(result.output[i].input.target).toBe(largeMulticall.calls[i].target)
   }
+});
+
+describe("chunk-level failure in runInPromisePool", () => {
+  // Regression test for a bug where an entire chunk failing (as opposed to
+  // an individual call within it) caused runInPromisePool to return
+  // `undefined` for that chunk's slot. With permitFailure set, that
+  // undefined used to flow straight into flatResults and crash
+  // `.filter(r => !r.success)` with "Cannot read properties of undefined
+  // (reading 'success')" - and even without the crash, collapsing a whole
+  // chunk's many calls into one slot would have silently shortened and
+  // misaligned the output array against the original calls.
+  test("permitFailure reconstructs a failed chunk instead of crashing or misaligning results", async () => {
+    jest.resetModules()
+    jest.doMock('../util', () => {
+      const actual = jest.requireActual('../util')
+      return {
+        ...actual,
+        runInPromisePool: jest.fn(async (params: any) => {
+          // Simulate chunk 1 (of 3) throwing entirely, as a chunk-level RPC
+          // failure would - runInPromisePool's own real catch block returns
+          // undefined for a failed chunk's slot; we replicate that directly
+          // here rather than re-testing runInPromisePool's own catch logic.
+          return params.items.map((chunk: any, i: number) =>
+            i === 1 ? undefined : chunk.map((call: any) => ({
+              input: { target: call.contract, params: call.params },
+              success: true,
+              output: "1",
+            }))
+          )
+        }),
+      }
+    })
+    const { multiCall: multiCallWithMockedPool } = require('./index')
+
+    const calls = [0, 1, 2, 3, 4, 5].map(i => ({
+      target: "0x89d24a6b4ccb1b6faa2625fe562bdd9a23260359",
+      params: [i],
+    }))
+
+    const res = await multiCallWithMockedPool({
+      calls,
+      abi: "erc20:balanceOf",
+      chunkSize: 2,
+      permitFailure: true,
+    })
+
+    // Length and order must be preserved even though a whole chunk failed -
+    // this is the part a naive crash-avoidance fix (e.g. just filtering out
+    // undefined entries) would still get wrong.
+    expect(res.output.length).toBe(6)
+    res.output.forEach((r: any, i: number) => {
+      expect(r.input.params).toEqual([i])
+    })
+
+    // Chunk 1 (calls at index 2 and 3, given chunkSize 2) is the one our
+    // mock made fail entirely.
+    expect(res.output[2].success).toBe(false)
+    expect(res.output[2].output).toBe(null)
+    expect(res.output[3].success).toBe(false)
+    expect(res.output[3].output).toBe(null)
+
+    // The other two chunks succeeded and should be untouched.
+    expect(res.output[0].success).toBe(true)
+    expect(res.output[1].success).toBe(true)
+    expect(res.output[4].success).toBe(true)
+    expect(res.output[5].success).toBe(true)
+
+    jest.dontMock('../util')
+  })
 })

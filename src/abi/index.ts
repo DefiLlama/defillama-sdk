@@ -231,14 +231,35 @@ export async function multiCall(params: MulticallOptions): Promise<any> {
   if (!params.skipCache) return cachedMultiCall(params)
 
   const abi = resolveABI(params.abi);
+  const chunkedCalls = sliceIntoChunks(contractCalls, chunkSize)
   const results = await runInPromisePool({
-    items: sliceIntoChunks(contractCalls, chunkSize),
+    items: chunkedCalls,
     concurrency: 10,
     processor: (calls: any) => makeMultiCall(abi, calls, chain as Chain, params.block),
     permitFailure: params.permitFailure,
   })
 
-  const flatResults = [].concat.apply([], results) as any[]
+  // When an entire chunk's processor call throws (e.g. a chunk-level RPC
+  // failure, as opposed to an individual call within it), runInPromisePool
+  // returns `undefined` for that chunk's slot instead of the expected array
+  // of one result per call. If permitFailure is set, that undefined flows
+  // straight through here uncaught, and both the .filter(r => !r.success)
+  // below and the flatResults[i].output access further down crash on it -
+  // and even without the crash, replacing a whole chunk's many calls with a
+  // single slot silently shortens and misaligns the array against
+  // contractCalls. Reconstruct a properly-shaped failure entry per call in
+  // any failed chunk instead, matching what makeMultiCall itself returns on
+  // an individual call failure, so length/order stay correct either way.
+  const resultsWithFailedChunksExpanded = results.map((chunkResult: any, i: number) => {
+    if (chunkResult !== undefined) return chunkResult
+    return chunkedCalls[i].map((call: any) => ({
+      input: { params: call.params, target: call.contract },
+      success: false,
+      output: null,
+    }))
+  })
+
+  const flatResults = [].concat.apply([], resultsWithFailedChunksExpanded) as any[]
 
   const failedQueries = flatResults.filter(r => !r.success)
   if (failedQueries.length) {
