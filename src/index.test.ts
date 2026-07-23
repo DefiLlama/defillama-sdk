@@ -131,6 +131,7 @@ test("imports", async () => {
     "getChainLabelFromKey": [Function],
     "getDeadChains": [Function],
     "getDeadChainsSet": [Function],
+    "getSluggifiedChainLabel": [Function],
     "isDeadChain": [Function],
     "sluggifyString": [Function],
     "updateData": [Function],

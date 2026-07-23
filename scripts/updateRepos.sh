@@ -58,3 +58,19 @@ update_repo dimension-adapters  git@github.com:DefiLlama/dimension-adapters.git 
 update_repo defillama-server    git@github.com:DefiLlama/defillama-server.git    master  defi coins
 update_repo peggedassets-server git@github.com:DefiLlama/peggedassets-server.git master
 update_repo emissions-adapters  git@github.com:DefiLlama/emissions-adapters.git  master
+
+# Private repos, configured via the PRIVATE_REPOS env var so they stay out of
+# this committed script. Format: one repo per line, fields are the same as the
+# update_repo args (name, url, branch, and optional subdirs), space-separated.
+# Example:
+#   export PRIVATE_REPOS="my-private-repo git@github.com:org/my-private-repo.git main
+#   another-repo git@github.com:org/another-repo.git master defi coins"
+if [ -n "$SDK_UPDATE_PRIVATE_REPOS" ]; then
+  while IFS= read -r line; do
+    # skip blank lines and comments
+    [ -z "${line// }" ] && continue
+    [ "${line#\#}" != "$line" ] && continue
+    update_repo $line
+  done <<< "$SDK_UPDATE_PRIVATE_REPOS"
+fi
+

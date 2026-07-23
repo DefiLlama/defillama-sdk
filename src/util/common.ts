@@ -102,8 +102,8 @@ export function sumSingleBalance(
   } else {
     const prevBalance = convertToBigInt(balances[token]);
     const value = (prevBalance + convertToBigInt(balance))
-    isValidNumber(Number(value))
-    balances[token] = Number(value).toString()
+    isValidNumber(value);
+    balances[token] = value.toString();
   }
 
   function isValidNumber(value: any) {
