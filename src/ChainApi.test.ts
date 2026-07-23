@@ -668,3 +668,18 @@ test("ChainApi - getTokenBalances - non-existent token", async () => {
     ['0x0000000000000000000000000000000000000000', '1081418614616880']
   ])
 })
+
+test("ChainApi - blacklistedTokens excludes a base58 token on tron", async () => {
+  const api = new ChainApi({ chain: 'tron' })
+  const token = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t'  // USDT (tron, base58 case-sensitive)
+  const owner = 'TWd4WrZ9wn84f5x1hZhL4DHvk738ns5jwb'
+  // the only token/owner pair is blacklisted -> nothing left to query -> empty result, no RPC call.
+  // Before the fix, the blacklist was lowercased (chain not forwarded) while the pair kept base58
+  // casing, so it was never excluded and this would attempt a tron multicall instead.
+  const res = await api.getTokenBalances({
+    tokensAndOwners: [[token, owner]],
+    blacklistedTokens: [token],
+    withTokenData: true,
+  })
+  expect(res).toEqual([])
+})
