@@ -1,5 +1,6 @@
 import { call, multiCall, fetchList, } from "./abi2";
 import {  ChainApi } from "../ChainApi";
+import * as abi1 from "./index";
 
 const getReservesAbi = "function getReserves() view returns (uint112 _reserve0, uint112 _reserve1, uint32 _blockTimestampLast)"
 
@@ -560,6 +561,50 @@ test("call with abis param and withMetadata", async () => {
   ).toEqual({
     output: "3914724000000000000",
   });
+});
+
+test("call with abis param returns first successful metadata result without trying later abis", async () => {
+  const spy = jest.spyOn(abi1, "call")
+    .mockResolvedValueOnce({ output: "expected-result" } as any)
+    .mockRejectedValueOnce(new Error("later abi should not run"))
+
+  try {
+    await expect(call({
+      target: "0x89d24a6b4ccb1b6faa2625fe562bdd9a23260359",
+      params: "0x3FfBa143f5e69Aa671C9f8e3843C88742b1FA2D9",
+      abis: [
+        "erc20:balanceOf",
+        "function balanceOf_non_existant(address) view returns (uint256)",
+      ],
+      withMetadata: true,
+    })).resolves.toEqual({ output: "expected-result" })
+
+    expect(spy).toHaveBeenCalledTimes(1)
+  } finally {
+    spy.mockRestore()
+  }
+});
+
+test("call with abis param still falls through after an earlier failure", async () => {
+  const spy = jest.spyOn(abi1, "call")
+    .mockRejectedValueOnce(new Error("first abi failed"))
+    .mockResolvedValueOnce({ output: "fallback-result" } as any)
+
+  try {
+    await expect(call({
+      target: "0x89d24a6b4ccb1b6faa2625fe562bdd9a23260359",
+      params: "0x3FfBa143f5e69Aa671C9f8e3843C88742b1FA2D9",
+      abis: [
+        "function balanceOf_non_existant(address) view returns (uint256)",
+        "erc20:balanceOf",
+      ],
+      withMetadata: true,
+    })).resolves.toEqual({ output: "fallback-result" })
+
+    expect(spy).toHaveBeenCalledTimes(2)
+  } finally {
+    spy.mockRestore()
+  }
 });
 
 test("call with field param", async () => {
