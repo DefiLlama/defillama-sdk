@@ -3,6 +3,7 @@ import { Chain } from "../general";
 import convertResults from "./convertResults";
 import makeMultiCallV2 from './multicall'
 import { call } from './index'
+import { getEnvValue } from "../util/env";
 // https://github.com/mds1/multicall
 // https://www.multicall3.com/deployments
 const MULTICALL_V3_ADDRESS = '0xca11bde05977b3631167028862be2a173976ca11'
@@ -319,7 +320,22 @@ export default async function makeMultiCall(
   }
 }
 
+const envMulticallCache: any = {}
+
+function getMulticallV3ContractFromEnv(chain: Chain) {
+  if (!envMulticallCache.hasOwnProperty(chain)) {
+    envMulticallCache[chain] = getEnvValue(`${chain}_RPC_MULTICALL_V3`) ?? null
+  }
+
+  return envMulticallCache[chain]
+}
+
 export function isMulticallV3Supported(chain: Chain, block?: string | number) {
+
+  const contractFromEnv = getMulticallV3ContractFromEnv(chain)
+
+  if (contractFromEnv) return true
+
   const startBlock = DEPLOYMENT_BLOCK[chain]
   if (!startBlock) return false
   if (!block) return true
@@ -328,6 +344,11 @@ export function isMulticallV3Supported(chain: Chain, block?: string | number) {
 }
 
 export function getMulticallAddress(chain: Chain, block?: string | number) {
+
+  const contractFromEnv = getMulticallV3ContractFromEnv(chain)
+
+  if (contractFromEnv) return contractFromEnv
+
   if (!isMulticallV3Supported(chain, block)) return null
   return CUSTOM_MULTICALL_ADDRESSES[chain] ?? MULTICALL_V3_ADDRESS
 }

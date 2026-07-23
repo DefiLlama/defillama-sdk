@@ -156,7 +156,7 @@ test("tron: getLogs", async () => {
   const toBlock = latestBlock
   const logs = await getLogs({
     chain: 'tron',
-    target: 'TEkxiTehnzSmSe2XqrBj4w32RUN966rdz8',
+    target: 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t', // USDT
     fromBlock,
     toBlock,
     cacheInCloud: false,

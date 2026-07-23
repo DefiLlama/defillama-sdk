@@ -1,5 +1,5 @@
 import { multicallAddressOrThrow, networkSupportsMulticall } from "./multicall";
-import makeMultiCall from "./multicall3";
+import makeMultiCall, { getMulticallAddress, isMulticallV3Supported } from "./multicall3";
 
 const decimalsAbi = "function decimals() view returns (uint8)"
 
@@ -107,3 +107,69 @@ test("check zkfair multicall", async () => {
   expect(envMulti).toEqual(true);
   expect(await multicallAddressOrThrow(testChain)).toEqual('0x9eF6667974Fb12D07774221AAB1E90b2ec48896E');
 });
+
+describe("multicall v3 contract via env override", () => {
+  const envAddress = '0x1111111111111111111111111111111111111111'
+
+  // NOTE: getMulticallV3ContractFromEnv memoizes per chain for the process
+  // lifetime, so each test uses a distinct, otherwise-unknown chain name to
+  // avoid cache bleed across cases (and to avoid touching real chains).
+
+  test("an unknown chain with no override is unsupported", () => {
+    // distinct chain name from the enable test below: the env lookup is
+    // memoized per chain, so a chain probed while unset would stay unset.
+    const chain = 'env_mc3_baseline' as any
+    expect(isMulticallV3Supported(chain)).toBe(false)
+    expect(getMulticallAddress(chain)).toBe(null)
+  })
+
+  test("override enables an otherwise-unsupported chain and supplies its address", () => {
+    const chain = 'env_mc3_enable' as any
+    process.env['ENV_MC3_ENABLE_RPC_MULTICALL_V3'] = envAddress
+    try {
+      expect(isMulticallV3Supported(chain)).toBe(true)
+      expect(getMulticallAddress(chain)).toBe(envAddress)
+    } finally {
+      delete process.env['ENV_MC3_ENABLE_RPC_MULTICALL_V3']
+    }
+  })
+
+  test("override wins for historical blocks (ignores deployment-block gating)", () => {
+    const chain = 'env_mc3_block' as any
+    process.env['ENV_MC3_BLOCK_RPC_MULTICALL_V3'] = envAddress
+    try {
+      expect(isMulticallV3Supported(chain, 100)).toBe(true)
+      expect(getMulticallAddress(chain, 100)).toBe(envAddress)
+    } finally {
+      delete process.env['ENV_MC3_BLOCK_RPC_MULTICALL_V3']
+    }
+  })
+
+  test("honors the SDK_ env prefix", () => {
+    const chain = 'env_mc3_sdk' as any
+    process.env['SDK_ENV_MC3_SDK_RPC_MULTICALL_V3'] = envAddress
+    try {
+      expect(isMulticallV3Supported(chain)).toBe(true)
+      expect(getMulticallAddress(chain)).toBe(envAddress)
+    } finally {
+      delete process.env['SDK_ENV_MC3_SDK_RPC_MULTICALL_V3']
+    }
+  })
+
+  test("honors the LLAMA_SDK_ env prefix", () => {
+    const chain = 'env_mc3_llama' as any
+    process.env['LLAMA_SDK_ENV_MC3_LLAMA_RPC_MULTICALL_V3'] = envAddress
+    try {
+      expect(isMulticallV3Supported(chain)).toBe(true)
+      expect(getMulticallAddress(chain)).toBe(envAddress)
+    } finally {
+      delete process.env['LLAMA_SDK_ENV_MC3_LLAMA_RPC_MULTICALL_V3']
+    }
+  })
+
+  test("chains already in the v3 registry are unaffected by the override being absent", () => {
+    // sanity: a real supported chain still resolves to the canonical address
+    expect(isMulticallV3Supported('ethereum')).toBe(true)
+    expect(getMulticallAddress('ethereum')).toBe('0xca11bde05977b3631167028862be2a173976ca11')
+  })
+})
