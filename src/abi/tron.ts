@@ -48,16 +48,23 @@ export async function getBalance(params: {
     return balanceCache[params.target]
   })
 
-  const frozenBalance = data.frozen?.reduce((t: any, { frozen_balance }: any) => t + frozen_balance, 0) ?? 0
-  const frozenBalanceV2 = data.frozenV2?.reduce((t: any, { amount = 0 }: any) => t + amount, 0) ?? 0
-  const freeBalance = data.balance ?? 0
-  const delegatedBandwidthBalance = data.delegated_frozenV2_balance_for_bandwidth ?? 0
-  const delegatedEnergyBalance = data.account_resource?.delegated_frozenV2_balance_for_energy ?? 0
-  let balance = (freeBalance + frozenBalance + frozenBalanceV2 + delegatedBandwidthBalance + delegatedEnergyBalance).toString()
+  const balance = getAccountBalanceFromResponse(data)
 
   return {
     output: handleDecimals(balance, params.decimals),
   };
+}
+
+export function getAccountBalanceFromResponse(data: any): string {
+  const frozenBalance = data.frozen?.reduce((t: any, { frozen_balance }: any) => t + frozen_balance, 0) ?? 0
+  const frozenBalanceV2 = data.frozenV2?.reduce((t: any, { amount = 0 }: any) => t + amount, 0) ?? 0
+  const freeBalance = data.balance ?? 0
+  // Delegated-out Stake 2.0 amounts are removed from frozenV2 and reported
+  // separately on the delegator account. Include them to reconstruct all TRX
+  // still owned by the account; see the live-account fixture in tron.test.ts.
+  const delegatedBandwidthBalance = data.delegated_frozenV2_balance_for_bandwidth ?? 0
+  const delegatedEnergyBalance = data.account_resource?.delegated_frozenV2_balance_for_energy ?? 0
+  return (freeBalance + frozenBalance + frozenBalanceV2 + delegatedBandwidthBalance + delegatedEnergyBalance).toString()
 }
 
 export async function getBalances(params: {
