@@ -1,3 +1,4 @@
+import axios from "axios";
 import { getPrices, getMcaps } from "./coins";
 
 test("coinsApi - mcaps", async () => {
@@ -17,6 +18,22 @@ test("coinsApi - prices", async () => {
     expect(res2["ethereum:0xdac17f958d2ee523a2206206994597c13d831ec7"].decimals).toBe(6);
     expect(Object.keys(res).length).toBe(3);
     expect(res["solana:So11111111111111111111111111111111111111112"].timestamp).toBeGreaterThan(Math.floor(Date.now() / 1e3 - 3600));
+})
+
+test("coinsApi - current prices are refetched after cache TTL", async () => {
+    const realNow = Date.now;
+    const postSpy = jest.spyOn(axios, "post");
+    try {
+        await getPrices(["coingecko:ethereum"], "now");
+        const callsAfterFirst = postSpy.mock.calls.length;
+        Date.now = () => realNow() + 31 * 60 * 1000; // move past the 30-minute "now" cache TTL
+        const res = await getPrices(["coingecko:ethereum"], "now");
+        expect(postSpy.mock.calls.length).toBeGreaterThan(callsAfterFirst); // expired cache must trigger a live refetch
+        expect(res["coingecko:ethereum"].price).toBeGreaterThan(0);
+    } finally {
+        Date.now = realNow;
+        postSpy.mockRestore();
+    }
 })
 
 test("coinsApi - prices with timestamp", async () => {
