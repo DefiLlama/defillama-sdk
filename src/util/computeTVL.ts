@@ -13,7 +13,7 @@ const priceCaches: {
   [timestamp: number]: PricesObject
 } = {}
 
-let lastPriceUpdate = 0;
+let lastPriceUpdate = +Date.now();
 const confidenceThreshold = 0.5
 const priceUpdateTime = 1000 * 60 * 30 // 30 minutes
 

@@ -71,14 +71,21 @@ async function fetchWithProFallback(body: any, subRoute: string) {
   }));
 }
 
-const priceCacheAll: { [timestamp: string]: { [PK: string]: any } } = {
-  now: {
+const nowCacheTTL = 1000 * 60 * 30 // 30 minutes, matches priceUpdateTime in computeTVL
+let lastNowCacheClear = +Date.now();
+
+function seedNowPriceCache() {
+  return {
     "coingecko:tether": {
       price: 1,
       symbol: "USDT",
       timestamp: Math.floor(Date.now() / 1e3 + 3600), // an hour from script start time
     },
-  }
+  };
+}
+
+const priceCacheAll: { [timestamp: string]: { [PK: string]: any } } = {
+  now: seedNowPriceCache()
 };
 
 const mcapCacheAll: { [timestamp: string]: { [PK: string]: any } } = {};
@@ -93,6 +100,14 @@ async function getPricesData(
   dataType: "price" | "mcap"
 ): Promise<any> {
   if (!readKeys.length) return {};
+
+  // expire the "now" caches so current prices are never served older than nowCacheTTL
+  if (+Date.now() - lastNowCacheClear > nowCacheTTL) {
+    lastNowCacheClear = +Date.now();
+    priceCacheAll.now = seedNowPriceCache();
+    delete mcapCacheAll.now;
+  }
+
   const cacheAllObject = dataType === "price" ? priceCacheAll : mcapCacheAll
   const subRoute = dataType === "price" ? "prices" : "mcaps"
 
