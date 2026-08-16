@@ -642,3 +642,36 @@ test("Balances - getUSDValue with bigint _usdBalances input", async () => {
   b.addUSDValue(BigInt(100), { id: 'FOO' })
   expect(await b.getUSDValue()).toEqual(100)
 })
+
+test("Balances - starknet address is padded to the canonical 32 byte form", async () => {
+  const STRK = '0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d'
+  const DAI = '0x00da114221cb83fa859dbdb4c44beeaa0bb37c7537ad5ae66fe5e0efd20e6eb3'
+
+  // what BigInt(addr).toString(16) leaves behind, one and two leading zeros dropped
+  const strkStripped = '0x' + STRK.slice(2).replace(/^0+/, '')
+  const daiStripped = '0x' + DAI.slice(2).replace(/^0+/, '')
+  expect(strkStripped.length).toBe(65)
+  expect(daiStripped.length).toBe(64)
+
+  const balances = new Balances({ chain: 'starknet' })
+  balances.add(strkStripped, 100)
+  balances.add(daiStripped, 200)
+  balances.add(STRK, 1)
+
+  expect(balances.getBalances()).toEqual({
+    [`starknet:${STRK}`]: 101,
+    [`starknet:${DAI}`]: 200,
+  })
+})
+
+test("Balances - starknet padding leaves other chains and skipChain alone", async () => {
+  const short = '0x4c46e830bb56ce22735d5d8fc9cb90309317d0f'
+
+  const evm = new Balances({ chain: 'ethereum' })
+  evm.add(short, 100)
+  expect(evm.getBalances()).toEqual({ 'ethereum:0x4c46e830bb56ce22735d5d8fc9cb90309317d0f': 100 })
+
+  const cg = new Balances({ chain: 'starknet' })
+  cg.addCGToken('ethereum', 5)
+  expect(cg.getBalances()).toEqual({ 'coingecko:ethereum': 5 })
+})
