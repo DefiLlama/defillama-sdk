@@ -1,5 +1,5 @@
 import ChainApi from "../ChainApi";
-import { getLogs, toFilterTopic, } from "./logs";
+import { getLogs, toFilterTopic, trimCachesForStorage, } from "./logs";
 
 const baseApi = new ChainApi({ chain: 'base' })
 
@@ -333,3 +333,44 @@ test("logs - onlyArgs are iterable arrays with named fields", async () => {
 
   expect(totalAmount1In).toBe(BigInt(1000));
 });
+
+const mkLogs = (count: number, startBlock: number) =>
+  Array.from({ length: count }, (_, i) => ({ blockNumber: startBlock + i, transactionHash: '0x' + i, index: i })) as any[]
+
+test("trimCachesForStorage - keeps logs when the range is under the cap", () => {
+  const caches = [{ logs: mkLogs(10, 100), metadata: { fromBlock: 100, toBlock: 109 } }] as any
+  const out = trimCachesForStorage(caches, 200_000)
+  expect(out).toHaveLength(1)
+  expect(out[0].logs).toHaveLength(10)
+  expect(out[0].metadata).toEqual({ fromBlock: 100, toBlock: 109 })
+})
+
+test("trimCachesForStorage - never reports a range it has no logs for", () => {
+  const caches = [{ logs: mkLogs(5, 500), metadata: { fromBlock: 500, toBlock: 504 } }] as any
+  const out = trimCachesForStorage(caches, 200_000)
+  for (const c of out) {
+    if (!c.logs.length) continue
+    expect(c.metadata.fromBlock).toBeLessThanOrEqual(c.logs[c.logs.length - 1].blockNumber)
+  }
+  expect(out[0].logs.length).toBeGreaterThan(0)
+})
+
+test("trimCachesForStorage - trims to the cap and narrows fromBlock to what survived", () => {
+  const caches = [{ logs: mkLogs(10, 1000), metadata: { fromBlock: 1000, toBlock: 1009 } }] as any
+  const out = trimCachesForStorage(caches, 4)
+  expect(out[0].logs).toHaveLength(4)
+  expect(out[0].logs.map((l: any) => l.blockNumber)).toEqual([1009, 1008, 1007, 1006])
+  expect(out[0].metadata.fromBlock).toBe(1006)
+  expect(out[0].metadata.toBlock).toBe(1009)
+})
+
+test("trimCachesForStorage - keeps only the newest range when several are cached", () => {
+  const caches = [
+    { logs: mkLogs(3, 100), metadata: { fromBlock: 100, toBlock: 102 } },
+    { logs: mkLogs(3, 900), metadata: { fromBlock: 900, toBlock: 902 } },
+  ] as any
+  const out = trimCachesForStorage(caches, 200_000)
+  expect(out).toHaveLength(1)
+  expect(out[0].metadata.fromBlock).toBe(900)
+  expect(out[0].logs).toHaveLength(3)
+})
