@@ -21,4 +21,17 @@ describe('humanizeNumber', () => {
     expect(humanizeNumber(141.00034)).toBe('141.00')
     expect(humanizeNumber(-1)).toBe('-1.00')
   })
+
+  it('should switch unit exactly at each threshold', () => {
+    expect(humanizeNumber(1000)).toBe('1.00 k')
+    expect(humanizeNumber(10 ** 6)).toBe('1.00 M')
+    expect(humanizeNumber(10 ** 9)).toBe('1.00 B')
+    expect(humanizeNumber(10 ** 12)).toBe('1.00 T')
+    expect(humanizeNumber(-1000)).toBe('-1.00 k')
+    expect(humanizeNumber(-(10 ** 6))).toBe('-1.00 M')
+    expect(humanizeNumber(-(10 ** 9))).toBe('-1.00 B')
+    expect(humanizeNumber(-(10 ** 12))).toBe('-1.00 T')
+    expect(humanizeNumber(999.99)).toBe('999.99')
+    expect(humanizeNumber(10 ** 6 - 1)).toBe('1000.00 k')
+  })
 })
