@@ -8,7 +8,7 @@ export function humanizeNumber(amount: number): string {
     [10 ** 3, "k"],
   ] as [number, string][];
   for (const [denominator, letter] of quantifiers) {
-    if (amount > denominator) {
+    if (amount >= denominator) {
       return `${(amount / denominator).toFixed(2)} ${letter}`;
     }
   }
