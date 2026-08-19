@@ -30,7 +30,10 @@ export async function updateData(): Promise<void> {
     for (const [label, value] of Object.entries(config.chainCoingeckoIds ?? {})) {
       const deadFrom = (value as any)?.deadFrom
       if (!deadFrom) continue
-      const key = getChainKeyFromLabel(label)
+      // resolve against the label map merged just above. getChainKeyFromLabel reads a cache built
+      // at import time, so a label added in this same run is invisible to it and falls back to a
+      // sluggified key that no chain uses
+      const key = (chainLabelsToKeyMap as any)[label] ?? getChainKeyFromLabel(label)
         ; (deadChains as any)[key] = deadFrom
     }
 
