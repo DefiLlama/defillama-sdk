@@ -133,6 +133,18 @@ function getExtraProvider(chain = "ethereum") {
 
 export const getLatestBlock = getCurrentChainBlock
 
+// chains whose RPCs prune old blocks, so the block search has to start inside the retained window
+export const prunedChainBlockRetention: { [chain: string]: number } = {
+  nibiru: 4 * 1e5, // nibiru holds only the last 400k blocks
+  evmos: 2 * 1e5,  // evmos holds only the last 200k blocks
+}
+
+// oldest block the chain's RPC can still be asked for, undefined when the chain does not prune
+export function getPrunedChainFirstBlock(chain: string, latestBlockNumber: number): number | undefined {
+  const retention = prunedChainBlockRetention[chain]
+  return retention === undefined ? undefined : latestBlockNumber - retention
+}
+
 const intialBlocks = {
   planq: 14000000,
   sei: 150023881,
@@ -223,14 +235,9 @@ async function _lookupBlock(
   try {
     let firstBlock, lastBlock
 
-    if (['evmos', 'nibiru'].includes(chain)) {
+    if (prunedChainBlockRetention[chain] !== undefined) {
       lastBlock = await getLatestBlock(chain)
-      let firstBlockNum = lastBlock.number
-      switch (chain) {
-        case 'nibiru': firstBlockNum -= 4 * 1e5// nibiru hold only the last 400k block data
-        case 'evmos': firstBlockNum -= 2 * 1e5// evmos hold only the last 200k block data
-      }
-      firstBlock = await fetchBlockFromProvider(firstBlockNum, chain)
+      firstBlock = await fetchBlockFromProvider(getPrunedChainFirstBlock(chain, lastBlock.number)!, chain)
     } else {
       [lastBlock, firstBlock] = await Promise.all([
         highBlock ? highBlock : getLatestBlock(chain),
