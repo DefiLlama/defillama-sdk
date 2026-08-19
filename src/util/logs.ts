@@ -252,8 +252,9 @@ export async function getLogs(
       }, 0);
       const fileSizeInMB = (totalLogCount * randomLogLength) / (1024 * 1024)
       if (fileSizeInMB > 300) { // if cache size is larger than ~300MB, trim it down
-        console.log(`getLogs: large cache size detected ${totalLogCount} logs size: ${fileSizeInMB}MB, retaining only the latest 200k logs to limit memory usage target=${target} topic=${topic} fromBlock=${fromBlock} toBlock=${toBlock}`);
-        storeCaches = trimCachesForStorage(storeCaches)
+        const maxLogs = maxLogsForStorage(randomLogLength)
+        console.log(`getLogs: large cache size detected ${totalLogCount} logs size: ${fileSizeInMB}MB, retaining only the latest ${maxLogs} logs to limit memory usage target=${target} topic=${topic} fromBlock=${fromBlock} toBlock=${toBlock}`);
+        storeCaches = trimCachesForStorage(storeCaches, maxLogs)
       }
 
       // we are skipping compression by default, so reads & writes are faster
@@ -314,6 +315,12 @@ export async function getLogs(
 /* -------------------------------------------------------------------------- */
 /*                           Utility helpers exported                         */
 /* -------------------------------------------------------------------------- */
+
+// the log count that fits the same byte budget the size check uses, so a wide log trims before the flat cap
+export function maxLogsForStorage(bytesPerLog: number, cap = 200_000, budgetMB = 300): number {
+  if (!bytesPerLog || bytesPerLog < 1) return cap
+  return Math.max(1, Math.min(cap, Math.floor((budgetMB * 1024 * 1024) / bytesPerLog)))
+}
 
 // keeps the newest range and at most maxLogs of its logs, narrowing the metadata to match what is kept
 export function trimCachesForStorage(caches: logCache[], maxLogs = 200_000): logCache[] {

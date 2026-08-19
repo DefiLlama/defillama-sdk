@@ -1,5 +1,5 @@
 import ChainApi from "../ChainApi";
-import { getLogs, toFilterTopic, trimCachesForStorage, } from "./logs";
+import { getLogs, maxLogsForStorage, toFilterTopic, trimCachesForStorage, } from "./logs";
 
 const baseApi = new ChainApi({ chain: 'base' })
 
@@ -373,4 +373,30 @@ test("trimCachesForStorage - keeps only the newest range when several are cached
   expect(out).toHaveLength(1)
   expect(out[0].metadata.fromBlock).toBe(900)
   expect(out[0].logs).toHaveLength(3)
+})
+
+test("maxLogsForStorage - a wide log caps below the flat 200k", () => {
+  // seaport OrderFulfilled sampled around 2192 bytes of JSON per log
+  expect(maxLogsForStorage(2192)).toBe(Math.floor((300 * 1024 * 1024) / 2192))
+  expect(maxLogsForStorage(2192)).toBeLessThan(200_000)
+  expect(maxLogsForStorage(2192) * 2192).toBeLessThanOrEqual(300 * 1024 * 1024)
+})
+
+test("maxLogsForStorage - a narrow log keeps the flat 200k cap", () => {
+  expect(maxLogsForStorage(200)).toBe(200_000)
+  expect(maxLogsForStorage(1572)).toBe(200_000)
+  expect(maxLogsForStorage(1573)).toBeLessThan(200_000)
+})
+
+test("maxLogsForStorage - a missing or absurd length falls back to the cap", () => {
+  expect(maxLogsForStorage(0)).toBe(200_000)
+  expect(maxLogsForStorage(undefined as any)).toBe(200_000)
+  expect(maxLogsForStorage(400 * 1024 * 1024)).toBe(1)
+})
+
+test("trimCachesForStorage - honours a byte derived cap", () => {
+  const caches = [{ logs: mkLogs(10, 1000), metadata: { fromBlock: 1000, toBlock: 1009 } }] as any
+  const out = trimCachesForStorage(caches, maxLogsForStorage(60 * 1024 * 1024))
+  expect(out[0].logs).toHaveLength(5)
+  expect(out[0].metadata.fromBlock).toBe(1005)
 })
