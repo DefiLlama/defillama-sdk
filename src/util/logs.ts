@@ -16,6 +16,16 @@ import { enrichEthersArgsWithNamedProperties, padTopic32 } from "./logs.decode.s
 
 const currentVersion = "v3";
 
+const BLOCK_BUFFER = 10;
+
+// widen the fetched range forward by BLOCK_BUFFER, without asking for blocks the chain does not
+// have yet and without ever returning less than the caller asked for
+export function getBufferedToBlock(toBlock: number, head?: number, buffer = BLOCK_BUFFER): number {
+  const buffered = toBlock + buffer;
+  if (head === undefined) return buffered;
+  return Math.min(buffered, Math.max(toBlock, head));
+}
+
 /* -------------------------------------------------------------------------- */
 /*                                   Types                                    */
 /* -------------------------------------------------------------------------- */
@@ -209,8 +219,14 @@ export async function getLogs(
     if (debugMode) debugLog("adding logs to cache:", fromBlock, toBlock);
 
     if (fromBlock > toBlock) return;
-    fromBlock = Math.max(fromBlock - 10, 0); // avoid negative block
-    toBlock = toBlock + 10;
+    fromBlock = Math.max(fromBlock - BLOCK_BUFFER, 0); // avoid negative block
+
+    // the forward buffer must not run past the chain head. Several RPCs reject a range that ends
+    // beyond their latest block outright, and since every RPC in the pool rejects it the whole call
+    // fails. If the head cannot be read (halted chain, provider error) keep the previous behaviour.
+    let head: number | undefined
+    try { head = await getBlockNumber(chain) } catch (e) { }
+    toBlock = getBufferedToBlock(toBlock, head);
 
     if (debugMode) console.time(dbgKey);
 
