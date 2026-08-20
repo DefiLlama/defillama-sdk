@@ -3,6 +3,7 @@ import { getBalance, getBalances } from "../eth/index";
 import { ETHER_ADDRESS } from "../general";
 import { getLatestBlock, lookupBlock } from "../util/blocks";
 import getLogs from "../util/logs";
+import { getAccountBalanceFromResponse } from "./tron";
 
 
 const intercroneFactory = 'TPvaMEL5oY2gWsJv7MDjNQh2dohwvwwVwx'
@@ -110,6 +111,27 @@ test("tron: getBalance", async () => {
       target: intercroneFactory,
     })
   ).toEqual({ "output": "0" });
+});
+
+test("tron: getBalance includes delegated-out Stake 2.0 without double-counting", () => {
+  // Captured from wallet/getaccount for 4162d355... at block 84,790,123,
+  // immediately after it delegated resources in block 84,790,105.
+  // The two frozenV2 buckets plus their delegated-out counterparts reconstruct
+  // exactly 200,000,000 TRX staked by the account.
+  const account = {
+    balance: 177_051_168,
+    frozenV2: [
+      { amount: 9_820_151_335_298 },
+      { type: "ENERGY", amount: 126_635_099_000_000 },
+      { type: "TRON_POWER" },
+    ],
+    delegated_frozenV2_balance_for_bandwidth: 179_848_664_702,
+    account_resource: {
+      delegated_frozenV2_balance_for_energy: 63_364_901_000_000,
+    },
+  };
+
+  expect(getAccountBalanceFromResponse(account)).toEqual("200000177051168");
 });
 
 test("tron: getBalances", async () => {
