@@ -219,6 +219,9 @@ const DEPLOYMENT_BLOCK = {
   rls: 1,
   quai: 1,
   adi: 1,
+  eden: 1,
+  intuition: 288,
+  mrt: 1,
 } as {
   [key: string | Chain]: number
 }
