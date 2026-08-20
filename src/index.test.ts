@@ -164,6 +164,7 @@ test("imports", async () => {
   },
   "humanizeNumber": [Function],
   "indexer": {
+    "getChainIndexerVersion": [Function],
     "getLogs": [Function],
     "getTokenTransfers": [Function],
     "getTransactions": [Function],
@@ -185,6 +186,7 @@ test("imports", async () => {
       "polygon_zkevm",
       "soneium",
       "megaeth",
+      "robinhood",
       "base",
       "mode",
       "arbitrum",
@@ -196,8 +198,10 @@ test("imports", async () => {
       "scroll",
     },
   },
+  "isIndexerSqlEnabled": [Function],
   "log": [Function],
   "logTable": [Function],
+  "queryClickhouse": [Function],
   "sdkCache": {
     "getCache": [Function],
     "retriveCache": [Function],

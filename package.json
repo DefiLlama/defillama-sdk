@@ -12,6 +12,7 @@
     "test": "npm run load-providers && TEST_MODE=true LLAMA_DEBUG_MODE='' SDK_DEBUG='' LLAMA_DEBUG_LEVEL2=''  LLAMA_DEBUG_LEVEL3='' jest",
     "test-only": "echo 'skipped building providers.json' && TEST_MODE=true LLAMA_DEBUG_MODE='' SDK_DEBUG='' LLAMA_DEBUG_LEVEL2=''  LLAMA_DEBUG_LEVEL3='' jest",
     "test-debug": "TEST_MODE=true jest",
+    "test-indexer": "TEST_MODE=true jest src/util/indexer.routing.test.ts src/util/indexer.test.ts src/util/indexer.robinhood.test.ts src/util/indexer.e2e.test.ts --runInBand",
     "update-providers": "ts-node src/util/updateProviderList.ts",
     "remove-rpcs": "ts-node src/util/removeRedundantRPCs.ts",
     "format": "prettier --write \"src/**/*.ts\"",
