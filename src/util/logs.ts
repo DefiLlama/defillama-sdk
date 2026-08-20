@@ -252,31 +252,9 @@ export async function getLogs(
       }, 0);
       const fileSizeInMB = (totalLogCount * randomLogLength) / (1024 * 1024)
       if (fileSizeInMB > 300) { // if cache size is larger than ~300MB, trim it down
-        console.log(`getLogs: large cache size detected ${totalLogCount} logs size: ${fileSizeInMB}MB, retaining only the latest 200k logs to limit memory usage target=${target} topic=${topic} fromBlock=${fromBlock} toBlock=${toBlock}`);
-
-        // retain only the latest logs that fit within 300,000 logs
-        if (caches.length > 1) {
-          let cacheWithLatestFromBlock = caches[0]
-          for (const c of caches) {
-            if (c.metadata.fromBlock > cacheWithLatestFromBlock.metadata.fromBlock) {
-              cacheWithLatestFromBlock = c
-            }
-          }
-
-          storeCaches = [cacheWithLatestFromBlock]
-        }
-
-        storeCaches = storeCaches.map(c => {
-          const clone: any = { logs: [], metadata: JSON.parse(JSON.stringify(c.metadata)) }
-          if (c.logs.length > 200_000) {
-            // sort the logs by block number descending and keep only the latest 200k logs
-            c.logs.sort((a, b) => b.blockNumber - a.blockNumber)
-            clone.logs = c.logs.slice(0, 200_000)
-            const lastLog = clone.logs[clone.logs.length - 1]
-            clone.metadata.fromBlock = lastLog.blockNumber
-          }
-          return clone
-        })
+        const maxLogs = maxLogsForStorage(randomLogLength)
+        console.log(`getLogs: large cache size detected ${totalLogCount} logs size: ${fileSizeInMB}MB, retaining only the latest ${maxLogs} logs to limit memory usage target=${target} topic=${topic} fromBlock=${fromBlock} toBlock=${toBlock}`);
+        storeCaches = trimCachesForStorage(storeCaches, maxLogs)
       }
 
       // we are skipping compression by default, so reads & writes are faster
@@ -337,6 +315,38 @@ export async function getLogs(
 /* -------------------------------------------------------------------------- */
 /*                           Utility helpers exported                         */
 /* -------------------------------------------------------------------------- */
+
+// the log count that fits the same byte budget the size check uses, so a wide log trims before the flat cap
+export function maxLogsForStorage(bytesPerLog: number, cap = 200_000, budgetMB = 300): number {
+  if (!bytesPerLog || bytesPerLog < 1) return cap
+  return Math.max(1, Math.min(cap, Math.floor((budgetMB * 1024 * 1024) / bytesPerLog)))
+}
+
+// keeps the newest range and at most maxLogs of its logs, narrowing the metadata to match what is kept
+export function trimCachesForStorage(caches: logCache[], maxLogs = 200_000): logCache[] {
+  if (!caches.length) return caches
+
+  let trimmed = caches
+  if (caches.length > 1) {
+    let cacheWithLatestFromBlock = caches[0]
+    for (const c of caches) {
+      if (c.metadata.fromBlock > cacheWithLatestFromBlock.metadata.fromBlock) {
+        cacheWithLatestFromBlock = c
+      }
+    }
+    trimmed = [cacheWithLatestFromBlock]
+  }
+
+  return trimmed.map(c => {
+    const clone: any = { logs: c.logs, metadata: JSON.parse(JSON.stringify(c.metadata)) }
+    if (c.logs.length > maxLogs) {
+      const sorted = [...c.logs].sort((a: any, b: any) => b.blockNumber - a.blockNumber)
+      clone.logs = sorted.slice(0, maxLogs)
+      clone.metadata.fromBlock = clone.logs[clone.logs.length - 1].blockNumber
+    }
+    return clone
+  })
+}
 
 export function toFilterTopic(topic: string): string {
   if (topic.startsWith("0x")) return topic;
