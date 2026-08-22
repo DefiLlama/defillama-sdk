@@ -96,6 +96,15 @@ const axiosInstances: { [version in IndexerVersion]: ReturnType<typeof axios.cre
   }),
 };
 
+const INDEXER_HEAD_BUFFER = 50;
+
+// last block the indexer leg may answer, keeping a small buffer behind the indexer head.
+// undefined means the buffer leaves nothing inside the requested range, so the indexer is unusable here
+export function getIndexerBreakBlock(fromBlock: number, lastIndexedBlock: number, buffer = INDEXER_HEAD_BUFFER): number | undefined {
+  const breakBlock = lastIndexedBlock - buffer;
+  return breakBlock < fromBlock ? undefined : breakBlock;
+}
+
 function checkIndexerConfig(version: IndexerVersion) {
   const { endpoint, apiKey } = indexerConfigs[version];
   if (!endpoint || !apiKey) throw new Error(`Llama Indexer (${version}) URL/api key is not set`);
@@ -379,7 +388,13 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
     if (ENV_CONSTANTS.GET_LOGS_INDEXER)
       debugLog(`Indexer only partially up to date for ${chain}. Last indexed block: ${lastIndexedBlock}, requested block: ${toBlock}, missing ${Number(percentageMissing).toFixed(2)}%. Pulling part of the logs through RPC calls.`);
 
-    const breakBlock = lastIndexedBlock - 50; // small buffer
+    const breakBlock = getIndexerBreakBlock(fromBlock, lastIndexedBlock);
+
+    // the buffer can push the break block behind the start of the requested range, which leaves the
+    // indexer nothing to answer and would send the RPC leg looking for blocks before fromBlock
+    if (breakBlock === undefined)
+      return getLogsParent({ ...options, fromBlock, toBlock, skipIndexer: true });
+
     const indexerLogs = await getLogs({ ...options, fromBlock, toBlock: breakBlock });
     const rpcLogs = await getLogsParent({ ...options, fromBlock: breakBlock + 1, toBlock, skipIndexer: true });
 
