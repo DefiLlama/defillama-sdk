@@ -391,8 +391,12 @@ export async function getLogParams(
     flatten = false,
   } = options;
 
-  if (eventAbi && !Object.prototype.hasOwnProperty.call(options, "parseLog"))
+  let parseLogWasImplicit = false;
+  let parseFailureWarned = false;
+  if (eventAbi && !Object.prototype.hasOwnProperty.call(options, "parseLog")) {
     parseLog = true;
+    parseLogWasImplicit = true;
+  }
 
   // keep raw log if entireLog=true
   if (entireLog) onlyArgs = false;
@@ -500,9 +504,25 @@ export async function getLogParams(
     if (!iface) {
       log.args = undefined;
     } else {
-      parsed = iface.parseLog(log);
-      if (!parsed && !allowParseFailure)
+      const parseFailureTolerated = allowParseFailure || (entireLog && parseLogWasImplicit);
+      try {
+        parsed = iface.parseLog(log);
+      } catch (e) {
+        if (!parseFailureTolerated) throw e;
+        parsed = null;
+      }
+      if (!parsed && !parseFailureTolerated)
         throw new Error(`Failed to parse log: ${JSON.stringify(log.transactionHash)}`);
+      // tolerated failures must stay visible: a targeted call where logs silently fail
+      // to decode is usually a bug in the caller eventAbi (warn once per call)
+      if (!parsed && !allowParseFailure && !parseFailureWarned) {
+        parseFailureWarned = true;
+        console.warn(
+          `[sdk.getLogs] some logs did not decode against the provided eventAbi and were returned without .args ` +
+          `(chain=${chain}, topic0=${topic}, firstTx=${log.transactionHash}). ` +
+          `Pass parseLog: true to make this an error, or allowParseFailure: true to silence this warning.`
+        );
+      }
 
       // Enrich args with named properties to match Viem output structure
       if (parsed?.args && event && iface) {

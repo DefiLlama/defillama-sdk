@@ -146,6 +146,28 @@ d("indexer E2E - PREFER_V4=false (v2) vs PREFER_V4=true (v4), same data byte-to-
     expectSameRows(v4res ?? [], v2res ?? [], 1);
   }, 120_000);
 
+  test("mixed-topic0 noTarget scan tolerates unparseable logs (ERC721 in ERC20 Transfer scan)", async () => {
+    // implicit parseLog + entireLog must decode what parses and keep the rest raw,
+    // never throw - covers both parseLog failure modes (null and BUFFER_OVERRUN)
+    const { getLogs: getLogsPublic } = require("./logs");
+    const res: any[] = await getLogsPublic({
+      eventAbi: "event Transfer(address indexed from, address indexed to, uint256 value)",
+      fromBlock: 22280140,
+      toBlock: 22280142,
+      chain: "ethereum",
+      noTarget: true,
+      entireLog: true,
+      skipCache: true,
+    });
+    const decoded = res.filter((l) => l.args !== undefined);
+    const keptRaw = res.filter((l) => l.args === undefined);
+    expect(res.length).toBe(868);
+    expect(decoded.length).toBe(858);
+    expect(keptRaw.length).toBe(10);
+    expect(keptRaw.every((l) => l.topics?.length === 4)).toBe(true); // ERC721 Transfers
+    expect(typeof decoded[0].args.value).toBe("bigint");
+  }, 120_000);
+
   test("robinhood (v4-only) returns the same data through both instances", async () => {
     const params = {
       target: RH_RECIPIENT,
