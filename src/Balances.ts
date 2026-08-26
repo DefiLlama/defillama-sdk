@@ -85,9 +85,9 @@ export class Balances {
       token = token.replace('peggy', '')
     }
 
-    // add a leading 0 to the token if it's a starknet token
-    if (!skipChain && this.chain === 'starknet' && token.length === 65) {
-      token = token.replace('0x', '0x0')
+    // pad starknet token addresses back to the canonical 32 byte form
+    if (!skipChain && this.chain === 'starknet' && token.startsWith('0x') && token.length < 66) {
+      token = '0x' + token.slice(2).padStart(64, '0')
     }
 
     if (isUSDValue) {
