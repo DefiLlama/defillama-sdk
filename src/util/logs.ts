@@ -85,9 +85,6 @@ export async function getLogs(
       const response = await getIndexerLogs({
         ...options,
         all: true, // internal service – always fetch full set
-        parseLog: options.parseLog,
-        eventAbi: options.eventAbi,
-        onlyArgs: options.onlyArgs,
       });
       return response;
     } catch (e) {
