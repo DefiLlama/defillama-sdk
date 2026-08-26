@@ -1,4 +1,5 @@
 import { getChainIndexerVersion, getLogs, getTokenTransfers, getTransactions, isIndexerEnabled, supportedChainSet2 } from "./indexer";
+import { getLogs as getLogsPublic } from "./logs";
 
 const enabled = !!(process.env.LLAMA_INDEXER_V4_ENDPOINT && (process.env.LLAMA_INDEXER_V4_API_KEY || process.env.LLAMA_INDEXER_V2_API_KEY));
 const d = enabled ? describe : describe.skip;
@@ -42,6 +43,23 @@ d("Indexer v4 - robinhood", () => {
     expect(args.from).toMatch(/^0x[0-9a-fA-F]{40}$/);
     expect(args.to).toMatch(/^0x[0-9a-fA-F]{40}$/);
     expect(typeof args.value).toBe("bigint");
+  });
+
+  test("public getLogs - entireLog + eventAbi keeps decoded args through the indexer path", async () => {
+    const res: any[] = await getLogsPublic({
+      target: TOKEN_A,
+      eventAbi: TRANSFER_EVENT,
+      fromBlock: FROM_BLOCK,
+      toBlock: TO_BLOCK,
+      chain: CHAIN,
+      entireLog: true,
+      skipCache: true,
+    });
+    expect(res.length).toBe(1772);
+    expect(res.every((l: any) => l.args !== undefined)).toBe(true);
+    expect(res[0].args.from).toMatch(/^0x[0-9a-fA-F]{40}$/);
+    expect(typeof res[0].args.value).toBe("bigint");
+    expect(res[0].transactionHash).toMatch(/^0x[0-9a-f]{64}$/);
   });
 
   test("getLogs - multiple targets, flatten=false", async () => {
