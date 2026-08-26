@@ -98,6 +98,7 @@
   },
   "ethereumclassic": {
     "rpc": [
+      "https://etc.blockscout.com/api/eth-rpc",
       "https://besu-de.etc-network.info",
       "https://geth-de.etc-network.info"
     ],
@@ -243,7 +244,9 @@
     "chainId": 836542336838601
   },
   "astar": {
-    "rpc": [],
+    "rpc": [
+      "https://astar.blockscout.com/api/eth-rpc"
+    ],
     "chainId": 592
   },
   "godwoken_v1": {

@@ -186,6 +186,13 @@ export async function lookupBlock(timestamp: number, extraParams?: LookupBlockOp
   return limiter(() => _lookupBlock(timestamp, extraParams))
 }
 
+const earliestAvailableBlockRange: {
+  [chain: string]: number | undefined
+} = {
+  nibiru: 4 * 1e5,// nibiru hold only the last 400k block data
+  evmos:  2 * 1e5,
+}
+
 async function _lookupBlock(
   timestamp: number,
   extraParams?: LookupBlockOptionalParams
@@ -223,13 +230,9 @@ async function _lookupBlock(
   try {
     let firstBlock, lastBlock
 
-    if (['evmos', 'nibiru'].includes(chain)) {
+    if (!!earliestAvailableBlockRange[chain]) {
       lastBlock = await getLatestBlock(chain)
-      let firstBlockNum = lastBlock.number
-      switch (chain) {
-        case 'nibiru': firstBlockNum -= 4 * 1e5// nibiru hold only the last 400k block data
-        case 'evmos': firstBlockNum -= 2 * 1e5// evmos hold only the last 200k block data
-      }
+      let firstBlockNum = lastBlock.number - earliestAvailableBlockRange[chain]!
       firstBlock = await fetchBlockFromProvider(firstBlockNum, chain)
     } else {
       [lastBlock, firstBlock] = await Promise.all([
