@@ -789,5 +789,12 @@
     ],
     "chainId": 123354377739506,
     "explorer": "https://stratoscan.strato.nexus/"
+  },
+  "rannta": {
+    "rpc": [
+      "https://rpc.rannta.com/"
+    ],
+    "chainId": 13113,
+    "explorer": "https://explorer.rannta.com/"
   }
 }
