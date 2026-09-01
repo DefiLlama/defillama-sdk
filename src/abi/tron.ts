@@ -44,7 +44,14 @@ export async function getBalance(params: {
   if (!params.target) throw new Error('getBalance: target is required')
 
   const data = await limitRPCCalls(() => {
-    if (!balanceCache[params.target]) balanceCache[params.target] = post({ address: params.target, visible: true, }, '/wallet/getaccount')
+    if (!balanceCache[params.target])
+      // drop the entry if the request fails, otherwise the rejected promise is served to every
+      // later call for this address and the process never retries it
+      balanceCache[params.target] = post({ address: params.target, visible: true, }, '/wallet/getaccount')
+        .catch((e: any) => {
+          delete balanceCache[params.target]
+          throw e
+        })
     return balanceCache[params.target]
   })
 
