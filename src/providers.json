@@ -789,5 +789,30 @@
     ],
     "chainId": 123354377739506,
     "explorer": "https://stratoscan.strato.nexus/"
+  },
+  "btr": {
+    "rpc": [
+      "https://rpc.bitlayer.org",
+      "https://rpc-bitlayer.rockx.com",
+      "https://200901.rpc.thirdweb.com"
+    ],
+    "chainId": 200901,
+    "explorer": "https://www.btrscan.com"
+  },
+  "bob": {
+    "rpc": [
+      "https://rpc.gobob.xyz",
+      "https://60808.rpc.thirdweb.com"
+    ],
+    "chainId": 60808,
+    "explorer": "https://explorer.gobob.xyz"
+  },
+  "hdx": {
+    "rpc": [
+      "https://rpc.hydradx.cloud",
+      "https://222222.rpc.thirdweb.com"
+    ],
+    "chainId": 222222,
+    "explorer": "https://explorer.evm.hydration.cloud"
   }
 }
