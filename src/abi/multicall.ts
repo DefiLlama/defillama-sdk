@@ -410,6 +410,7 @@ function multicallAddress(chainId: number | BigInt) {
     case 8721: return '0x965b692662d431cc4714f4E6d1191b0B18733243'; // ebchain
     case 7119: return '0xFd4b34b5763f54a580a0d9f7997A2A993ef9ceE9'; // sentrix
     case 36900: return '0x73df6E8F0D112D22bD672952323b43d6893AB6D2'; // adi
+    case 589: return '0x36b580266BD2B9581B805BF99D0Db92FbC9CAa56'; // lady
     default:
       return null;
   }

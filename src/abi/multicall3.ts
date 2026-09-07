@@ -222,6 +222,12 @@ const DEPLOYMENT_BLOCK = {
   eden: 1,
   intuition: 288,
   mrt: 1,
+  ap3x: 1871253,
+  bot: 17537440,
+  codex: 1,
+  gensyn: 1,
+  krown: 6666,
+  kiteai: 29260,
 } as {
   [key: string | Chain]: number
 }
@@ -396,4 +402,6 @@ const CUSTOM_MULTICALL_ADDRESSES: { [key: string]: string } = {
   'xo': '0x7c6d6eAafF566E3B8a6D072ca1825E8F18141fDb',
   'quai': '0x00567637197E6554e2CF47a3988Cb7B819f4E92C',
   'adi': '0xcC5fae7aF4A6684d05D92Db59279B70e827F31BE',
+  'krown': '0xBa9E76d893f88B42d90b954921118C269D203a2C',
+  'kiteai': '0xE3104A157cc4C0d3c7C3a8c655092668D068c149',
 }
