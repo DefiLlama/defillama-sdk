@@ -123,6 +123,40 @@ function getSupportedChains(): Set<string> {
 
 export const supportedChainSet2 = getSupportedChains();
 
+type CursorPaginationParams = { after_block: number; after_index: number; after_id?: string };
+
+function supportsCursorPagination(version: IndexerVersion): boolean {
+  return version === "v4";
+}
+
+function getLogCursor(log: any): CursorPaginationParams | undefined {
+  if (!log) return undefined;
+  const afterBlock = log.block_number ?? log.blockNumber;
+  const afterIndex = log.log_index ?? log.logIndex ?? log.index;
+  if (afterBlock === undefined || afterIndex === undefined) return undefined;
+  return { after_block: +afterBlock, after_index: +afterIndex };
+}
+
+function getTransferCursor(transfer: any): CursorPaginationParams | undefined {
+  const cursor = getLogCursor(transfer);
+  if (!cursor) return undefined;
+  if (transfer.id !== undefined && transfer.id !== null) cursor.after_id = String(transfer.id);
+  return cursor;
+}
+
+function applyCursorParams(params: any, cursor: CursorPaginationParams | undefined) {
+  if (!cursor) return;
+  params.after_block = cursor.after_block;
+  params.after_index = cursor.after_index;
+  if (cursor.after_id !== undefined) params.after_id = cursor.after_id;
+}
+
+function applyLocalOffset<T>(rows: T[], remainingOffset: number): { rows: T[]; remainingOffset: number } {
+  if (remainingOffset <= 0) return { rows, remainingOffset };
+  if (remainingOffset >= rows.length) return { rows: [], remainingOffset: remainingOffset - rows.length };
+  return { rows: rows.slice(remainingOffset), remainingOffset: 0 };
+}
+
 type ChainIndexStatus = { [chain: string]: { block: number; timestamp: number } };
 const syncStates: { [version in IndexerVersion]: { timestamp?: number; chainIndexStatus: ChainIndexStatus | Promise<ChainIndexStatus> } } = {
   v2: { chainIndexStatus: {} },
@@ -607,13 +641,16 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
     debugLog("[Indexer] Pulling logs " + debugTimeKey);
     console.time(debugTimeKey);
   }
+  const useCursorPagination = supportsCursorPagination(indexerVersion) && all;
 
   for (const chunk of addressChunks) {
     if (Array.isArray(chunk) && chunk.length === 0) throw new Error("Address chunk cannot be empty");
 
-    let chunkOffset = initialOffset;
+    let chunkOffset = useCursorPagination ? 0 : initialOffset;
+    let remainingOffset = useCursorPagination ? initialOffset : 0;
     let logCount = 0;
     let hasMore = true;
+    let cursor: CursorPaginationParams | undefined;
 
     do {
       const params: any = {
@@ -629,12 +666,20 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
         offset: chunkOffset,
         noTarget,
       };
+      if (useCursorPagination) {
+        params.includeTotal = false;
+        applyCursorParams(params, cursor);
+      }
 
       const {
         data: { logs: _logs, totalCount },
       } = await axiosInstances[indexerVersion](`/logs`, { params }).catch((e: any) => { throw formError(e) })
 
-      const filtered = _logs.filter((l: any) => {
+      const nextCursor = useCursorPagination ? getLogCursor(_logs[_logs.length - 1]) : undefined;
+      const offsetResult = useCursorPagination ? applyLocalOffset(_logs, remainingOffset) : { rows: _logs, remainingOffset };
+      remainingOffset = offsetResult.remainingOffset;
+
+      const filtered = offsetResult.rows.filter((l: any) => {
         const isWhitelisted = !addressSet.size || addressSet.has((l.source ?? l.address)?.toLowerCase?.());
         return !!isWhitelisted;
       });
@@ -666,7 +711,12 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
       }
 
       logCount += _logs.length;
-      chunkOffset += limit;
+      if (useCursorPagination && nextCursor) {
+        cursor = nextCursor;
+        chunkOffset = 0;
+      } else {
+        chunkOffset += limit;
+      }
       if (_logs.length === 0) {
         hasMore = false;
       } else if (_logs.length < limit) {
@@ -767,8 +817,11 @@ export async function getTokenTransfers({
     console.time(debugTimeKey);
   }
 
-  let currentOffset = offset;
+  const useCursorPagination = supportsCursorPagination(indexerVersion) && all;
+  let currentOffset = useCursorPagination ? 0 : offset;
+  let remainingOffset = useCursorPagination ? offset : 0;
   let hasMore = true;
+  let cursor: CursorPaginationParams | undefined;
 
   do {
     const params: any = {
@@ -782,6 +835,10 @@ export async function getTokenTransfers({
       from_address: false,
       to_address: false,
     };
+    if (useCursorPagination) {
+      params.includeTotal = false;
+      applyCursorParams(params, cursor);
+    }
 
     switch (transferType) {
       case "in":
@@ -802,8 +859,16 @@ export async function getTokenTransfers({
       data: { transfers: _logs },
     } = await axiosInstances[indexerVersion](`/token-transfers`, { params }).catch((e: any) => { throw formError(e) })
 
-    rawTransfers.push(..._logs);
-    currentOffset += limit;
+    const nextCursor = useCursorPagination ? getTransferCursor(_logs[_logs.length - 1]) : undefined;
+    const offsetResult = useCursorPagination ? applyLocalOffset(_logs, remainingOffset) : { rows: _logs, remainingOffset };
+    remainingOffset = offsetResult.remainingOffset;
+    rawTransfers.push(...offsetResult.rows);
+    if (useCursorPagination && nextCursor) {
+      cursor = nextCursor;
+      currentOffset = 0;
+    } else {
+      currentOffset += limit;
+    }
 
     hasMore = _logs.length === limit;
   } while (all && hasMore);
