@@ -40,13 +40,28 @@ update_repo() {
   git checkout "$branch"
   git pull
 
+  local failed=0
   for sub in "${subdirs[@]}"; do
     pushd "$sub" > /dev/null
     pin_sdk_version
-    pnpm i
-    git add package.json pnpm-lock.yaml
+    if ! pnpm i; then
+      echo "ERROR: pnpm install failed in $name/$sub, skipping repo"
+      failed=1
+    elif git diff --quiet -- pnpm-lock.yaml; then
+      echo "ERROR: pnpm-lock.yaml unchanged in $name/$sub, skipping repo"
+      failed=1
+    else
+      git add package.json pnpm-lock.yaml
+    fi
     popd > /dev/null
+    [ $failed -eq 1 ] && break
   done
+
+  if [ $failed -eq 1 ]; then
+    git reset --hard HEAD
+    popd > /dev/null
+    return 1
+  fi
 
   git commit -m "update @defillama/sdk version"
   git push
