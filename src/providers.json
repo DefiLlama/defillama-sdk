@@ -789,5 +789,12 @@
     ],
     "chainId": 123354377739506,
     "explorer": "https://stratoscan.strato.nexus/"
+  },
+  "sxr": {
+    "rpc": [
+      "https://rpc-rollup.sx.technology",
+      "https://rpc.sx-rollup.gelato.digital"
+    ],
+    "chainId": 4162
   }
 }

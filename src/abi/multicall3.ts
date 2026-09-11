@@ -228,6 +228,9 @@ const DEPLOYMENT_BLOCK = {
   gensyn: 1,
   krown: 6666,
   kiteai: 29260,
+  eni: 1,
+  bitkub: 1,
+  shido: 1,
 } as {
   [key: string | Chain]: number
 }
@@ -404,4 +407,6 @@ const CUSTOM_MULTICALL_ADDRESSES: { [key: string]: string } = {
   'adi': '0xcC5fae7aF4A6684d05D92Db59279B70e827F31BE',
   'krown': '0xBa9E76d893f88B42d90b954921118C269D203a2C',
   'kiteai': '0xE3104A157cc4C0d3c7C3a8c655092668D068c149',
+  'eni': '0xbf9d276932DF9c0AA1644b2569482f7a754433be',
+  'shido': '0xe3da1EC9e9BfEa1fE8C5905133c36A86351e4561',
 }
