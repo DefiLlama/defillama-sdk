@@ -1,4 +1,4 @@
-import { sumMultiBalanceOf, sumSingleBalance, mergeBalances, removeTokenBalance, sumChainTvls, convertToBigInt, } from "./generalUtil";
+import { sumMultiBalanceOf, sumSingleBalance, mergeBalances, removeTokenBalance, sumChainTvls, convertToBigInt, getUniqueAddresses, } from "./generalUtil";
 import ChainApi from "./ChainApi";
 import { Balances } from "./Balances";
 import { normalizeBalances } from "./util";
@@ -232,6 +232,14 @@ test("mergeBalances", () => {
   expect(balances).toMatchObject({ 'ethereum:0x000': '5000', fantom: 5, avax: 10, })
 });
 
+test('convertToBigInt: mantissa longer than the exponent', () => {
+  expect(convertToBigInt('9.99e1')).toBe(BigInt(99))
+  expect(convertToBigInt('1.2345e2')).toBe(BigInt(123))
+  expect(convertToBigInt('1.23456789e3')).toBe(BigInt(1234))
+  expect(convertToBigInt('-1.2345e2')).toBe(BigInt(-123))
+  expect(convertToBigInt('1.5e1')).toBe(BigInt(15))
+})
+
 test('convertToBigInt', () => {
   expect(convertToBigInt('1')).toBe(BigInt(1))
   expect(convertToBigInt(2.031945223e+22)).toBe(BigInt('20319452230000000000000'))
@@ -311,3 +319,12 @@ test("normalizeAddress", () => {
   expect(normalizeAddress(upperAddress)).toBe(lowerAddress);
   expect(normalizeAddress(lowerAddress)).toBe(lowerAddress);
 });
+
+test('getUniqueAddresses: tron base58 casing is decided per address', () => {
+  const base58 = ['TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t', 'TEkxiTehnzSmSe2XqrBj4w32RUN966rdz8']
+  const hex = '0x41A614F803B6FD780986A42C78EC9C7F77E6DED13C'
+
+  expect(getUniqueAddresses([...base58], 'tron')).toEqual(base58)
+  expect(getUniqueAddresses([hex, ...base58], 'tron')).toEqual([hex.toLowerCase(), ...base58])
+  expect(getUniqueAddresses(['0xAbC', '0xabc'], 'ethereum')).toEqual(['0xabc'])
+})
