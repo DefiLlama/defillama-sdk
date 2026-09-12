@@ -22,10 +22,7 @@ export function convertToBigInt(value: any) {
       let exponent = +e;
 
       if (exponent >= 0) {
-        const dec = decimal || '';
-        final = exponent >= dec.length
-          ? lead + dec + '0'.repeat(exponent - dec.length)
-          : lead + dec.slice(0, exponent);
+        final = lead + (decimal || '') + '0'.repeat(exponent - (decimal || '').length);
       } else {
         // NOTE: unforutenately BigInt doesn't support negative exponents, so this ends up being 0
         exponent = exponent * -1

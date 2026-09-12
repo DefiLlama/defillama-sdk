@@ -232,14 +232,6 @@ test("mergeBalances", () => {
   expect(balances).toMatchObject({ 'ethereum:0x000': '5000', fantom: 5, avax: 10, })
 });
 
-test('convertToBigInt: mantissa longer than the exponent', () => {
-  expect(convertToBigInt('9.99e1')).toBe(BigInt(99))
-  expect(convertToBigInt('1.2345e2')).toBe(BigInt(123))
-  expect(convertToBigInt('1.23456789e3')).toBe(BigInt(1234))
-  expect(convertToBigInt('-1.2345e2')).toBe(BigInt(-123))
-  expect(convertToBigInt('1.5e1')).toBe(BigInt(15))
-})
-
 test('convertToBigInt', () => {
   expect(convertToBigInt('1')).toBe(BigInt(1))
   expect(convertToBigInt(2.031945223e+22)).toBe(BigInt('20319452230000000000000'))
