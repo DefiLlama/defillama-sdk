@@ -231,6 +231,9 @@ const DEPLOYMENT_BLOCK = {
   eni: 1,
   bitkub: 1,
   shido: 1,
+  prom: 1238475,
+  nibiru: 19587573,
+  arc: 1,
 } as {
   [key: string | Chain]: number
 }
@@ -409,4 +412,5 @@ const CUSTOM_MULTICALL_ADDRESSES: { [key: string]: string } = {
   'kiteai': '0xE3104A157cc4C0d3c7C3a8c655092668D068c149',
   'eni': '0xbf9d276932DF9c0AA1644b2569482f7a754433be',
   'shido': '0xe3da1EC9e9BfEa1fE8C5905133c36A86351e4561',
+  'prom': '0xfF785aF3De8C2cb5727A8665984E741c16679131',
 }

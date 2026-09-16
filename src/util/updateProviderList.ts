@@ -226,6 +226,8 @@ const chainShortNameMapping = {
   mantra: 'mantrachain',
   saga: 'sagaevm',
   robinhood: 'robinhoodchain',
+  bcypher: 'bchyper',
+  area: 'areum',
 }
 
 async function filterForWorkingRPCs(rpc: string[], chain: string, chainId: number): Promise<string[]> {
