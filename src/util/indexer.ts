@@ -19,8 +19,7 @@ const LLAMA_INDEXER_V2_ENDPOINT = getEnvValue("LLAMA_INDEXER_V2_ENDPOINT");
 const LLAMA_INDEXER_V2_API_KEY = getEnvValue("LLAMA_INDEXER_V2_API_KEY");
 const LLAMA_INDEXER_V4_ENDPOINT = getEnvValue("LLAMA_INDEXER_V4_ENDPOINT");
 const LLAMA_INDEXER_V4_API_KEY = getEnvValue("LLAMA_INDEXER_V4_API_KEY") ?? LLAMA_INDEXER_V2_API_KEY;
-// route every supported chain through v4 (v2 stays available as explicit config)
-const LLAMA_INDEXER_PREFER_V4 = getEnvValue("LLAMA_INDEXER_PREFER_V4") === "true";
+const LLAMA_INDEXER_PREFER_V4 = getEnvValue("LLAMA_INDEXER_PREFER_V4") === "true"; // route all chains through v4
 const addressChunkSize = +getEnvValue("LLAMA_INDEXER_ADDRESS_CHUNK_SIZE")! || 100;
 const INDEXER_REQUEST_TIMEOUT_MS = +getEnvValue("LLAMA_INDEXER_TIMEOUT_MS")!;
 
@@ -101,9 +100,7 @@ function checkIndexerConfig(version: IndexerVersion) {
   if (!endpoint || !apiKey) throw new Error(`Llama Indexer (${version}) URL/api key is not set`);
 }
 
-// pick which indexer serves a given chain:
-// - v4-only chains (not indexed on v2) always go to v4
-// - everything else goes to v2, unless LLAMA_INDEXER_PREFER_V4 is set or v2 is not configured
+// v4-only chains always go to v4; the rest go to v2 unless PREFER_V4 is set or v2 is not configured
 export function getChainIndexerVersion(chain: string): IndexerVersion {
   if (v4OnlyChainSet.has(chain)) return "v4";
   if (!LLAMA_INDEXER_V4_ENDPOINT) return "v2";
