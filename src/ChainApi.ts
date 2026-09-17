@@ -275,6 +275,7 @@ export class ChainApi {
 
     if (skipDuplicates)
       tokensAndOwners = getUniqueTokensAndOwners(tokensAndOwners, this.chain as string) as any
+    blacklistedOwners.push(nullAddress)  // skip nullAddress owners
     blacklistedOwners = getUniqueAddresses(blacklistedOwners, this.chain as string)
     blacklistedTokens = getUniqueAddresses(blacklistedTokens, this.chain as string)
 
