@@ -513,8 +513,7 @@ export async function getLogParams(
       }
       if (!parsed && !parseFailureTolerated)
         throw new Error(`Failed to parse log: ${JSON.stringify(log.transactionHash)}`);
-      // tolerated failures must stay visible: a targeted call where logs silently fail
-      // to decode is usually a bug in the caller eventAbi (warn once per call)
+      // keep tolerated failures visible (once per call)
       if (!parsed && !allowParseFailure && !parseFailureWarned) {
         parseFailureWarned = true;
         console.warn(
