@@ -233,8 +233,8 @@ export async function getLogs(
     const merged: logCache[] = [caches[0]];
     caches.slice(1).forEach((c) => {
       const last = merged[merged.length - 1];
-      if (last.metadata.toBlock + 1 > c.metadata.fromBlock) {
-        last.metadata.toBlock = c.metadata.toBlock;
+      if (last.metadata.toBlock + 1 >= c.metadata.fromBlock) {
+        last.metadata.toBlock = Math.max(last.metadata.toBlock, c.metadata.toBlock);
         last.logs = dedupLogs(last.logs, c.logs);
       } else merged.push(c);
     });
