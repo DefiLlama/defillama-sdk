@@ -45,6 +45,14 @@ function isLlamaBalancesObject(o: any): boolean {
   return typeof o === 'object' && o !== null && (o as any)._llamaBalancesObject === true
 }
 
+function negateBalance(balance: any): string | number {
+  // Raw token balances can exceed Number.MAX_SAFE_INTEGER. Keep integer strings
+  // exact while preserving the number path for fractional USD amounts.
+  if (typeof balance === 'bigint' || (typeof balance === 'string' && /^-?\d+$/.test(balance)))
+    return (-BigInt(balance)).toString()
+  return -Number(balance)
+}
+
 export class Balances {
   chain: Chain | string;
   timestamp?: number;
@@ -365,18 +373,18 @@ export class Balances {
       if (balances === this) return;
       const balancesInstance = balances as Balances
       Object.entries(balancesInstance._usdBalances).forEach(([token, balance]) => {
-        this._add(token, Number(balance) * -1, { skipChain: true, label: options!.label, isUSDValue: true })
+        this._add(token, negateBalance(balance), { skipChain: true, label: options!.label, isUSDValue: true })
       })
       balances = balancesInstance.getBalances()
     }
     Object.entries(balances).forEach(([token, balance]) => {
-      this._add(token, Number(balance) * -1, { skipChain: true, label: options!.label })
+      this._add(token, negateBalance(balance), { skipChain: true, label: options!.label })
     })
   }
 
   subtractToken(token: string, balance: any, optionsOrLabel?: BalancesOptionsWithLabel, options?: BalancesOptions) {
     options = getOptions({ optionsOrLabel, options })
-    this._add(token, Number(balance) * -1, options)
+    this._add(token, negateBalance(balance), options)
   }
 
   removeNegativeBalances() {
