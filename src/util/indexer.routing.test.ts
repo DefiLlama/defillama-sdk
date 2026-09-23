@@ -1,4 +1,4 @@
-const ENV_KEYS = [
+const ENV_KEYS_routing = [
   "LLAMA_INDEXER_V2_ENDPOINT",
   "LLAMA_INDEXER_V2_API_KEY",
   "LLAMA_INDEXER_V4_ENDPOINT",
@@ -7,35 +7,35 @@ const ENV_KEYS = [
   "LLAMA_INDEXER_V4_ONLY_CHAINS",
 ];
 
-const savedEnv: Record<string, string | undefined> = {};
+const savedEnv_routing: Record<string, string | undefined> = {};
 
 beforeAll(() => {
-  for (const key of ENV_KEYS) savedEnv[key] = process.env[key];
+  for (const key of ENV_KEYS_routing) savedEnv_routing[key] = process.env[key];
 });
 
 afterAll(() => {
-  for (const key of ENV_KEYS) {
-    if (savedEnv[key] === undefined) delete process.env[key];
-    else process.env[key] = savedEnv[key];
+  for (const key of ENV_KEYS_routing) {
+    if (savedEnv_routing[key] === undefined) delete process.env[key];
+    else process.env[key] = savedEnv_routing[key];
   }
 });
 
-function loadIndexer(env: Record<string, string>) {
-  for (const key of ENV_KEYS) delete process.env[key];
+function loadIndexer_routing(env: Record<string, string>) {
+  for (const key of ENV_KEYS_routing) delete process.env[key];
   Object.assign(process.env, env);
   jest.resetModules();
   return require("./indexer") as typeof import("./indexer");
 }
 
-const V2 = "https://v2.example.com";
-const V4 = "https://v4.example.com";
-const KEY = "test-key";
+const V2_routing = "https://v2.example.com";
+const V4_routing = "https://v4.example.com";
+const KEY_routing = "test-key";
 
 test("v2 + v4 configured, PREFER_V4 off: v2 chains stay on v2, robinhood goes to v4", () => {
-  const indexer = loadIndexer({
-    LLAMA_INDEXER_V2_ENDPOINT: V2,
-    LLAMA_INDEXER_V2_API_KEY: KEY,
-    LLAMA_INDEXER_V4_ENDPOINT: V4,
+  const indexer = loadIndexer_routing({
+    LLAMA_INDEXER_V2_ENDPOINT: V2_routing,
+    LLAMA_INDEXER_V2_API_KEY: KEY_routing,
+    LLAMA_INDEXER_V4_ENDPOINT: V4_routing,
   });
 
   expect(indexer.getChainIndexerVersion("ethereum")).toBe("v2");
@@ -49,10 +49,10 @@ test("v2 + v4 configured, PREFER_V4 off: v2 chains stay on v2, robinhood goes to
 });
 
 test("PREFER_V4=true routes everything to v4", () => {
-  const indexer = loadIndexer({
-    LLAMA_INDEXER_V2_ENDPOINT: V2,
-    LLAMA_INDEXER_V2_API_KEY: KEY,
-    LLAMA_INDEXER_V4_ENDPOINT: V4,
+  const indexer = loadIndexer_routing({
+    LLAMA_INDEXER_V2_ENDPOINT: V2_routing,
+    LLAMA_INDEXER_V2_API_KEY: KEY_routing,
+    LLAMA_INDEXER_V4_ENDPOINT: V4_routing,
     LLAMA_INDEXER_PREFER_V4: "true",
   });
 
@@ -62,9 +62,9 @@ test("PREFER_V4=true routes everything to v4", () => {
 });
 
 test("only v2 configured: v2 chains work, robinhood is disabled (falls back to RPC upstream)", () => {
-  const indexer = loadIndexer({
-    LLAMA_INDEXER_V2_ENDPOINT: V2,
-    LLAMA_INDEXER_V2_API_KEY: KEY,
+  const indexer = loadIndexer_routing({
+    LLAMA_INDEXER_V2_ENDPOINT: V2_routing,
+    LLAMA_INDEXER_V2_API_KEY: KEY_routing,
   });
 
   expect(indexer.getChainIndexerVersion("ethereum")).toBe("v2");
@@ -74,9 +74,9 @@ test("only v2 configured: v2 chains work, robinhood is disabled (falls back to R
 });
 
 test("only v4 configured: everything routes to v4", () => {
-  const indexer = loadIndexer({
-    LLAMA_INDEXER_V4_ENDPOINT: V4,
-    LLAMA_INDEXER_V4_API_KEY: KEY,
+  const indexer = loadIndexer_routing({
+    LLAMA_INDEXER_V4_ENDPOINT: V4_routing,
+    LLAMA_INDEXER_V4_API_KEY: KEY_routing,
   });
 
   expect(indexer.getChainIndexerVersion("ethereum")).toBe("v4");
@@ -86,7 +86,7 @@ test("only v4 configured: everything routes to v4", () => {
 });
 
 test("no indexer configured: everything disabled", () => {
-  const indexer = loadIndexer({});
+  const indexer = loadIndexer_routing({});
 
   expect(indexer.isIndexerEnabled()).toBe(false);
   expect(indexer.isIndexerEnabled("ethereum")).toBe(false);
@@ -94,10 +94,10 @@ test("no indexer configured: everything disabled", () => {
 });
 
 test("LLAMA_INDEXER_V4_ONLY_CHAINS extends the v4-only set without a release", () => {
-  const indexer = loadIndexer({
-    LLAMA_INDEXER_V2_ENDPOINT: V2,
-    LLAMA_INDEXER_V2_API_KEY: KEY,
-    LLAMA_INDEXER_V4_ENDPOINT: V4,
+  const indexer = loadIndexer_routing({
+    LLAMA_INDEXER_V2_ENDPOINT: V2_routing,
+    LLAMA_INDEXER_V2_API_KEY: KEY_routing,
+    LLAMA_INDEXER_V4_ENDPOINT: V4_routing,
     LLAMA_INDEXER_V4_ONLY_CHAINS: "4242:somechain",
   });
 

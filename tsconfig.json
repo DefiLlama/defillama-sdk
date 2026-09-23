@@ -1,6 +1,5 @@
 {
   "exclude": [
-    "src/**/*.test.ts",
     "depRepos/**",
     "src/abi/largeMulticall.ts"
   ],

@@ -20,6 +20,7 @@ export * as tron from "./abi/tron";
 export * as erc20 from "./erc20";
 export * as coins from "./util/coins";
 export * as chainUtils from "./util/chainUtils";
+export * as chains from "./chains";
 import _providerListJSON from "./providers.json";
 
 export const log = debugLog
