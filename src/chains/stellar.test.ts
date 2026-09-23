@@ -17,12 +17,12 @@ describe('chains.stellar offline', () => {
     expect(stellar.STELLAR_DECIMALS).toBe(7)
   })
 
-  test('STELLAR_HORIZON / STELLAR_SOROBAN_RPC env override the defaults', () => {
+  test('STELLAR_HORIZON / STELLAR_SOROBAN_RPC env endpoints come first, defaults are kept as fallbacks', () => {
     process.env.STELLAR_HORIZON = 'https://horizon.example.com'
     process.env.STELLAR_SOROBAN_RPC = 'https://rpc1.example.com,https://rpc2.example.com'
     expect(stellar.getHorizonEndpoint()).toBe('https://horizon.example.com')
-    expect(stellar.getHorizonEndpoints()).toEqual(['https://horizon.example.com'])
-    expect(stellar.getSorobanEndpoints()).toEqual(['https://rpc1.example.com', 'https://rpc2.example.com'])
+    expect(stellar.getHorizonEndpoints()).toEqual(['https://horizon.example.com', stellar.DEFAULT_HORIZON])
+    expect(stellar.getSorobanEndpoints()).toEqual(['https://rpc1.example.com', 'https://rpc2.example.com', ...stellar.DEFAULT_SOROBAN_ENDPOINTS])
     delete process.env.STELLAR_HORIZON
     delete process.env.STELLAR_SOROBAN_RPC
     expect(stellar.getHorizonEndpoint()).toBe(stellar.DEFAULT_HORIZON)

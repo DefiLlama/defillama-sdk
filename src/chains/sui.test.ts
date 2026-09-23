@@ -42,8 +42,9 @@ describe('chains.sui offline', () => {
     process.env.SUI_RPC = 'https://sui.example.com'
     process.env.IOTA_RPC = 'https://iota.example.com'
     expect(sui.getGraphqlEndpoint()).toBe('https://graphql.example.com/graphql')
-    expect(sui.getGraphqlEndpoints()).toEqual(['https://graphql.example.com/graphql', 'https://graphql2.example.com/graphql'])
+    expect(sui.getGraphqlEndpoints()).toEqual(['https://graphql.example.com/graphql', 'https://graphql2.example.com/graphql', sui.DEFAULT_GRAPHQL_ENDPOINTS.sui])
     expect(sui.getRpcEndpoint()).toBe('https://sui.example.com')
+    expect(sui.getRpcEndpoints()).toEqual(['https://sui.example.com', sui.DEFAULT_RPC_ENDPOINTS.sui])
     expect(sui.getRpcEndpoint({ chain: 'iota' })).toBe('https://iota.example.com')
     // graphql env for a chain without a built-in graphql endpoint enables the graphql path
     process.env.IOTA_GRAPH_RPC = 'https://iota-graphql.example.com/graphql'

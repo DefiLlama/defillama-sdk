@@ -28,9 +28,9 @@ describe('chains.substrate offline', () => {
     expect(substrate.getEndpoints({ chain: 'bittensor' })).toEqual(['https://entrypoint-finney.opentensor.ai'])
   })
 
-  test('POLKADOT_SUBSTRATE_RPC env overrides the defaults', () => {
+  test('POLKADOT_SUBSTRATE_RPC env endpoints come first, defaults are kept as fallbacks', () => {
     process.env.POLKADOT_SUBSTRATE_RPC = 'https://dot.example.com, https://dot2.example.com'
-    expect(substrate.getEndpoints({ chain: 'polkadot' })).toEqual(['https://dot.example.com', 'https://dot2.example.com'])
+    expect(substrate.getEndpoints({ chain: 'polkadot' })).toEqual(['https://dot.example.com', 'https://dot2.example.com', ...substrate.DEFAULT_ENDPOINTS.polkadot.split(',')])
     delete process.env.POLKADOT_SUBSTRATE_RPC
     expect(substrate.getEndpoints({ chain: 'polkadot' })).toEqual(substrate.DEFAULT_ENDPOINTS.polkadot.split(','))
   })
@@ -43,7 +43,7 @@ describe('chains.substrate offline', () => {
     process.env.ASTAR_RPC = 'https://evm.astar.example.com'
     expect(substrate.getEndpoints({ chain: 'astar' })).toEqual(substrate.DEFAULT_ENDPOINTS.astar.split(','))
     process.env.ASTAR_SUBSTRATE_RPC = 'https://substrate.astar.example.com'
-    expect(substrate.getEndpoints({ chain: 'astar' })).toEqual(['https://substrate.astar.example.com'])
+    expect(substrate.getEndpoints({ chain: 'astar' })).toEqual(['https://substrate.astar.example.com', ...substrate.DEFAULT_ENDPOINTS.astar.split(',')])
   })
 
   test('literal url as chain', () => {

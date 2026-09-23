@@ -27,6 +27,7 @@ describe('chains.svm config', () => {
     delete process.env.SOLANA_RPC
     delete process.env.SDK_SOLANA_RPC
     delete process.env.SOLANA_RPC_CLIENT
+    delete process.env.SOLANA_WHITELISTED_RPC
     delete process.env.ECLIPSE_RPC
   })
 
@@ -41,16 +42,23 @@ describe('chains.svm config', () => {
     expect(svm.getEndpoints({ chain: 'eclipse' })).toEqual([svm.DEFAULT_ENDPOINTS.eclipse])
   })
 
-  test('<CHAIN>_RPC env overrides defaults (comma separated list)', () => {
+  test('<CHAIN>_RPC env endpoints come first, defaults are kept as fallbacks (comma separated list)', () => {
     process.env.SOLANA_RPC = 'https://a.io, https://b.io'
-    expect(svm.getEndpoints({})).toEqual(['https://a.io', 'https://b.io'])
+    expect(svm.getEndpoints({})).toEqual(['https://a.io', 'https://b.io', svm.DEFAULT_ENDPOINTS.solana])
     process.env.ECLIPSE_RPC = 'https://eclipse.env'
     expect(svm.getEndpoint({ chain: 'eclipse' })).toBe('https://eclipse.env')
+    expect(svm.getEndpoints({ chain: 'eclipse' })).toEqual(['https://eclipse.env', svm.DEFAULT_ENDPOINTS.eclipse])
   })
 
-  test('SDK_ prefixed env override wins too', () => {
+  test('SDK_ prefixed env is honoured too', () => {
     process.env.SDK_SOLANA_RPC = 'https://sdk.io'
     expect(svm.getEndpoint({ chain: 'solana' })).toBe('https://sdk.io')
+  })
+
+  test('<CHAIN>_WHITELISTED_RPC replaces env and defaults', () => {
+    process.env.SOLANA_RPC = 'https://a.io'
+    process.env.SOLANA_WHITELISTED_RPC = 'https://wl.io,https://wl2.io'
+    expect(svm.getEndpoints({})).toEqual(['https://wl.io', 'https://wl2.io'])
   })
 
   test('SOLANA_RPC_CLIENT is honoured only with isClient', () => {

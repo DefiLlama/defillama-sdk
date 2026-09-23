@@ -95,10 +95,10 @@ describe('chains.cardano config', () => {
     expect(getProjectId()).toBe('test-key')
   })
 
-  test('endpoint defaults to Blockfrost mainnet and honours CARDANO_BLOCKFROST', () => {
+  test('endpoint defaults to Blockfrost mainnet, CARDANO_BLOCKFROST entries come first', () => {
     expect(getEndpoint()).toBe(DEFAULT_ENDPOINT)
     process.env.CARDANO_BLOCKFROST = 'https://a.example/v0, https://b.example/v0'
-    expect(getEndpointList()).toEqual(['https://a.example/v0', 'https://b.example/v0'])
+    expect(getEndpointList()).toEqual(['https://a.example/v0', 'https://b.example/v0', DEFAULT_ENDPOINT])
     expect(getEndpoint()).toBe('https://a.example/v0')
     delete process.env.CARDANO_BLOCKFROST
     expect(getEndpoint()).toBe(DEFAULT_ENDPOINT)

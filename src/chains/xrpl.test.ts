@@ -88,9 +88,9 @@ describe('chains.xrpl endpoints', () => {
     expect(DEFAULT_ENDPOINTS).toContain('https://xrplcluster.com')
   })
 
-  test('XRPL_RPC env override wins (comma separated)', () => {
+  test('XRPL_RPC env endpoints come first, defaults are kept as fallbacks (comma separated)', () => {
     process.env.XRPL_RPC = 'https://my-node.io, https://my-node2.io'
-    expect(getEndpoints()).toEqual(['https://my-node.io', 'https://my-node2.io'])
+    expect(getEndpoints()).toEqual(['https://my-node.io', 'https://my-node2.io', ...DEFAULT_ENDPOINTS])
   })
 })
 

@@ -58,9 +58,9 @@ describe('chains.near offline', () => {
     expect(DEFAULT_ENDPOINTS[0]).toBe('https://free.rpc.fastnear.com')
   })
 
-  test('NEAR_RPC env override (comma separated)', () => {
+  test('NEAR_RPC env endpoints come first, defaults are kept as fallbacks (comma separated)', () => {
     process.env.NEAR_RPC = 'https://one.example, https://two.example ,'
-    expect(near.getEndpoints()).toEqual(['https://one.example', 'https://two.example'])
+    expect(near.getEndpoints()).toEqual(['https://one.example', 'https://two.example', ...DEFAULT_ENDPOINTS])
     delete process.env.NEAR_RPC
     expect(near.getEndpoints()).toEqual(DEFAULT_ENDPOINTS)
   })

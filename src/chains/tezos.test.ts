@@ -76,17 +76,17 @@ describe('chains.tezos pure helpers', () => {
     expect(getRpcEndpoints()).toEqual(DEFAULT_RPC_ENDPOINTS)
   })
 
-  test('TEZOS_TZKT env override wins', () => {
+  test('TEZOS_TZKT env endpoints come first, default is kept as fallback', () => {
     process.env.TEZOS_TZKT = 'https://tzkt.example.com, https://tzkt2.example.com'
     expect(getTzktEndpoint()).toBe('https://tzkt.example.com')
-    expect(getTzktEndpoints()).toEqual(['https://tzkt.example.com', 'https://tzkt2.example.com'])
+    expect(getTzktEndpoints()).toEqual(['https://tzkt.example.com', 'https://tzkt2.example.com', DEFAULT_TZKT])
     delete process.env.TEZOS_TZKT
     expect(getTzktEndpoint()).toBe(DEFAULT_TZKT)
   })
 
-  test('TEZOS_RPC env override wins', () => {
+  test('TEZOS_RPC env endpoints come first, defaults are kept as fallbacks', () => {
     process.env.TEZOS_RPC = 'https://node.example.com'
-    expect(getRpcEndpoints()).toEqual(['https://node.example.com'])
+    expect(getRpcEndpoints()).toEqual(['https://node.example.com', ...DEFAULT_RPC_ENDPOINTS])
   })
 })
 

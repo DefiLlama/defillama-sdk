@@ -25,12 +25,13 @@ describe('chains.aptos offline', () => {
     expect(aptos.getEndpoint({ chain: 'move' })).toBe('https://mainnet.movementnetwork.xyz')
   })
 
-  test('APTOS_RPC / MOVE_RPC env override the defaults', () => {
+  test('APTOS_RPC / MOVE_RPC env endpoints come first, defaults are kept as fallbacks', () => {
     process.env.APTOS_RPC = 'https://aptos.example.com,https://aptos2.example.com'
     process.env.MOVE_RPC = 'https://move.example.com/'
     expect(aptos.getEndpoint({ chain: 'aptos' })).toBe('https://aptos.example.com')
-    expect(aptos.getEndpointList({ chain: 'aptos' })).toEqual(['https://aptos.example.com', 'https://aptos2.example.com'])
+    expect(aptos.getEndpointList({ chain: 'aptos' })).toEqual(['https://aptos.example.com', 'https://aptos2.example.com', aptos.DEFAULT_ENDPOINTS.aptos])
     expect(aptos.getEndpoint({ chain: 'move' })).toBe('https://move.example.com/')
+    expect(aptos.getEndpointList({ chain: 'move' })).toEqual(['https://move.example.com/', aptos.DEFAULT_ENDPOINTS.move])
     delete process.env.APTOS_RPC
     expect(aptos.getEndpoint({ chain: 'aptos' })).toBe(aptos.DEFAULT_ENDPOINTS.aptos)
   })
@@ -39,13 +40,13 @@ describe('chains.aptos offline', () => {
     expect(() => aptos.getEndpoint({ chain: 'notachain' })).toThrow(/No RPC endpoint configured/)
   })
 
-  test('archival endpoints: built-in for aptos, env override, empty when none', () => {
+  test('archival endpoints: built-in for aptos, env entries first, empty when none', () => {
     expect(aptos.getArchivalEndpointList()).toEqual(['https://archive.mainnet.aptoslabs.com'])
     expect(aptos.getArchivalEndpointList({ chain: 'move' })).toEqual([])
     process.env.MOVE_ARCHIVAL_RPC = 'https://move-archive.example.com'
     process.env.APTOS_ARCHIVAL_RPC = 'https://aptos-archive.example.com'
     expect(aptos.getArchivalEndpointList({ chain: 'move' })).toEqual(['https://move-archive.example.com'])
-    expect(aptos.getArchivalEndpointList({ chain: 'aptos' })).toEqual(['https://aptos-archive.example.com'])
+    expect(aptos.getArchivalEndpointList({ chain: 'aptos' })).toEqual(['https://aptos-archive.example.com', aptos.ARCHIVAL_ENDPOINTS.aptos])
   })
 
   test('normalizeAddress pads to 64 hex chars', () => {

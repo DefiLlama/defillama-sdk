@@ -1,9 +1,12 @@
-import { getWalletEndpoints, isTronAddress, getTrxBalance, getLatestBlock, getBlock, getAccount, tronToEvmAddress, evmToTronAddress } from "./tron";
+import { getWalletEndpoints, isTronAddress, getTrxBalance, getLatestBlock, getBlock, getAccount, tronToEvmAddress, evmToTronAddress, DEFAULT_WALLET_ENDPOINTS } from "./tron";
 
 const USDT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t'
 
 describe('chains.tron offline', () => {
-  afterEach(() => { delete process.env.TRON_WALLET_RPC })
+  afterEach(() => {
+    delete process.env.TRON_WALLET_RPC
+    delete process.env.TRON_WHITELISTED_RPC
+  })
 
   test('isTronAddress', () => {
     expect(isTronAddress(USDT)).toBe(true)
@@ -16,13 +19,20 @@ describe('chains.tron offline', () => {
     expect(evmToTronAddress(tronToEvmAddress(USDT))).toBe(USDT)
   })
 
-  test('TRON_WALLET_RPC env override', () => {
+  test('TRON_WALLET_RPC env endpoints come first, default is kept as fallback', () => {
     process.env.TRON_WALLET_RPC = 'https://a.io,https://b.io'
-    expect(getWalletEndpoints()).toEqual(['https://a.io', 'https://b.io'])
+    expect(getWalletEndpoints()).toEqual(['https://a.io', 'https://b.io', DEFAULT_WALLET_ENDPOINTS])
+  })
+
+  test('TRON_WHITELISTED_RPC replaces env and default', () => {
+    process.env.TRON_WALLET_RPC = 'https://a.io'
+    process.env.TRON_WHITELISTED_RPC = 'https://wl.io'
+    expect(getWalletEndpoints()).toEqual(['https://wl.io'])
   })
 
   test('default wallet endpoint', () => {
-    expect(getWalletEndpoints()[0]).toContain('trongrid')
+    expect(getWalletEndpoints()).toEqual([DEFAULT_WALLET_ENDPOINTS])
+    expect(DEFAULT_WALLET_ENDPOINTS).toContain('trongrid')
   })
 })
 

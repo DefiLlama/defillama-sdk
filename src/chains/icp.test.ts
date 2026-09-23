@@ -467,11 +467,11 @@ describe('chains.icp offline', () => {
       expect(icp.ICP_LEDGER).toBe(ICP_LEDGER)
     })
 
-    test('ICP_RPC env overrides the defaults', () => {
+    test('ICP_RPC env endpoints come first, defaults are kept as fallbacks', () => {
       process.env.ICP_RPC = 'https://icp.example.com,https://icp2.example.com/'
-      expect(icp.getEndpoints()).toEqual(['https://icp.example.com', 'https://icp2.example.com/'])
+      expect(icp.getEndpoints()).toEqual(['https://icp.example.com', 'https://icp2.example.com/', ...icp.DEFAULT_ENDPOINTS])
       process.env.ICP_RPC = 'https://single.example.com'
-      expect(icp.getEndpoints()).toEqual(['https://single.example.com'])
+      expect(icp.getEndpoints()).toEqual(['https://single.example.com', ...icp.DEFAULT_ENDPOINTS])
       delete process.env.ICP_RPC
       expect(icp.getEndpoints()).toEqual(icp.DEFAULT_ENDPOINTS)
     })

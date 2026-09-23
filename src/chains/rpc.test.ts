@@ -4,6 +4,7 @@ describe('chains.rpc endpoints', () => {
   afterEach(() => {
     delete process.env.FOOCHAIN_RPC
     delete process.env.SDK_FOOCHAIN_RPC
+    delete process.env.FOOCHAIN_WHITELISTED_RPC
     delete process.env.MY_CUSTOM_ENDPOINT
   })
 
@@ -13,14 +14,19 @@ describe('chains.rpc endpoints', () => {
     expect(toEndpointList(undefined)).toEqual([])
   })
 
-  test('env override wins over defaults', () => {
+  test('env endpoints come first, defaults are kept as fallbacks', () => {
     process.env.FOOCHAIN_RPC = 'https://env.io,https://env2.io'
-    expect(getEndpoints('foochain', 'https://default.io')).toEqual(['https://env.io', 'https://env2.io'])
+    expect(getEndpoints('foochain', 'https://default.io')).toEqual(['https://env.io', 'https://env2.io', 'https://default.io'])
   })
 
-  test('SDK_ prefixed env override wins too', () => {
+  test('SDK_ prefixed env is honoured too', () => {
     process.env.SDK_FOOCHAIN_RPC = 'https://sdk-env.io'
-    expect(getEndpoints('foochain', 'https://default.io')).toEqual(['https://sdk-env.io'])
+    expect(getEndpoints('foochain', 'https://default.io')).toEqual(['https://sdk-env.io', 'https://default.io'])
+  })
+
+  test('env and defaults are deduped', () => {
+    process.env.FOOCHAIN_RPC = 'https://default.io,https://env.io'
+    expect(getEndpoints('foochain', ['https://default.io', 'https://default2.io'])).toEqual(['https://default.io', 'https://env.io', 'https://default2.io'])
   })
 
   test('defaults are used when no env is set', () => {
@@ -29,7 +35,17 @@ describe('chains.rpc endpoints', () => {
 
   test('custom envKey is honoured', () => {
     process.env.MY_CUSTOM_ENDPOINT = 'https://custom.io'
-    expect(getEndpoints('foochain', 'https://default.io', { envKey: 'MY_CUSTOM_ENDPOINT' })).toEqual(['https://custom.io'])
+    expect(getEndpoints('foochain', 'https://default.io', { envKey: 'MY_CUSTOM_ENDPOINT' })).toEqual(['https://custom.io', 'https://default.io'])
+  })
+
+  test('<CHAIN>_WHITELISTED_RPC replaces env, defaults and fallback', () => {
+    process.env.FOOCHAIN_WHITELISTED_RPC = 'https://wl.io, https://wl2.io'
+    process.env.FOOCHAIN_RPC = 'https://env.io'
+    process.env.MY_CUSTOM_ENDPOINT = 'https://custom.io'
+    expect(getEndpoints('foochain', 'https://default.io')).toEqual(['https://wl.io', 'https://wl2.io'])
+    expect(getEndpoints('foochain', 'https://default.io', { envKey: 'MY_CUSTOM_ENDPOINT' })).toEqual(['https://wl.io', 'https://wl2.io'])
+    expect(getEndpoints('foochain', undefined, { fallback: 'https://fallback.io' })).toEqual(['https://wl.io', 'https://wl2.io'])
+    expect(getEndpoints('foochain')).toEqual(['https://wl.io', 'https://wl2.io'])
   })
 
   test('fallback used when neither env nor defaults exist', () => {

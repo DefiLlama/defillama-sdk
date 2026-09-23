@@ -98,9 +98,9 @@ describe('chains.utxo pure helpers', () => {
     expect(() => getEndpoints({ chain: 'ethereum' })).toThrow()
   })
 
-  test('BITCOIN_EXPLORER_API env override wins', () => {
+  test('BITCOIN_EXPLORER_API env endpoints come first, defaults are kept as fallbacks', () => {
     process.env.BITCOIN_EXPLORER_API = 'https://esplora.example.com/api, https://esplora2.example.com/api'
-    expect(getEndpoints({ chain: 'bitcoin' })).toEqual(['https://esplora.example.com/api', 'https://esplora2.example.com/api'])
+    expect(getEndpoints({ chain: 'bitcoin' })).toEqual(['https://esplora.example.com/api', 'https://esplora2.example.com/api', ...CHAINS.bitcoin.endpoints])
     expect(getEndpoints({ chain: 'litecoin' })).toEqual(CHAINS.litecoin.endpoints)
     delete process.env.BITCOIN_EXPLORER_API
     expect(getEndpoints({ chain: 'bitcoin' })).toEqual(CHAINS.bitcoin.endpoints)
