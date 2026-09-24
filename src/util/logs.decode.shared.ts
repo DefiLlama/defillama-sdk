@@ -11,10 +11,10 @@ export function padTopic32(t: string): `0x${string}` {
 
 export function normalizeLog(log: any, isIndexerCall: boolean = false): boolean {
   if (isIndexerCall || log.source) {
-    log.address = log.source;
-    log.logIndex = log.log_index;
-    log.index = log.log_index;
-    log.transactionHash = log.transaction_hash;
+    log.address = log.source ?? log.address;
+    log.logIndex = log.log_index ?? log.logIndex ?? log.index;
+    log.index = log.logIndex;
+    log.transactionHash = log.transaction_hash ?? log.transactionHash;
     log.blockNumber = parseInt(log.block_number || log.blockNumber || 0);
 
     const topics = [log.topic0, log.topic1, log.topic2, log.topic3]
@@ -309,4 +309,3 @@ export function createViemFastPathBatchDecoder(eventAbi: string | any): ((logs: 
     return null;
   }
 }
-

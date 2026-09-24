@@ -210,6 +210,7 @@ test("imports", async () => {
   "log": [Function],
   "logTable": [Function],
   "queryClickhouse": [Function],
+  "queryIndexerSql": [Function],
   "sdkCache": {
     "getCache": [Function],
     "retriveCache": [Function],
