@@ -1,152 +1,191 @@
-import { isIndexerSqlEnabled, queryClickhouse } from "./indexerSql";
+import axios from "axios";
+import http, { ServerResponse } from "http";
+import { gzipSync } from "zlib";
+import { isIndexerSqlEnabled, queryClickhouse, queryIndexerSql } from "./indexerSql";
 
-// Functional battery for the indexer /sql helper. Skips if LLAMA_INDEXER_SQL_* unset.
-
-const enabled = isIndexerSqlEnabled();
-const d = enabled ? describe : describe.skip;
-
-// A populated ETH range so aggregates are deterministic and cheap.
-const CHAIN = 1;
-const FROM_BLOCK = 18_000_000;
-const TO_BLOCK = 18_000_050;
-const TIMEOUT = 60_000;
-
-if (!enabled) {
-  // eslint-disable-next-line no-console
-  console.warn("[indexerSql.test] LLAMA_INDEXER_SQL_* not set — skipping gateway battery");
-}
-
-d("indexer /sql helper", () => {
-  it("SELECT 1 returns one typed row", async () => {
-    const rows = await queryClickhouse<{ one: number }>(`SELECT 1 AS one`);
-    expect(Array.isArray(rows)).toBe(true);
-    expect(rows).toHaveLength(1);
-    expect(rows[0].one).toBe(1);
-  }, TIMEOUT);
-
-  it("binds {name:Type} params", async () => {
-    const rows = await queryClickhouse<{ chain: string; blk: string }>(
-      `SELECT toString({chain:UInt64}) AS chain, toString({blk:UInt32}) AS blk`,
-      { chain: CHAIN, blk: FROM_BLOCK }
-    );
-    expect(rows[0]).toEqual({ chain: String(CHAIN), blk: String(FROM_BLOCK) });
-  }, TIMEOUT);
-
-  it("empty result set returns []", async () => {
-    const rows = await queryClickhouse(`SELECT 1 AS x WHERE 0`);
-    expect(rows).toEqual([]);
-  }, TIMEOUT);
-
-  it("preserves JSONEachRow typing (number vs string)", async () => {
-    const rows = await queryClickhouse<{ num: number; str: string }>(
-      `SELECT count() AS num, toString(count()) AS str FROM evm_indexer.blocks WHERE chain = {c:UInt64} AND height < {h:UInt32}`,
-      { c: CHAIN, h: 100 }
-    );
-    expect(typeof rows[0].num).toBe("number");
-    expect(typeof rows[0].str).toBe("string");
-    expect(String(rows[0].num)).toBe(rows[0].str);
-  }, TIMEOUT);
-
-  it("transactions gas-fees aggregate (dimension-adapters shape)", async () => {
-    const rows = await queryClickhouse<{ gas_fees_wei: string }>(
-      `SELECT CAST(sum(toDecimal256(gas_used,0) * toDecimal256(effective_gas_price,0)) AS String) AS gas_fees_wei
-       FROM evm_indexer.transactions
-       WHERE chain = {chain:UInt64} AND block_number >= {fromBlock:UInt32} AND block_number < {toBlock:UInt32}`,
-      { chain: CHAIN, fromBlock: FROM_BLOCK, toBlock: TO_BLOCK }
-    );
-    expect(rows).toHaveLength(1);
-    expect(BigInt(rows[0].gas_fees_wei) > BigInt(0)).toBe(true);
-  }, TIMEOUT);
-
-  it("logs daily aggregate (emissions-adapters shape)", async () => {
-    const rows = await queryClickhouse<{ date: string; n: string }>(
-      `SELECT toStartOfDay(timestamp) AS date, toString(count()) AS n
-       FROM evm_indexer.logs
-       WHERE chain = {chain:UInt64} AND block_number >= {fromBlock:UInt32} AND block_number < {toBlock:UInt32}
-       GROUP BY date ORDER BY date ASC`,
-      { chain: CHAIN, fromBlock: FROM_BLOCK, toBlock: TO_BLOCK }
-    );
-    expect(rows.length).toBeGreaterThan(0);
-    expect(Number(rows[0].n)).toBeGreaterThan(0);
-  }, TIMEOUT);
-
-  it("GROUP BY returns multiple rows in requested order", async () => {
-    const rows = await queryClickhouse<{ topic0: string; n: string }>(
-      `SELECT topic0, toString(count()) AS n FROM evm_indexer.logs
-       WHERE chain = {chain:UInt64} AND block_number >= {fromBlock:UInt32} AND block_number < {toBlock:UInt32}
-       GROUP BY topic0 ORDER BY n DESC, topic0 ASC LIMIT 5`,
-      { chain: CHAIN, fromBlock: FROM_BLOCK, toBlock: TO_BLOCK }
-    );
-    expect(rows.length).toBeGreaterThan(1);
-    for (let i = 1; i < rows.length; i++) {
-      expect(Number(rows[i - 1].n)).toBeGreaterThanOrEqual(Number(rows[i].n));
+describe("SQL configuration and parameters", () => {
+  let post: jest.SpyInstance;
+  const keys = ["LLAMA_INDEXER_SQL_ENDPOINT", "LLAMA_INDEXER_SQL_USER", "LLAMA_INDEXER_SQL_PASSWORD",
+    "LLAMA_INDEXER_SQL_DATABASE", "LLAMA_INDEXER_SQL_TIMEOUT_MS", "LLAMA_INDEXER_V4_ENDPOINT"];
+  const saved = { ...process.env };
+  beforeEach(() => {
+    post = jest.spyOn(axios, "post");
+    for (const key of keys) for (const prefix of ["", "SDK_", "LLAMA_SDK_"]) delete process.env[prefix + key];
+    process.env.LLAMA_INDEXER_SQL_ENDPOINT = "https://gateway.example/sql?database=evm_indexer";
+    process.env.LLAMA_INDEXER_SQL_USER = "reader";
+    process.env.LLAMA_INDEXER_SQL_PASSWORD = "test-password";
+    post.mockReset();
+    post.mockResolvedValue({ data: '{"n":"18446744073709551615"}\r\n \r\n{"n":1}\n' });
+  });
+  afterAll(() => {
+    for (const key of keys) for (const prefix of ["", "SDK_", "LLAMA_SDK_"]) {
+      if (saved[prefix + key] === undefined) delete process.env[prefix + key];
+      else process.env[prefix + key] = saved[prefix + key];
     }
-  }, TIMEOUT);
+  });
 
-  it("CTE / derived table (fees/ethereum base-burn shape)", async () => {
-    const rows = await queryClickhouse<{ base_burn_wei: string }>(
-      `SELECT CAST(sum(toDecimal256(base_fee,0) * toDecimal256(total_gas_used,0)) AS String) AS base_burn_wei
-       FROM (
-         SELECT min(effective_gas_price) AS base_fee, sum(gas_used) AS total_gas_used
-         FROM evm_indexer.transactions
-         WHERE chain = {chain:UInt64} AND block_number >= {fromBlock:UInt32} AND block_number < {toBlock:UInt32}
-         GROUP BY block_number
-       )`,
-      { chain: CHAIN, fromBlock: FROM_BLOCK, toBlock: TO_BLOCK }
-    );
-    expect(rows).toHaveLength(1);
-    expect(BigInt(rows[0].base_burn_wei) >= BigInt(0)).toBe(true);
-  }, TIMEOUT);
+  test("queryClickhouse keeps the row array and exact UInt64 strings", async () => {
+    expect(queryIndexerSql).toBe(queryClickhouse);
+    expect(await queryClickhouse("SELECT 1")).toEqual([{ n: "18446744073709551615" }, { n: 1 }]);
+    const [url, sql, config] = post.mock.calls[0];
+    expect(new URL(url).searchParams.get("database")).toBe("evm_indexer");
+    expect(new URL(url).searchParams.get("default_format")).toBe("JSONEachRow");
+    expect(sql).toBe("SELECT 1");
+    expect(config.auth).toEqual({ username: "reader", password: "test-password" });
+    expect(config.headers["x-api-key"]).toBeUndefined();
+  });
 
-  it("string-interpolated SQL (no query_params) works", async () => {
-    const rows = await queryClickhouse<{ n: string }>(
-      `SELECT toString(count()) AS n FROM evm_indexer.logs
-       PREWHERE chain = ${CHAIN} AND block_number >= ${FROM_BLOCK} AND block_number < ${TO_BLOCK}`
-    );
-    expect(Number(rows[0].n)).toBeGreaterThan(0);
-  }, TIMEOUT);
+  test("serializes nullable, array, map, boolean and UInt256 parameters as ClickHouse text", async () => {
+    const big = BigInt("115792089237316195423570985008687907853269984665640564039457584007913129639935");
+    await queryClickhouse("SELECT {items:Array(String)}", {
+      items: ["a'b", "c\\d", "a\nb"], nullable: null, flag: true,
+      nested: [[big, null, false]], map: new Map([["k", big]]), date: new Date("2020-01-01T00:00:00.123Z"),
+    });
+    const params = new URL(post.mock.calls[0][0]).searchParams;
+    expect(params.get("param_items")).toBe("['a\\'b','c\\\\d','a\\nb']");
+    expect(params.get("param_nullable")).toBe("\\N");
+    expect(params.get("param_flag")).toBe("1");
+    expect(params.get("param_nested")).toBe(`[[${big},NULL,FALSE]]`);
+    expect(params.get("param_map")).toBe(`{'k':${big}}`);
+    expect(params.get("param_date")).toBe("1577836800.123");
+  });
 
-  it("token_transfers is queryable", async () => {
-    const rows = await queryClickhouse<{ n: string }>(
-      `SELECT toString(count()) AS n FROM evm_indexer.token_transfers
-       WHERE chain = {chain:UInt64} AND block_number >= {fromBlock:UInt32} AND block_number < {toBlock:UInt32}`,
-      { chain: CHAIN, fromBlock: FROM_BLOCK, toBlock: TO_BLOCK }
-    );
-    expect(rows).toHaveLength(1);
-    expect(Number(rows[0].n)).toBeGreaterThanOrEqual(0);
-  }, TIMEOUT);
+  test("derives /sql from v4 only with separate SQL credentials", async () => {
+    delete process.env.LLAMA_INDEXER_SQL_ENDPOINT;
+    process.env.LLAMA_INDEXER_V4_ENDPOINT = "https://gateway.example/api/";
+    expect(isIndexerSqlEnabled()).toBe(true);
+    await queryClickhouse("SELECT 1");
+    expect(new URL(post.mock.calls[0][0]).pathname).toBe("/api/sql");
+    delete process.env.LLAMA_INDEXER_SQL_PASSWORD;
+    expect(isIndexerSqlEnabled()).toBe(false);
+    await expect(queryClickhouse("SELECT 1")).rejects.toThrow(/not configured/);
+    expect(post).toHaveBeenCalledTimes(1);
+  });
 
-  // Breadth: many chains x tables, bounded count queries — the "tas de queries".
-  const breadth: { chain: number; table: string; where: string }[] = [];
-  for (const chain of [1, 10, 56, 137, 42161, 8453]) {
-    breadth.push({ chain, table: "evm_indexer.logs", where: "block_number < 5000000" });
-    breadth.push({ chain, table: "evm_indexer.transactions", where: "block_number < 5000000" });
-    breadth.push({ chain, table: "evm_indexer.blocks", where: "height < 5000000" });
-  }
-  it.each(breadth)("count on $table chain=$chain returns a single numeric row", async ({ chain, table, where }) => {
-    const rows = await queryClickhouse<{ n: number }>(
-      `SELECT count() AS n FROM ${table} WHERE chain = {chain:UInt64} AND ${where}`,
-      { chain }
-    );
-    expect(rows).toHaveLength(1);
-    expect(typeof rows[0].n).toBe("number");
-    expect(rows[0].n).toBeGreaterThanOrEqual(0);
-  }, TIMEOUT);
+  test("leaves database and execution deadlines to the gateway and supports cancellation", async () => {
+    process.env.LLAMA_INDEXER_SQL_ENDPOINT = "https://gateway.example/sql";
+    process.env.LLAMA_INDEXER_SQL_DATABASE = "must-not-be-used";
+    process.env.LLAMA_INDEXER_SQL_TIMEOUT_MS = "1";
+    const signal = new AbortController().signal;
+    await queryClickhouse("SELECT 1", undefined, { max_execution_time: 12 },
+      { chain: "ethereum", signal });
+    const [url, , config] = post.mock.calls[0];
+    expect(new URL(url).searchParams.has("database")).toBe(false);
+    expect(new URL(url).searchParams.get("max_execution_time")).toBe("12");
+    expect(config.timeout).toBe(0);
+    expect(config.signal).toBe(signal);
+  });
 
-  it("4 MB SQL parses (relies on gateway body-limit + reader max_query_size default)", async () => {
-    const big = "A".repeat(4_000_000);
-    const rows = await queryClickhouse<{ n: string }>(`SELECT toString(length('${big}')) AS n`);
-    expect(rows[0].n).toBe("4000000");
-  }, TIMEOUT);
+  test("empty results, HTTP errors and late ClickHouse errors never return partial success", async () => {
+    post.mockResolvedValueOnce({ data: "" });
+    expect(await queryClickhouse("SELECT 1 WHERE 0")).toEqual([]);
+    post.mockRejectedValueOnce({ response: { status: 503, data: "reader unavailable" } });
+    await expect(queryClickhouse("SELECT 1")).rejects.toThrow("HTTP 503");
+    post.mockResolvedValueOnce({ data: '{"n":1}\nCode: 159. DB::Exception: Timeout\n' });
+    await expect(queryClickhouse("SELECT 1")).rejects.toThrow();
+  });
 
-  it("malformed SQL rejects with a surfaced error", async () => {
-    await expect(queryClickhouse(`SELECT this is not valid sql`)).rejects.toThrow(/sql query failed/i);
-  }, TIMEOUT);
+  afterEach(() => jest.restoreAllMocks());
 
-  it("local test guard rejects non-readonly SQL before any network call", async () => {
-    const forbidden = /\b(INSERT|ALTER|DROP|TRUNCATE|CREATE|DELETE|UPDATE|OPTIMIZE|SYSTEM|KILL|GRANT|REVOKE)\b/i;
-    expect(forbidden.test("INSERT INTO evm_indexer.blocks (chain) VALUES (1)")).toBe(true);
-    expect(forbidden.test("DROP TABLE evm_indexer.blocks")).toBe(true);
-    expect(forbidden.test("SELECT 1 AS ok")).toBe(false);
-  }, TIMEOUT);
+});
+
+describe("SQL HTTP transport", () => {
+  // Exercise real Axios/HTTP handling, not an Axios mock. No external service.
+  const keys = ["LLAMA_INDEXER_SQL_ENDPOINT", "LLAMA_INDEXER_SQL_USER", "LLAMA_INDEXER_SQL_PASSWORD"];
+  const saved = { ...process.env };
+  let server: http.Server;
+  let respond: (res: ServerResponse) => void;
+  let receivedBytes = 0;
+  let receivedAuth = "";
+  let receivedUrl = "";
+
+  beforeAll(async () => {
+    for (const key of keys) for (const prefix of ["", "SDK_", "LLAMA_SDK_"]) delete process.env[prefix + key];
+    server = http.createServer(async (req, res) => {
+      receivedBytes = 0;
+      receivedAuth = req.headers.authorization ?? "";
+      receivedUrl = req.url ?? "";
+      for await (const chunk of req) receivedBytes += chunk.length;
+      respond(res);
+    });
+    await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
+    const port = (server.address() as import("net").AddressInfo).port;
+    process.env.LLAMA_INDEXER_SQL_ENDPOINT = `http://127.0.0.1:${port}/sql`;
+    process.env.LLAMA_INDEXER_SQL_USER = "fixture-user";
+    process.env.LLAMA_INDEXER_SQL_PASSWORD = "fixture-secret";
+  });
+
+  afterAll(async () => {
+    server.closeAllConnections();
+    await new Promise<void>(resolve => server.close(() => resolve()));
+    for (const key of keys) for (const prefix of ["", "SDK_", "LLAMA_SDK_"]) {
+      const full = prefix + key;
+      if (saved[full] === undefined) delete process.env[full];
+      else process.env[full] = saved[full];
+    }
+  });
+
+  test("posts large SQL without truncation, using Basic Auth and typed parameter binding", async () => {
+    respond = res => res.end('{"ok":1}\n');
+    const sql = `SELECT 1 /*${"x".repeat(3_500_000)}*/`;
+    expect(await queryClickhouse(sql, { chain: 1 })).toEqual([{ ok: 1 }]);
+    expect(receivedBytes).toBe(Buffer.byteLength(sql));
+    expect(receivedAuth).toBe(`Basic ${Buffer.from("fixture-user:fixture-secret").toString("base64")}`);
+    expect(new URL(receivedUrl, "http://fixture").searchParams.get("param_chain")).toBe("1");
+  });
+
+  test.each([false, true])("chunked Unicode NDJSON preserves strings, nulls and duplicate rows (gzip=%s)", async gzip => {
+    const row = { text: "é 雪", value: "115792089237316195423570985008687907853269984665640564039457584007913129639935", empty: null };
+    const body = Buffer.from(`${JSON.stringify(row)}\r\n \r\n${JSON.stringify(row)}\n`);
+    respond = res => {
+      const bytes = gzip ? gzipSync(body) : body;
+      if (gzip) res.setHeader("Content-Encoding", "gzip");
+      const cut = gzip ? 13 : body.indexOf(Buffer.from("雪")) + 1;
+      res.write(bytes.subarray(0, cut));
+      setImmediate(() => res.end(bytes.subarray(cut)));
+    };
+    expect(await queryClickhouse("SELECT 1")).toEqual([row, row]);
+  });
+
+  test.each([
+    ["late server error", '{"ok":1}\nCode: 159. DB::Exception: timeout\n'],
+    ["truncated last row", '{"ok":1}\n{"ok":'],
+  ])("%s rejects instead of returning a partial result", async (_, body) => {
+    respond = res => res.end(body);
+    await expect(queryClickhouse("SELECT 1")).rejects.toThrow();
+  });
+
+  test("HTTP 503 rejects with status and without disclosing credentials", async () => {
+    respond = res => { res.statusCode = 503; res.end("reader unavailable"); };
+    let error: any;
+    try { await queryClickhouse("SELECT 1"); } catch (e) { error = e; }
+    expect(error).toBeInstanceOf(Error);
+    expect(error.message).toContain("HTTP 503");
+    expect(error.message).not.toContain("fixture-secret");
+  });
+
+  test("remote socket closure rejects and the next request can succeed", async () => {
+    respond = res => {
+      res.write('{"ok":1}\n');
+      setImmediate(() => res.destroy());
+    };
+    await expect(queryClickhouse("SELECT 1")).rejects.toThrow();
+    respond = res => res.end('{"ok":2}\n');
+    expect(await queryClickhouse("SELECT 2")).toEqual([{ ok: 2 }]);
+  });
+
+  test("caller cancellation closes the HTTP request without returning partial rows", async () => {
+    let closed!: () => void;
+    const disconnected = new Promise<void>(resolve => { closed = resolve; });
+    const controller = new AbortController();
+    respond = res => {
+      res.on("close", closed);
+      res.write('{"ok":1}\n');
+      controller.abort();
+    };
+    await expect(queryClickhouse("SELECT 1", undefined, undefined, { signal: controller.signal })).rejects.toThrow();
+    await disconnected;
+    respond = res => res.end('{"ok":2}\n');
+    expect(await queryClickhouse("SELECT 2")).toEqual([{ ok: 2 }]);
+  });
 });
