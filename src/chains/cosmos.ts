@@ -246,11 +246,25 @@ export function parseBlockTime(iso: string): number {
   return Math.floor(Date.parse(String(iso).replace(/(\.\d{3})\d+/, '$1')) / 1000)
 }
 
-function isPrunedHeightError(e: any): boolean {
+function errorMessage(e: any): string {
+  return String(e?.response?.data?.message ?? e?.response?.data?.error ?? e?.message ?? e ?? '').toLowerCase()
+}
+
+function isNotFoundError(e: any): boolean {
   const status = e?.response?.status ?? e?.status
-  const message = String(e?.response?.data?.message ?? e?.message ?? e ?? '').toLowerCase()
-  if (status === 404) return true
-  return /not available|lowest height|pruned|height .* is not|not found|must be less than or equal to the current blockchain height|is greater than/.test(message)
+  return status === 404 || /\[404\]/.test(String(e?.message ?? ''))
+}
+
+/**
+ * Explicit "this height is pruned / does not exist" answers from a node. A bare 404
+ * is NOT enough: LCDs also answer 404 for routes they do not serve (older chains
+ * without `/cosmos/base/tendermint/v1beta1`), and that case must fall back to the
+ * legacy `/blocks/{h}` route instead of being reported as a pruned block.
+ */
+export function isPrunedHeightError(e: any): boolean {
+  if (e?.cosmosBlockMissing) return true
+  const message = errorMessage(e)
+  return /not available|lowest height|pruned|height \d+ .*(is not|must be|greater|exceed)|must be less than or equal to the current blockchain height|is greater than the current|invalid height|block height .*out of range|could not find results for height/.test(message)
 }
 
 // ---------------------------------------------------------------------------
@@ -460,14 +474,29 @@ function parseBlockResponse(data: any, chain: string, height: number | string): 
 export async function getBlock({ chain, height = 'latest' }: { chain: string, height?: number | string }): Promise<CosmosBlock> {
   const h = height === undefined || height === null ? 'latest' : String(height)
   const shouldRetry = (e: any) => !isPrunedHeightError(e) && isRetryableError(e)
+  let primaryError: any
   try {
     const data = await httpGet(getEndpoints({ chain }), { path: `cosmos/base/tendermint/v1beta1/blocks/${h}`, shouldRetry, label: `${chain} block ${h}` } as any)
     return parseBlockResponse(data, chain, h)
   } catch (e) {
+    // only an explicit pruning / height error skips the fallback; a 404 may just be a missing route
     if (isPrunedHeightError(e)) throw e
+    primaryError = e
     debugLog(`[chains.cosmos] ${chain} v1beta1 blocks/${h} failed, trying legacy /blocks route: ${(e as any)?.message ?? e}`)
+  }
+  try {
     const data = await httpGet(getEndpoints({ chain }), { path: `blocks/${h}`, shouldRetry, label: `${chain} legacy block ${h}` } as any)
     return parseBlockResponse(data, chain, h)
+  } catch (e) {
+    if (isPrunedHeightError(e)) throw e
+    // a numeric height that both routes answer 404 for is a missing block (pruned or not yet
+    // produced), flagged so `getBlockAtTimestamp` treats it like an explicit pruning error
+    if (h !== 'latest' && isNotFoundError(e) && isNotFoundError(primaryError)) {
+      const missing: any = new Error(`[chains.cosmos] ${chain} block ${h} not found on any route (pruned or not yet produced): ${(e as any)?.message ?? e}`)
+      missing.cosmosBlockMissing = true
+      throw missing
+    }
+    throw e
   }
 }
 

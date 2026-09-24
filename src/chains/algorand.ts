@@ -647,7 +647,11 @@ export function encodeAddress(publicKey: Uint8Array): string {
   return base32Encode(concatArrays(publicKey, checksum)).slice(0, ALGORAND_ADDRESS_LENGTH)
 }
 
-/** 58 char address -> `{ publicKey, checksum }`; throws when the length or the checksum is wrong. */
+/**
+ * 58 char address -> `{ publicKey, checksum }`; throws when the length, the checksum or the
+ * encoding is wrong. Like algosdk, only the canonical upper-case base32 form is accepted: the
+ * last character carries 2 padding bits that must be zero, so re-encoding must reproduce the input.
+ */
 export function decodeAddress(address: string): { publicKey: Uint8Array, checksum: Uint8Array } {
   if (typeof address !== 'string' || address.length !== ALGORAND_ADDRESS_LENGTH) throw new Error(`[chains.algorand] address must be ${ALGORAND_ADDRESS_LENGTH} characters: ${address}`)
   const decoded = base32Decode(address)
@@ -657,6 +661,7 @@ export function decodeAddress(address: string): { publicKey: Uint8Array, checksu
   for (let i = 0; i < ALGORAND_CHECKSUM_BYTE_LENGTH; i++) {
     if (checksum[i] !== expected[i]) throw new Error(`[chains.algorand] address checksum mismatch: ${address}`)
   }
+  if (encodeAddress(publicKey) !== address) throw new Error(`[chains.algorand] address is not canonically encoded: ${address}`)
   return { publicKey, checksum }
 }
 

@@ -163,6 +163,20 @@ describe('chains.cosmos live', () => {
     expect(block.timestamp).toBeLessThanOrEqual(now() + 60)
   })
 
+  test('isPrunedHeightError distinguishes pruned heights from missing routes', () => {
+    // a bare 404 may be an LCD without the v1beta1 route, it must NOT count as pruned
+    expect(cosmos.isPrunedHeightError({ response: { status: 404, data: { message: 'Not Found' } } })).toBe(false)
+    expect(cosmos.isPrunedHeightError(new Error('[host: x] [404] Not Found'))).toBe(false)
+    expect(cosmos.isPrunedHeightError({ response: { status: 500, data: { message: 'height 5 is not available, lowest height is 69555892' } } })).toBe(true)
+    expect(cosmos.isPrunedHeightError(new Error('height 999999999999 must be less than or equal to the current blockchain height 12345'))).toBe(true)
+    expect(cosmos.isPrunedHeightError(new Error('could not find results for height 5'))).toBe(true)
+    expect(cosmos.isPrunedHeightError(Object.assign(new Error('block 5 not found on any route'), { cosmosBlockMissing: true }))).toBe(true)
+  })
+
+  test('getBlockTime for a pruned height is null instead of throwing', async () => {
+    expect(await cosmos.getBlockTime({ chain: 'osmosis', height: 1 })).toBeNull()
+  })
+
   test('getBlockAtTimestamp osmosis returns the last block at or before the timestamp', async () => {
     // 3 days ago rounded to the hour - fixed within a test run and inside the public nodes' retention window
     const timestamp = Math.floor((now() - 3 * 24 * 3600) / 3600) * 3600

@@ -75,8 +75,10 @@ describe('chains.algorand codec', () => {
 
   test('isValidAddress rejects corrupted checksum and malformed input', () => {
     const address = encodeAddress(new Uint8Array(randomBytes(32)))
+    // the last char holds 3 checksum bits + 2 padding bits; flip a checksum bit (xor 4), not just padding
+    const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
     const lastChar = address[57]
-    const replacement = lastChar === 'A' ? 'B' : 'A'
+    const replacement = ALPHABET[ALPHABET.indexOf(lastChar) ^ 4]
     const corrupted = address.slice(0, 57) + replacement
     expect(isValidAddress(corrupted)).toBe(false)
     expect(() => decodeAddress(corrupted)).toThrow(/checksum/)
@@ -85,6 +87,12 @@ describe('chains.algorand codec', () => {
     expect(isValidAddress(flipped)).toBe(false)
     expect(isValidAddress(address.slice(0, 57))).toBe(false)
     expect(isValidAddress(address.toLowerCase() + 'X')).toBe(false)
+    // non-canonical base32: the 2 padding bits of the last char are set, decoding is lossy so it must be rejected (algosdk parity)
+    const nonCanonical = 'AMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAANVWEXNB'
+    expect(isValidAddress(nonCanonical)).toBe(false)
+    expect(() => decodeAddress(nonCanonical)).toThrow(/canonically/)
+    expect(isValidAddress(nonCanonical.slice(0, 57) + 'A')).toBe(true)
+    expect(isValidAddress(address.toLowerCase())).toBe(false)
     expect(isValidAddress('')).toBe(false)
     expect(isValidAddress(USDC_RESERVE)).toBe(true)
     expect(isValidAddress(ZERO_ADDRESS)).toBe(true)
