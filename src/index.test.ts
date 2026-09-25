@@ -17,6 +17,14 @@ test("imports", async () => {
   const {providers,  ...configCopy } = data.api2.config 
   const dataCopy = { ...data, api2: { ...data.api2, config: configCopy }, chainUtils }
   delete (dataCopy as any).providerListJSON
+
+  // chains has hundreds of exports, snapshot only the module list here (each module has its own test file)
+  expect(Object.keys(data.chains).sort()).toEqual([
+    'algorand', 'aptos', 'cardano', 'cosmos', 'icp', 'near', 'rpc', 'starknet', 'stellar', 'substrate', 'sui', 'svm', 'tezos', 'ton', 'tron', 'utxo', 'xrpl',
+  ])
+  expect(typeof data.chains.svm.getAccounts).toBe('function')
+  expect(typeof data.chains.cosmos.queryContract).toBe('function')
+  delete (dataCopy as any).chains
   let _testChainTypeImport: Chain
   let _testAddressTypeImport: Address = '0x'
 

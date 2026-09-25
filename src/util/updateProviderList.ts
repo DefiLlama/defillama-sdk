@@ -4,7 +4,7 @@ import fs from 'fs'
 import { debugLog } from './debugLog';
 import PromisePool from '@supercharge/promise-pool';
 import { fetchJson, postJson, runInPromisePool } from '../generalUtil';
-import { updateData, chainKeyToChainLabelMap, chainLabelsToKeyMap } from '../util/chainUtils';
+import { isDeadChain, updateChainLabels } from '../util/chainUtils';
 
 const concurrentCheckChains = +(process.env.SDK_BUILD_CONCURRENT_CHAINS || 7)
 const chainRemovalThreshold = +(process.env.SDK_BUILD_CHAIN_REMOVAL_THRESHOLD || 20)
@@ -35,24 +35,7 @@ async function getChainData() {
 }
 
 async function main() {
-  const chainKeyLabelMapCountBefore = Object.keys(chainKeyToChainLabelMap).length
-  const chainLabelsKeyMapCountBefore = Object.keys(chainLabelsToKeyMap).length
-  await updateData()
-
-  const chainKeyLabelMapCountAfter = Object.keys(chainKeyToChainLabelMap).length
-  const chainLabelsKeyMapCountAfter = Object.keys(chainLabelsToKeyMap).length
-
-  if (chainKeyLabelMapCountAfter > chainKeyLabelMapCountBefore) {
-    console.log(`Updated chainKeyToChainLabelMap: ${chainKeyLabelMapCountBefore} -> ${chainKeyLabelMapCountAfter}`)
-  }
-  if (chainLabelsKeyMapCountAfter > chainLabelsKeyMapCountBefore) {
-    console.log(`Updated chainLabelsToKeyMap: ${chainLabelsKeyMapCountBefore} -> ${chainLabelsKeyMapCountAfter}`)
-  }
-
-  if (chainKeyLabelMapCountAfter < chainKeyLabelMapCountBefore)
-    throw new Error('chainKeyToChainLabelMap count decreased, please investigate')
-  if (chainLabelsKeyMapCountAfter < chainLabelsKeyMapCountBefore)
-    throw new Error('chainLabelsToKeyMap count decreased, please investigate')
+  await updateChainLabels()
 
   const oldProviders = await fetchJson(`https://unpkg.com/@defillama/sdk@latest/build/providers.json`)
   const currentChains = await fetchJson(`https://raw.githubusercontent.com/DefiLlama/DefiLlama-Adapters/refs/heads/main/projects/helper/chains.json`)
@@ -61,7 +44,13 @@ async function main() {
   const providerIDMap = {} as {
     [key: string]: string[]
   }
-  Object.values(providerList).forEach((i: any) => providerIDMap[i.chainId] = i.rpc)
+  const chainIdToKeyMap = {} as { [chainId: string]: string }
+  Object.entries(providerList).forEach(([key, i]: any) => {
+    providerIDMap[i.chainId] = i.rpc
+    chainIdToKeyMap[i.chainId] = key
+  })
+  const shortNameToKeyMap = {} as { [shortName: string]: string }
+  Object.entries(chainShortNameMapping).forEach(([key, shortName]) => shortNameToKeyMap[shortName] = key)
   chainData = chainData
     .filter((i: any) => i.rpc.length)
     // .filter((i: any) => !i.status || (i.status === 'active' || i.status === 'incubating'))
@@ -108,12 +97,34 @@ async function main() {
   // shuffle the array
   chainData.sort(() => Math.random() - 0.5)
 
+  // chain keys this chain could end up under in providers.json
+  const getCandidateKeys = (i: any): string[] => {
+    const keys = [i.shortName.toLowerCase().replace(/-/g, '_')]
+    if (chainIdToKeyMap[i.chainId]) keys.push(chainIdToKeyMap[i.chainId])
+    if (shortNameToKeyMap[i.shortName]) keys.push(shortNameToKeyMap[i.shortName])
+    return keys
+  }
+  // only check rpc health for chains we track and that are not dead, the rest are only filtered statically
+  const shouldCheckRPCs = (i: any): boolean => {
+    const keys = getCandidateKeys(i)
+    const isTracked = keys.some((k) => currentChainsSet.has(k))
+    const isDead = keys.some((k) => isDeadChain(k))
+    return isTracked && !isDead
+  }
+  const skippedRPCChecks = { dead: 0, untracked: 0 }
 
   await PromisePool
     .withConcurrency(concurrentCheckChains)
     .for(chainData)
     .process(async (i: any) => {
-      i.rpc = await filterForWorkingRPCs(i.rpc.map((j: any) => j.url), i.name, i.chainId)
+      const rpcs = i.rpc.map((j: any) => j.url)
+      if (shouldCheckRPCs(i)) {
+        i.rpc = await filterForWorkingRPCs(rpcs, i.name, i.chainId)
+      } else {
+        if (getCandidateKeys(i).some((k) => isDeadChain(k))) skippedRPCChecks.dead++
+        else skippedRPCChecks.untracked++
+        i.rpc = rpcs.length < 4 ? rpcs : filterRPCs(rpcs)
+      }
       if (!i.rpc.length) return;
       if (providerIDMap[i.chainId]) {
         const isBEVM = i.chainId + '' === '11501'  // bevm chain id clashes with 
@@ -172,6 +183,8 @@ async function main() {
   const rpcCountOld = Object.values(oldProviders).reduce((acc: any, i: any) => acc + (i?.rpc.length ?? 0), 0)
   const newlyAddedChains = Object.keys(providerList).filter(chain => oldProviders[chain] === undefined)
   console.log('Final provider list:')
+  console.log('Skipped rpc checks (dead chains):', skippedRPCChecks.dead)
+  console.log('Skipped rpc checks (untracked chains):', skippedRPCChecks.untracked)
   console.log('Chain count:', Object.keys(providerList).length)
   console.log('Newly added chains count:', newlyAddedChains.length)
   console.log('Dropped chain count:', filteredDroppedChains.length)
