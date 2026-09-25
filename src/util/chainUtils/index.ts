@@ -50,6 +50,28 @@ export async function updateData(): Promise<void> {
   }
 }
 
+// runs updateData and sanity checks that the mappings only grew
+export async function updateChainLabels(): Promise<void> {
+  const chainKeyLabelMapCountBefore = Object.keys(chainKeyToChainLabelMap).length
+  const chainLabelsKeyMapCountBefore = Object.keys(chainLabelsToKeyMap).length
+  await updateData()
+
+  const chainKeyLabelMapCountAfter = Object.keys(chainKeyToChainLabelMap).length
+  const chainLabelsKeyMapCountAfter = Object.keys(chainLabelsToKeyMap).length
+
+  if (chainKeyLabelMapCountAfter > chainKeyLabelMapCountBefore) {
+    console.log(`Updated chainKeyToChainLabelMap: ${chainKeyLabelMapCountBefore} -> ${chainKeyLabelMapCountAfter}`)
+  }
+  if (chainLabelsKeyMapCountAfter > chainLabelsKeyMapCountBefore) {
+    console.log(`Updated chainLabelsToKeyMap: ${chainLabelsKeyMapCountBefore} -> ${chainLabelsKeyMapCountAfter}`)
+  }
+
+  if (chainKeyLabelMapCountAfter < chainKeyLabelMapCountBefore)
+    throw new Error('chainKeyToChainLabelMap count decreased, please investigate')
+  if (chainLabelsKeyMapCountAfter < chainLabelsKeyMapCountBefore)
+    throw new Error('chainLabelsToKeyMap count decreased, please investigate')
+}
+
 export const sluggifyString = (name: string) => name.toLowerCase().split(" ").join("-").split("'").join("");
 
 function sortJSONData(jsonData: ChainInfo): ChainInfo {

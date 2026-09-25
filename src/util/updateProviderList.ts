@@ -4,8 +4,7 @@ import fs from 'fs'
 import { debugLog } from './debugLog';
 import PromisePool from '@supercharge/promise-pool';
 import { fetchJson, postJson, runInPromisePool } from '../generalUtil';
-import { isDeadChain } from '../util/chainUtils';
-import { updateChainLabels } from './updateChainLabels';
+import { isDeadChain, updateChainLabels } from '../util/chainUtils';
 
 const concurrentCheckChains = +(process.env.SDK_BUILD_CONCURRENT_CHAINS || 7)
 const chainRemovalThreshold = +(process.env.SDK_BUILD_CHAIN_REMOVAL_THRESHOLD || 20)
