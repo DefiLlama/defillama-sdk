@@ -1,8 +1,8 @@
 {
   "exclude": [
-    "depRepos/**",
     "src/abi/largeMulticall.ts"
   ],
+  "include": ["src"],
   "compilerOptions": {
     /* Visit https://aka.ms/tsconfig.json to read more about this file */
 

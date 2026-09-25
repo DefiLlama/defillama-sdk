@@ -354,10 +354,7 @@
     "chainId": 32520
   },
   "dogechain": {
-    "rpc": [
-      "https://dogechain.rpc.thirdweb.com",
-      "https://rpc01.dogechain.dog"
-    ],
+    "rpc": [],
     "chainId": 2000
   },
   "posi": {

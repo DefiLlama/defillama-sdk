@@ -13,7 +13,6 @@ git push
 
 # regen build and update providers list
 rm -rf build
-rm LICENSE
 rm README.md
 npm run update-providers
 if [[ $? -ne 0 ]] ; then
@@ -27,7 +26,6 @@ npm login
 npm publish
 
 # reset the files we changed
-git checkout master -- LICENSE
 git checkout master -- README.md
 git checkout master -- src/providers.json
 git push --tags

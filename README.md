@@ -9,7 +9,7 @@ npm run format
 
 ### Publish
 ```
-bash patchAndPublish.sh
+npm run pack-and-publish
 ```
 
 ### Keys

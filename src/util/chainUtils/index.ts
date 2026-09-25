@@ -32,6 +32,10 @@ export async function updateData(): Promise<void> {
       if (!deadFrom) continue
       const key = getChainKeyFromLabel(label)
         ; (deadChains as any)[key] = deadFrom
+      if (!deadChainsSet.has(key)) {
+        deadChainsSet.add(key)
+        deadChainsArray.push(key)
+      }
     }
 
     // Save to data.json file
