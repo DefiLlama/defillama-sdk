@@ -381,7 +381,7 @@ describe("pagination", () => {
     expect(transferRequests[0].params.after_block).toBeUndefined();
   });
 
-  test("v2 keeps legacy offset pagination", async () => {
+  test("v2 getLogs with all=true fetches every log in one request instead of unstable offset pages", async () => {
     const indexer = loadIndexer({
       LLAMA_INDEXER_V2_ENDPOINT: V2,
       LLAMA_INDEXER_V2_API_KEY: KEY,
@@ -398,10 +398,20 @@ describe("pagination", () => {
     });
 
     const logRequests = requests.filter((request) => request.path === "/logs");
-    expect(logRequests).toHaveLength(2);
-    expect(logRequests.map((request) => request.params.offset)).toEqual([0, 2]);
-    expect(logRequests[1].params.after_block).toBeUndefined();
-    expect(logRequests[1].params.after_index).toBeUndefined();
+    expect(logRequests).toHaveLength(1);
+    expect(logRequests[0].params).toMatchObject({ limit: "all", offset: 0 });
+  });
+
+  test("v2 getTokenTransfers keeps legacy offset pagination", async () => {
+    const indexer = loadIndexer({
+      LLAMA_INDEXER_V2_ENDPOINT: V2,
+      LLAMA_INDEXER_V2_API_KEY: KEY,
+    });
+
+    await indexer.getTokenTransfers({ chain: "ethereum", target: TARGET, fromBlock: 1, toBlock: 20, limit: 2, all: true });
+
+    const transferRequests = requests.filter((request) => request.path === "/token-transfers");
+    expect(transferRequests.map((request) => request.params.offset)).toEqual([0, 2]);
   });
 
   const v4Env = { LLAMA_INDEXER_V4_ENDPOINT: V4, LLAMA_INDEXER_V4_API_KEY: KEY };

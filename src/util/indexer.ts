@@ -204,6 +204,14 @@ async function* getIndexerPages(version: IndexerVersion, path: string, key: Inde
     yield* getV4Pages(path, key, params, limit, offset, all, getCursor);
     return;
   }
+  // v2 /logs has no stable row order, so offset pages can repeat rows and skip others.
+  // Fetch the whole result in one request, as the streaming path already does.
+  if (all && key === "logs") {
+    const { data } = await axiosInstances.v2(path, { params: { ...params, limit: "all", offset } })
+      .catch((e: any) => { throw formError(e) });
+    yield data[key];
+    return;
+  }
   let count = 0;
   do {
     const { data } = await axiosInstances.v2(path, { params: { ...params, limit, offset } })
