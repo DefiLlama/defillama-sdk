@@ -239,6 +239,14 @@ test('convertToBigInt', () => {
   expect(convertToBigInt('0x0000000000000000000139C5FfeE6153a7b8678f')).toBe(BigInt('1481753159505255786375055'))
 })
 
+test('convertToBigInt - exponent smaller than the mantissa', () => {
+  expect(convertToBigInt('2.031945223e+5')).toBe(BigInt('203194'))
+  expect(convertToBigInt('1.2345e2')).toBe(BigInt('123'))
+  expect(convertToBigInt('1.23456789012345678e+10')).toBe(BigInt('12345678901'))
+  expect(convertToBigInt('-1.2345e2')).toBe(BigInt('-123'))
+  expect(convertToBigInt('1.5e+1')).toBe(BigInt('15'))
+})
+
 test("getHash", () => {
   // Test basic functionality
   const hash1 = getHash("test string");
