@@ -1,7 +1,7 @@
 import { Balances as BalancesV1 } from "./types";
 import { Chain, } from "./general";
 
-import { sumSingleBalance, tableToString, } from "./generalUtil";
+import { sumSingleBalance, tableToString, convertToBigInt, } from "./generalUtil";
 import computeTVL from "./util/computeTVL";
 import { humanizeNumber } from "./computeTVL/humanizeNumber";
 
@@ -43,6 +43,20 @@ function getOptions({ optionsOrLabel = {}, options = {} }: { optionsOrLabel?: Ba
 // is loaded from two different node_modules copies, `instanceof Balances` returns false).
 function isLlamaBalancesObject(o: any): boolean {
   return typeof o === 'object' && o !== null && (o as any)._llamaBalancesObject === true
+}
+
+function negateBalance(balance: any): string | number {
+  // Raw token balances can exceed Number.MAX_SAFE_INTEGER. Keep integer strings
+  // exact while preserving the number path for fractional USD amounts.
+  if (typeof balance === 'bigint') return (-balance).toString()
+  if (typeof balance === 'string') {
+    const scientific = balance.match(/^[+-]?\d+(?:\.(\d+))?[eE]\+?(\d+)$/)
+    const exponent = scientific ? Number(scientific[2]) : -1
+    const exactScientific = scientific && Number.isSafeInteger(exponent) && exponent >= (scientific[1]?.length ?? 0)
+    if (/^[+-]?\d+$/.test(balance) || /^0[xX][0-9a-fA-F]+$/.test(balance) || exactScientific)
+      return (-convertToBigInt(balance.toLowerCase())).toString()
+  }
+  return -Number(balance)
 }
 
 export class Balances {
@@ -365,18 +379,18 @@ export class Balances {
       if (balances === this) return;
       const balancesInstance = balances as Balances
       Object.entries(balancesInstance._usdBalances).forEach(([token, balance]) => {
-        this._add(token, Number(balance) * -1, { skipChain: true, label: options!.label, isUSDValue: true })
+        this._add(token, negateBalance(balance), { skipChain: true, label: options!.label, isUSDValue: true })
       })
       balances = balancesInstance.getBalances()
     }
     Object.entries(balances).forEach(([token, balance]) => {
-      this._add(token, Number(balance) * -1, { skipChain: true, label: options!.label })
+      this._add(token, negateBalance(balance), { skipChain: true, label: options!.label })
     })
   }
 
   subtractToken(token: string, balance: any, optionsOrLabel?: BalancesOptionsWithLabel, options?: BalancesOptions) {
     options = getOptions({ optionsOrLabel, options })
-    this._add(token, Number(balance) * -1, options)
+    this._add(token, negateBalance(balance), options)
   }
 
   removeNegativeBalances() {

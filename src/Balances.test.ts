@@ -180,6 +180,63 @@ test("Balances - subtract", async () => {
   expect(balances.getBalances()).toEqual({ 'bsc:0002': 1000 })
 })
 
+test("Balances - subtraction preserves raw integer precision", () => {
+  const balances = new Balances({ chain: 'ethereum' })
+  balances.add('token', '1000000000000000001')
+  balances.subtract({ 'ethereum:token': '1000000000000000000' })
+  expect(balances.getBalances()['ethereum:token']).toBe('1')
+
+  balances.add('token', '1000000000000000000')
+  balances.subtractToken('token', '1000000000000000000')
+  expect(balances.getBalances()['ethereum:token']).toBe('1')
+
+  balances.subtractToken('token', 1)
+  expect(balances.getBalances()['ethereum:token']).toBe(0)
+})
+
+test.each([
+  ['hex', '0x20000000000000', '0x20000000000001'],
+  ['scientific', '1.000000000000000001e18', '1000000000000000002'],
+])('Balances - subtraction preserves %s integer strings', (_format, toSubtract, initial) => {
+  const balances = new Balances({ chain: 'ethereum' })
+  balances.add('token', initial)
+  balances.subtractToken('token', toSubtract)
+  expect(balances.getBalances()['ethereum:token']).toBe('1')
+
+  const plain = new Balances({ chain: 'ethereum' })
+  plain.add('token', initial)
+  plain.subtract({ 'ethereum:token': toSubtract })
+  expect(plain.getBalances()['ethereum:token']).toBe('1')
+})
+
+test("Balances - safe number subtraction from a large integer string is exact", () => {
+  const balances = new Balances({ chain: 'ethereum' })
+  balances.add('token', '1000000000000000001')
+  balances.subtractToken('token', 1)
+  expect(balances.getBalances()['ethereum:token']).toBe('1000000000000000000')
+})
+
+test("Balances - subtraction retains fractional USD values", () => {
+  const balances = new Balances({ chain: 'ethereum' })
+  balances.addUSDValue(2.5, { id: 'usd' })
+  const other = new Balances({ chain: 'ethereum' })
+  other.addUSDValue(1.25, { id: 'usd' })
+  balances.subtract(other)
+  expect(balances._usdBalances.usd).toBe(1.25)
+
+  balances.subtractToken('usd', '1.25e0', { skipChain: true, isUSDValue: true })
+  expect(balances._usdBalances.usd).toBe(0)
+})
+
+test("Balances - subtracting a Balances instance preserves exact USD integer strings", () => {
+  const balances = new Balances({ chain: 'ethereum' })
+  balances.addUSDValue('1000000000000000001', { id: 'usd' })
+  const other = new Balances({ chain: 'ethereum' })
+  other.addUSDValue('1000000000000000000', { id: 'usd' })
+  balances.subtract(other)
+  expect(balances._usdBalances.usd).toBe('1')
+})
+
 test("Balances - subtractTokens", async () => {
   const balances = new Balances({ chain: 'bsc' })
 

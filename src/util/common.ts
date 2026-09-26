@@ -92,7 +92,21 @@ export function sumSingleBalance(
   if (!token || token.trim() === '') {
     throw new Error('Missing token address/symbol')
   }
-  if (typeof balance === 'number' || (balances[token] && typeof balances[token] === 'number')) {
+  const previous = balances[token]
+  const hasExactIntegerString =
+    (typeof balance === 'string' && /^-?\d+$/.test(balance)) ||
+    (typeof previous === 'string' && /^-?\d+$/.test(previous))
+  const numberOperand = typeof balance === 'number' ? balance : previous
+  const exactIntegerSum = hasExactIntegerString && typeof numberOperand === 'number' && Number.isSafeInteger(numberOperand)
+    ? convertToBigInt(previous) + convertToBigInt(balance)
+    : undefined
+  if (exactIntegerSum !== undefined && (
+    !Number.isSafeInteger(Number(previous)) ||
+    !Number.isSafeInteger(Number(balance)) ||
+    !Number.isSafeInteger(Number(exactIntegerSum))
+  )) {
+    balances[token] = exactIntegerSum.toString()
+  } else if (typeof balance === 'number' || (balances[token] && typeof balances[token] === 'number')) {
     const prevBalance = +(balances.hasOwnProperty(token) ? balances[token] : 0)
     if (typeof prevBalance !== 'number' || isNaN(prevBalance))
       throw new Error(`Trying to merge token balance and coingecko amount for ${token} current balance: ${balance} previous balance: ${balances[token]}`)
