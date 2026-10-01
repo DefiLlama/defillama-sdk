@@ -29,7 +29,7 @@ test.each([
     expected: '9007199254740995',
   },
   {
-    name: 'every owned stake component contributes to the exact sum',
+    name: 'all included components contribute to the exact sum',
     account: {
       balance: Number.MAX_SAFE_INTEGER,
       frozen: [{ frozen_balance: 1 }],
@@ -40,6 +40,22 @@ test.each([
     expected: '9007199254740995',
   },
   { name: 'empty account', account: {}, expected: '0' },
+  {
+    name: 'omitted legacy frozen balances contribute zero',
+    account: {
+      balance: 7,
+      frozen: [{}, { expire_time: 1_700_000_000_000 }, { frozen_balance: 0 }, { frozen_balance: '0' }],
+    },
+    expected: '7',
+  },
+  {
+    name: 'omitted legacy entries preserve an exact nonzero balance',
+    account: {
+      balance: Number.MAX_SAFE_INTEGER,
+      frozen: [{ expire_time: 1_700_000_000_000 }, { frozen_balance: 2 }, {}],
+    },
+    expected: '9007199254740993',
+  },
   {
     name: 'ordinary free, frozen and delegated balances',
     account: {
@@ -64,6 +80,11 @@ test.each([
 ])('TRON raw balance: $name', async ({ account, expected }) => {
   post.mockResolvedValue(account);
   expect(await getBalance({ target: `precision-fixture-${fixtureId++}` })).toEqual({ output: expected });
+});
+
+test('TRON raw balance rejects invalid legacy integer strings', async () => {
+  post.mockResolvedValue({ balance: 7, frozen: [{ frozen_balance: 'invalid' }] });
+  await expect(getBalance({ target: `precision-fixture-${fixtureId++}` })).rejects.toThrow(SyntaxError);
 });
 
 test('TRON balance keeps decimal formatting for ordinary values', async () => {

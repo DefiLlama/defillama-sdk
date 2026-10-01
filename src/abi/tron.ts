@@ -57,12 +57,12 @@ export async function getBalance(params: {
 
 export function getAccountBalanceFromResponse(data: any): string {
   // Raw sun components can be safe numbers individually while their sum is not.
-  const frozenBalance = data.frozen?.reduce((t: bigint, { frozen_balance }: any) => t + BigInt(frozen_balance), BigInt(0)) ?? BigInt(0)
+  const frozenBalance = data.frozen?.reduce((t: bigint, { frozen_balance = 0 }: any) => t + BigInt(frozen_balance), BigInt(0)) ?? BigInt(0)
   const frozenBalanceV2 = data.frozenV2?.reduce((t: bigint, { amount = 0 }: any) => t + BigInt(amount), BigInt(0)) ?? BigInt(0)
   const freeBalance = BigInt(data.balance ?? 0)
   // Delegated-out Stake 2.0 amounts are removed from frozenV2 and reported
-  // separately on the delegator account. Include them to reconstruct all TRX
-  // still owned by the account; see the live-account fixture in tron.test.ts.
+  // separately on the delegator account. Include them alongside frozenV2;
+  // see the captured-account fixture in tron.test.ts.
   const delegatedBandwidthBalance = BigInt(data.delegated_frozenV2_balance_for_bandwidth ?? 0)
   const delegatedEnergyBalance = BigInt(data.account_resource?.delegated_frozenV2_balance_for_energy ?? 0)
   return (freeBalance + frozenBalance + frozenBalanceV2 + delegatedBandwidthBalance + delegatedEnergyBalance).toString()
