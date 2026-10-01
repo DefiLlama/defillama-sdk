@@ -134,6 +134,33 @@ test("tron: getBalance includes delegated-out Stake 2.0 without double-counting"
   expect(getAccountBalanceFromResponse(account)).toEqual("200000177051168");
 });
 
+test.each([
+  { name: "empty account", account: {}, expected: "0" },
+  {
+    name: "free, legacy frozen and owned Stake 2.0 balances",
+    account: {
+      balance: 7,
+      frozen: [{ frozen_balance: 11 }, { frozen_balance: 13 }],
+      frozenV2: [{ amount: 17 }, { type: "TRON_POWER" }],
+      delegated_frozenV2_balance_for_bandwidth: 19,
+      account_resource: { delegated_frozenV2_balance_for_energy: 23 },
+    },
+    expected: "90",
+  },
+  {
+    name: "received delegation does not belong to the recipient",
+    account: {
+      balance: 7,
+      frozenV2: [{ amount: 17 }],
+      acquired_delegated_frozenV2_balance_for_bandwidth: 1000,
+      account_resource: { acquired_delegated_frozenV2_balance_for_energy: 2000 },
+    },
+    expected: "24",
+  },
+])("tron: account-owned balance: $name", ({ account, expected }) => {
+  expect(getAccountBalanceFromResponse(account)).toEqual(expected);
+});
+
 test("tron: getBalances", async () => {
   const res = await getBalances({
     chain: 'tron',
