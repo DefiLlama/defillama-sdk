@@ -362,6 +362,28 @@ test("ChainApi - sumTokens - blacklisted entires", async () => {
   expect(res).toEqual({})
 })
 
+test("ChainApi - sumTokens - native token alias is not double counted", async () => {
+  const arcUSDC = '0x3600000000000000000000000000000000000000' // ERC-20 view of the native coin, 6 decimals vs 18
+  const poolManager = '0x8366a39cc670b4001a1121b8f6a443a643e40951' // uniswap v4 on arc
+  const block = await new ChainApi({ chain: 'arc' }).getBlock()
+  const nativeBal = await new ChainApi({ chain: 'arc', block }).getGasTokenBalance(poolManager) as string
+  expect(+nativeBal).toBeGreaterThan(0)
+
+  const res = await new ChainApi({ chain: 'arc', block }).sumTokens({ owner: poolManager, tokens: [nullAddress, arcUSDC] })
+  expect(res).toEqual({ ['arc:' + nullAddress]: nativeBal })
+
+  const aliasOnly = await new ChainApi({ chain: 'arc', block }).sumTokens({ owner: poolManager, tokens: [arcUSDC] })
+  expect(aliasOnly).toEqual({ ['arc:' + nullAddress]: nativeBal })
+
+  // blacklisting the alias still keeps the native coin
+  const blacklisted = await new ChainApi({ chain: 'arc', block }).sumTokens({ owner: poolManager, tokens: [nullAddress, arcUSDC], blacklistedTokens: [arcUSDC] })
+  expect(blacklisted).toEqual({ ['arc:' + nullAddress]: nativeBal })
+
+  // plain balance lookups still return the ERC-20 value
+  const [erc20Bal] = await new ChainApi({ chain: 'arc', block }).getTokenBalances({ owner: poolManager, tokens: [arcUSDC] })
+  expect(erc20Bal).toBe(String(BigInt(nativeBal) / BigInt(1e12)))
+})
+
 const balancerPools = [
   '0x26fa40f1f29e3b495ec3c4c46b24df7EcDE796d9',
   '0x0708b37dD778E459bEAB114FDF1C431068888379',
