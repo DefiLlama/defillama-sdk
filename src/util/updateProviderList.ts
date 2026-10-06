@@ -265,7 +265,8 @@ async function filterForWorkingRPCs(rpc: string[], chain: string, chainId: numbe
         if (data.result) {
           const returnedChainId = parseInt(data.result, 16)
           if (returnedChainId !== chainId) {
-            console.log(`RPC ${i} for ${chain} returned invalid chainId ${returnedChainId}, expected ${chainId}`)
+            console.log(`RPC ${i} for ${chain} returned invalid chainId ${returnedChainId}, expected ${chainId}, skipping`)
+            return
           }
           filteredRPCs.push(i)
         }
