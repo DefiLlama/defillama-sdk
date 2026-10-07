@@ -46,6 +46,16 @@ type BalancesV2Options = {
 }
 
 const nullAddress = '0x0000000000000000000000000000000000000000'
+// ERC-20 views of the native coin: balanceOf returns the same balance as eth_getBalance, so when summing
+// they are read as the native coin and deduped per owner, otherwise listing both counts the coin twice
+const nativeTokenAliases: { [chain: string]: string } = {
+  polygon: '0x0000000000000000000000000000000000001010', // POL (MRC20)
+  celo: '0x471ece3750da237f93b8e339c536989b8978a438', // CELO (GoldToken)
+  metis: '0xdeaddeaddeaddeaddeaddeaddeaddeaddead0000', // METIS
+  arc: '0x3600000000000000000000000000000000000000', // USDC (6 decimals, native is 18)
+  stable: '0x779ded0c9e1022225f8e0630b35a9b54be713736', // USDT0 (6 decimals, native is 18)
+}
+
 export class ChainApi {
   block?: Block;
   chain: Chain | string;
@@ -281,6 +291,10 @@ export class ChainApi {
 
     tokensAndOwners = tokensAndOwners.filter(i => !blacklistedTokens.includes(i[0]) && !blacklistedOwners.includes(i[1]))
 
+    // only when summing: plain balance lookups expect the alias's own (ERC-20 decimals) value back
+    const nativeAlias = nativeTokenAliases[this.chain as string]
+    if (skipDuplicates && nativeAlias)
+      tokensAndOwners = getUniqueTokensAndOwners(tokensAndOwners.map(([t, o]) => [t === nativeAlias ? nullAddress : t, o]), this.chain as string) as any
 
     const tokenBalances = [] as [token: string, balance: string][]
     const erc20TokensResponseIndex = [] as number[]
