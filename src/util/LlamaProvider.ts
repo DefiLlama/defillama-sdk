@@ -383,9 +383,9 @@ const httpRPC = {
   }
 }
 
-function getMedianBlockValue(blocks: number[]) {
+export function getMedianBlockValue(blocks: number[]) {
   blocks.sort((a, b) => a - b)
-  const mid = Math.floor(blocks.length / 3)
+  const mid = Math.floor(blocks.length / 2)
   return blocks.length % 2 !== 0 ? blocks[mid] : (blocks[mid - 1] + blocks[mid]) / 2
 }
 
