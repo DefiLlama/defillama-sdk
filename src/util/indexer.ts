@@ -95,6 +95,8 @@ const axiosInstances = {
   v4: createIndexerClient("v4"),
 };
 
+const INDEXER_HEAD_BUFFER = 50;
+
 function checkIndexerConfig(version: IndexerVersion) {
   const { endpoint, apiKey } = indexerConfigs[version];
   if (!endpoint || !apiKey) throw new Error(`Llama Indexer (${version}) URL/api key is not set`);
@@ -422,6 +424,7 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
     topic1,
     topic2,
     topic3,
+    topics,
     transformLog,
   } = await getLogParams(options, true);
 
@@ -439,8 +442,11 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
     throw new Error("processor is not supported with multiple targets when flatten=false");
 
   const blockRange = toBlock - fromBlock;
+  if (!Number.isSafeInteger(fromBlock) || !Number.isSafeInteger(toBlock) || fromBlock > toBlock)
+    throw new Error("getLogs requires integer block bounds with fromBlock <= toBlock");
   const effectiveMaxBlockRange = maxBlockRange ?? (noTarget ? 10_000 : Infinity);
-  if (!(effectiveMaxBlockRange > 0)) throw new Error("maxBlockRange must be greater than zero");
+  if (!(effectiveMaxBlockRange > 0) || (effectiveMaxBlockRange !== Infinity && !Number.isSafeInteger(effectiveMaxBlockRange)))
+    throw new Error("maxBlockRange must be a positive integer");
 
   if (noTarget && blockRange > 500_000) {
     throw new Error(
@@ -453,7 +459,9 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
   checkIndexerConfig(indexerVersion);
   const chainId = getChainId(chain);
   const chainIndexStatus = await getChainIndexStatus(indexerVersion);
-  const lastIndexedBlock = chainIndexStatus[chain]?.block ?? 0;
+  const lastIndexedBlock = Number(chainIndexStatus[chain]?.block ?? 0);
+  if (!Number.isSafeInteger(lastIndexedBlock) || lastIndexedBlock < 0)
+    throw new Error(`Indexer returned an invalid last indexed block for ${chain}`);
   if (lastIndexedBlock < toBlock) {
 
     const percentageMissing = ((toBlock - lastIndexedBlock) / (toBlock - fromBlock)) * 100;
@@ -466,16 +474,10 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
     if (ENV_CONSTANTS.GET_LOGS_INDEXER)
       debugLog(`Indexer only partially up to date for ${chain}. Last indexed block: ${lastIndexedBlock}, requested block: ${toBlock}, missing ${Number(percentageMissing).toFixed(2)}%. Pulling part of the logs through RPC calls.`);
 
-    const breakBlock = lastIndexedBlock - 50; // small buffer
-    const indexerLogs = await getLogs({ ...options, fromBlock, toBlock: breakBlock });
-    const rpcLogs = await getLogsParent({ ...options, fromBlock: breakBlock + 1, toBlock, skipIndexer: true });
-
-    // When flatten=false, preserve per-target buckets: merge RPC logs into their corresponding indexer bucket so the result still maintains one element per target.
-    if (!flatten) {
-      return indexerLogs.map((bucket, i) => bucket.concat(rpcLogs[i]));
-    }
-
-    return indexerLogs.concat(rpcLogs);
+    // An empty indexer prefix uses RPC for exactly the original window. The two
+    // inclusive ranges otherwise meet at breakBlock / breakBlock + 1.
+    const breakBlock = Math.max(fromBlock - 1, lastIndexedBlock - INDEXER_HEAD_BUFFER);
+    return getPartiallyIndexedLogs(breakBlock);
   }
 
   // Re-curse if the requested range is too large
@@ -491,8 +493,9 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
       results.push(chunk);
     }
 
-    if (flatten || !targets?.length) return results.flat();
-    return targets.map((_, i) => results.map((r) => r[i]).flat());
+    const splitTargets = typeof target === "string" ? [target] : targets;
+    if (flatten || !splitTargets.length) return results.flat();
+    return splitTargets.map((_, i) => results.map((r) => r[i]).flat());
   }
 
   let address = target as string | undefined;
@@ -690,6 +693,98 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
   }
 
   return allLogsPairs.map(i => i.transformed);
+
+  async function getPartiallyIndexedLogs(breakBlock: number): Promise<any[]> {
+    if (!Number.isSafeInteger(limit) || limit < 0 || !Number.isSafeInteger(initialOffset) || initialOffset < 0)
+      throw new Error("Indexer pagination requires a non-negative integer limit and offset");
+
+    const requestedTargets = typeof target === "string" ? [target] : targets;
+    const uniqueTargets = [...new Set(requestedTargets.map(t => t.toLowerCase()))];
+    const splitByAddress = requestedTargets.length > 0 && !flatten;
+    const collected: any[] = splitByAddress ? requestedTargets.map(() => []) : [];
+    const targetBuckets = new Map<string, number[]>();
+    requestedTargets.forEach((t, i) => {
+      const key = t.toLowerCase();
+      targetBuckets.set(key, [...(targetBuckets.get(key) ?? []), i]);
+    });
+    let remainingOffset = initialOffset;
+    let remainingLimit = all ? Infinity : limit;
+
+    if (limit === 0) return collected;
+
+    const rpcTransform = (await getLogParams(options, false)).transformLog;
+    const finished = Symbol("partial log limit reached");
+
+    let seenBlock: number | undefined;
+    const seen = new Set<string>();
+
+    async function consume(rawRows: any[], isIndexer: boolean, start: number, end: number) {
+      const selected: any[] = [];
+      for (const row of rawRows) {
+        const block = Number(row.blockNumber ?? row.block_number);
+        if (!Number.isSafeInteger(block)) throw new Error("Log returned without a valid block number");
+        if (block < start || block > end) continue;
+        if (block !== seenBlock) { seenBlock = block; seen.clear(); }
+        const hash = row.transactionHash ?? row.transaction_hash;
+        const index = row.logIndex ?? row.index ?? row.log_index;
+        if (hash !== undefined && index !== undefined) {
+          const key = `${String(hash).toLowerCase()}:${index}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+        }
+        if (remainingOffset > 0) { remainingOffset--; continue; }
+        if (remainingLimit <= 0) break;
+
+        selected.push(clientStreaming && !isIndexer ? { ...row } : row);
+        remainingLimit--;
+      }
+      if (selected.length) {
+        const transform = isIndexer ? transformLog : rpcTransform;
+        const startTime = Date.now();
+        const decoded = clientStreaming
+          ? await decodeStreamingLogs(selected, transform, viemFastPath ?? (transform as LogDecoder).batch, options.onlyArgs)
+          : await Promise.all(selected.map(row => transform(row)));
+        onDecodeStats?.({ batchSize: selected.length, decodeTime: Date.now() - startTime, itemsDecoded: selected.length });
+        if (processor) await processor(decoded);
+        if (options.collect !== false) {
+          if (splitByAddress) selected.forEach((row, i) => {
+            for (const bucket of targetBuckets.get((row.source ?? row.address)?.toLowerCase()) ?? [])
+              collected[bucket].push(decoded[i]);
+          });
+          else safePush(collected, decoded);
+        }
+      }
+      if (remainingLimit <= 0) throw finished;
+    }
+
+    const rawOptions = {
+      ...options, chain, topic, topics, target: undefined, targets: uniqueTargets,
+      eventAbi: undefined, parseLog: false, entireLog: true, onlyArgs: false,
+      flatten: true, onDecodeStats: undefined,
+    };
+    try {
+      if (breakBlock >= fromBlock) {
+        await getLogs({
+          ...rawOptions, fromBlock, toBlock: breakBlock, all: true, offset: 0, collect: false,
+          processor: rows => consume(rows, true, fromBlock, breakBlock),
+        });
+      }
+      // RPC cache reads may extend the physical fetch by a buffer, but logs.ts
+      // filters to these exact bounds before any decoding or processing here.
+      for (let start = breakBlock + 1; start <= toBlock; start += effectiveMaxBlockRange) {
+        const end = Math.min(toBlock, start + effectiveMaxBlockRange - 1);
+        const rows = await getLogsParent({
+          ...rawOptions, fromBlock: start, toBlock: end, skipIndexer: true,
+          maxBlockRange: undefined, processor: undefined,
+        });
+        rows.sort((a, b) => a.blockNumber - b.blockNumber || (a.logIndex ?? a.index) - (b.logIndex ?? b.index));
+        await consume(rows, false, start, end);
+      }
+    } catch (error) {
+      if (error !== finished) throw error;
+    }
+    return collected;
+  }
 }
 
 export async function getTokenTransfers({
