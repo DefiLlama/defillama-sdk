@@ -38,7 +38,7 @@ update_repo() {
   pushd "$name" > /dev/null
   git stash
   git checkout "$branch"
-  git pull
+  git pull --quiet
 
   local failed=0
   for sub in "${subdirs[@]}"; do
