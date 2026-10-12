@@ -4,7 +4,7 @@ import { debugLog } from "./debugLog";
 import { isCosmosChain, getCosmosProvider } from "./cosmos";
 import { getTempLocalCache, ONE_WEEK } from "./cache";
 import pLimit from 'p-limit';
-import { getParallelGetBlocksLimit, ENV_CONSTANTS, shouldSkipBlockValidation } from "./env";
+import { getParallelGetBlocksLimit, ENV_CONSTANTS, shouldSkipBlockValidation, getBlockServiceUrl } from "./env";
 
 const defaultChains = ["avax", "bsc", "polygon", "arbitrum"] as Chain[]
 export const chainsForBlocks = defaultChains;
@@ -288,10 +288,29 @@ export async function lookupBlock(timestamp: number, extraParams?: LookupBlockOp
   const key = [chain, timestamp, allowedTimeRange, acceptableBlockImprecision].join(':')
   if (!inflightLookups[key]) {
     const limiter = getChainLimiter(chain)
-    inflightLookups[key] = limiter(() => _lookupBlock(timestamp, extraParams))
+    inflightLookups[key] = lookupBlockFromService(timestamp, extraParams)
+      .then(block => block ?? limiter(() => _lookupBlock(timestamp, extraParams)))
       .finally(() => delete inflightLookups[key])
   }
   return inflightLookups[key]!
+}
+
+const blockServiceRoundSeconds = 300 // the service's default route rounds timestamps down to this
+
+// ask the block-service when BLOCK_SERVICE_URL is set, any failure falls back to the local search
+async function lookupBlockFromService(timestamp: number, extraParams?: LookupBlockOptionalParams): Promise<Block | undefined> {
+  const serviceUrl = getBlockServiceUrl()
+  if (!serviceUrl) return
+  const { chain = "ethereum", allowedTimeRange = 5 * 60 } = extraParams ?? {}
+  if (chain === 'waves') return
+  const route = allowedTimeRange >= blockServiceRoundSeconds ? '' : '/precise'
+  try {
+    const { block, timestamp: blockTimestamp } = await fetchJson(`${serviceUrl}/block/${chain}/${timestamp}${route}`, { timeout: 10_000 })
+    if (typeof block !== 'number' || typeof blockTimestamp !== 'number') throw new Error('bad response')
+    return { block, number: block, timestamp: blockTimestamp }
+  } catch (e) {
+    debugLog(`block-service lookup failed for ${chain} ${timestamp}, falling back to local search: ${(e as any)?.message ?? e}`)
+  }
 }
 
 const earliestAvailableBlockRange: {

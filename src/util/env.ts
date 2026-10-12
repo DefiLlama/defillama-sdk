@@ -4,6 +4,7 @@ export const whitelistedEnvConstants = [
   'ELASTICSEARCH_CONFIG', 'GRAPH_API_KEY', 'LLAMA_INDEXER_V2_ENDPOINT', 'LLAMA_INDEXER_V2_API_KEY', 'LLAMA_INDEXER_TIMEOUT_MS',
   'LLAMA_INDEXER_V4_ENDPOINT', 'LLAMA_INDEXER_V4_API_KEY', 'LLAMA_INDEXER_PREFER_V4', 'LLAMA_INDEXER_V4_ONLY_CHAINS',
   'LLAMA_INDEXER_SQL_ENDPOINT', 'LLAMA_INDEXER_SQL_USER', 'LLAMA_INDEXER_SQL_PASSWORD',
+  'BLOCK_SERVICE_URL', 'BLOCK_SERVICE_URL_DISABLED',
 ]
 
 const isDebugLevel3 = process.env.LLAMA_SDK_DEBUG_LEVEL_3 === 'true'
@@ -70,6 +71,24 @@ export function getParallelGetLogsLimit(chain: string, providerUrl?: string) {
   const defaultAlchemyLimit = getEnvValue('ALCHEMY_GET_LOGS_CONCURRENCY_LIMIT', '25')
   if (providerUrl && providerUrl.includes('alchemy.com')) return +(defaultAlchemyLimit!)
   return +(getEnvValue(`${chain}_RPC_GET_LOGS_CONCURRENCY_LIMIT`, defaultLimit)!)
+}
+
+// url of a block-service deployment, lookups go there first and fall back to the local search
+let blockServiceUrl: string | undefined
+let blockServiceUrlSet = false
+
+export function getBlockServiceUrl(): string | undefined {
+  if (!blockServiceUrlSet) {
+    blockServiceUrl = _getBlockServiceUrl()
+    blockServiceUrlSet = true
+  }
+  return blockServiceUrl
+}
+
+function _getBlockServiceUrl(): string | undefined {
+  const url = getEnvValue('BLOCK_SERVICE_URL')
+  const disabled = getEnvValue('BLOCK_SERVICE_URL_DISABLED') === 'true'
+  return disabled ? undefined : url?.replace(/\/$/, '')
 }
 
 export function getParallelGetBlocksLimit(chain: string) {
