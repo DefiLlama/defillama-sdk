@@ -153,19 +153,21 @@ const prunedBlockBuffer = 1000 // pruning keeps moving forward, so stay a bit ah
 //   sei (pre evm):          "EVM is only supported from block 79123881 onwards"
 //   publicnode:             "pruned history unavailable: requested 100, earliest available 51000000"
 //   cosmos/tendermint/evm:  "height 100 is not available, lowest height is 47180386" (often in error.data)
+// both patterns need a block/height/available word next to the number, so unrelated numbers in error pages don't match
 const earliestBlockPatterns = [
-  /(?:earliest|lowest|oldest|first)\s+(?:available\s+)?(?:block\s+|height\s+)?(?:number\s+)?(?:available\s+)?(?:is\s+|:\s*|=\s*)?#?(\d+)/i,
-  /(?:supported|available)\s+(?:from|since|after)\s+(?:block\s+|height\s+)?#?(\d+)/i,
+  /(?:earliest|lowest|oldest)\s+(?:available\s+(?:block\s+|height\s+)?|(?:block|height)\s+)(?:number\s+)?(?:is\s+|:\s*|=\s*)?#?(\d+)/i,
+  /(?:supported|available)\s+(?:from|since|after)\s+(?:block|height)\s+#?(\d+)/i,
 ]
 
-// errors get wrapped by ethers/axios/formError, so the node's message can sit in any nested field
-function getErrorText(e: any, depth = 0, seen = new Set<any>()): string {
+// the node's message sits in different fields depending on who wrapped the error (ethers, axios, formError, llamaRPCError)
+const errorMessageFields = ['message', 'shortMessage', 'reason', 'data', '_underlyingError', 'error', 'info', 'response', 'errors']
+
+function getErrorText(e: any, depth = 0): string {
   if (typeof e === 'string') return e
-  if (!e || typeof e !== 'object' || depth > 4 || seen.has(e)) return ''
-  seen.add(e)
-  return Object.getOwnPropertyNames(e)
-    .filter(key => key !== 'stack')
-    .map(key => getErrorText(e[key], depth + 1, seen))
+  if (!e || typeof e !== 'object' || depth > 5) return '' // llamaRPCError: errors[i].error.message sits 4 deep
+  if (Array.isArray(e)) return e.map(i => getErrorText(i, depth + 1)).filter(Boolean).join(' ')
+  return errorMessageFields
+    .map(key => getErrorText(e[key], depth + 1))
     .filter(Boolean)
     .join(' ')
 }
@@ -180,6 +182,12 @@ function getEarliestAvailableFromError(e: any, requested: number): number | unde
   return found.length ? Math.max(...found) : undefined
 }
 
+// true only when the node says the block doesn't exist for it, transient errors (timeouts, 429s) are not pruning
+function isMissingBlockError(e: any): boolean {
+  const text = getErrorText(e)
+  return /Can't get block of chain|not found|not available|pruned|missing trie node|does not have this data|unknown block|no block/i.test(text)
+}
+
 // last resort for nodes that return null/not found without telling where the history starts
 async function searchEarliestAvailableBlock(low: number, chain: string): Promise<number | undefined> {
   const { number: latest } = await getLatestBlock(chain)
@@ -192,13 +200,16 @@ async function searchEarliestAvailableBlock(low: number, chain: string): Promise
   }
   return hi
 
-  async function isBlockAvailable(block: number) {
+  // we only get here after the node confirmed pruning, so a failure in the pruned region is most likely pruning too
+  // (sei answers "method handler crashed" for blocks just above its reported horizon); retry once to rule out a blip
+  async function isBlockAvailable(block: number, retry = true): Promise<boolean> {
     try {
       await fetchBlockFromProvider(block, chain)
       return true
     } catch (e) {
       const earliest = getEarliestAvailableFromError(e, block)
       if (earliest) low = Math.max(low, earliest - 1) // node told us, skip ahead
+      else if (!isMissingBlockError(e) && retry) return isBlockAvailable(block, false)
       return false
     }
   }
@@ -220,6 +231,9 @@ async function fetchAvailableBlock(low: number, chain: string) {
       debugLog(`chain: ${chain} block is pruned, using earliest available block ${low}`)
     }
   }
+
+  // only search when the node says the block is missing, anything else is a transient failure
+  if (!isMissingBlockError(originalError)) throw originalError
 
   // parallel probes can all land in the pruned range, run a single search per chain
   if (!earliestBlockSearches[chain]) {
@@ -285,6 +299,8 @@ const inflightLookups: {
 
 export async function lookupBlock(timestamp: number, extraParams?: LookupBlockOptionalParams): Promise<Block> {
   const { chain = "ethereum", allowedTimeRange, acceptableBlockImprecision } = extraParams ?? {};
+  if (timestamp > Date.now() / 1000)
+    throw new Error(`Requesting for block in the future ${timestamp} is in the future, current time is ${Math.floor(Date.now() / 1000)}`);
   const key = [chain, timestamp, allowedTimeRange, acceptableBlockImprecision].join(':')
   if (!inflightLookups[key]) {
     const limiter = getChainLimiter(chain)
@@ -296,20 +312,51 @@ export async function lookupBlock(timestamp: number, extraParams?: LookupBlockOp
 }
 
 const blockServiceRoundSeconds = 300 // the service's default route rounds timestamps down to this
+const blockServiceTimeout = 5_000
+const blockServiceMaxFailures = 3
+const blockServicePauseDuration = 1000 * 60 * 5 // after repeated failures, go straight to the local search for a while
+let blockServiceFailures = 0
+let blockServicePausedUntil = 0
 
 // ask the block-service when BLOCK_SERVICE_URL is set, any failure falls back to the local search
 async function lookupBlockFromService(timestamp: number, extraParams?: LookupBlockOptionalParams): Promise<Block | undefined> {
   const serviceUrl = getBlockServiceUrl()
-  if (!serviceUrl) return
+  if (!serviceUrl || Date.now() < blockServicePausedUntil) return
   const { chain = "ethereum", allowedTimeRange = 5 * 60 } = extraParams ?? {}
   if (chain === 'waves') return
   const route = allowedTimeRange >= blockServiceRoundSeconds ? '' : '/precise'
   try {
-    const { block, timestamp: blockTimestamp } = await fetchJson(`${serviceUrl}/block/${chain}/${timestamp}${route}`, { timeout: 10_000 })
-    if (typeof block !== 'number' || typeof blockTimestamp !== 'number') throw new Error('bad response')
+    const { block, timestamp: blockTimestamp } = await fetchJson(`${serviceUrl}/block/${chain}/${timestamp}${route}`, { timeout: blockServiceTimeout })
+    if (!Number.isInteger(block) || !Number.isInteger(blockTimestamp)) throw new Error('bad response')
+    // same guard as the local search: a wildly off answer is worse than no answer
+    if (blockTimestamp > timestamp || timestamp - blockTimestamp > 3600) throw new Error(`block ${block} (${blockTimestamp}) is too far from ${timestamp}`)
+    blockServiceFailures = 0
+    addBlockToCache(chain, { number: block, timestamp: blockTimestamp })
     return { block, number: block, timestamp: blockTimestamp }
   } catch (e) {
+    if (++blockServiceFailures >= blockServiceMaxFailures) {
+      blockServicePausedUntil = Date.now() + blockServicePauseDuration
+      blockServiceFailures = 0
+    }
     debugLog(`block-service lookup failed for ${chain} ${timestamp}, falling back to local search: ${(e as any)?.message ?? e}`)
+  }
+}
+
+function getChainBlockTimeCache(chain: string) {
+  if (!blockTimeCache[chain])
+    blockTimeCache[chain] = {}
+
+  return blockTimeCache[chain]
+}
+
+function addBlockToCache(chain: string, block: TimestampBlock) {
+  const { number, timestamp } = block
+  getChainBlockTimeCache(chain)[number] = { number, timestamp, }
+
+  // save the block cache every 5 minutes
+  if (Date.now() - lastBlockCacheSave > blockCacheSaveInterval) {
+    lastBlockCacheSave = Date.now()
+    saveBlockCacheFile()
   }
 }
 
@@ -332,6 +379,7 @@ async function getRecentBlockTime(chain: string, anchor: TimestampBlock, floor: 
   if (cached && Date.now() - cached.updatedAt < blockTimeCacheDuration) return cached.blockTime
 
   const sample = await fetchAvailableBlock(Math.max(floor, anchor.number - blockTimeSampleSize), chain)
+  if (sample.number >= anchor.number) return 2 // pruning horizon is above the anchor, nothing to measure, rough guess, don't cache
   onBlock(sample)
   const blockTime = (anchor.timestamp - sample.timestamp) / (anchor.number - sample.number)
   if (!(blockTime > 0) || !isFinite(blockTime)) return 2 // not enough history to measure, rough guess, don't cache
@@ -346,9 +394,6 @@ async function _lookupBlock(
   const { allowedTimeRange = 5 * 60, acceptableBlockImprecision = 10 } = extraParams ?? {};
   const chain = extraParams?.chain ?? "ethereum"
   let time = Date.now()
-  if (timestamp > time / 1000) {
-    throw new Error(`Requesting for block in the future ${timestamp} is in the future, current time is ${Math.floor(time / 1000)}`);
-  }
 
   if (chain === 'waves') {
     const api = `https://nodes.wavesnodes.com/blocks/heightByTimestamp/${timestamp}`
@@ -378,15 +423,16 @@ async function _lookupBlock(
     // anchor on the chain head unless the cache already has a block after the timestamp
     if (!highBlock || earliestAvailableBlockRange[chain]) {
       const head = await getLatestBlock(chain)
-      if (Math.abs(head.timestamp - timestamp) < 60 * 5) // Short-circuit in case we are trying to get the current block
+      // Short-circuit in case we are trying to get the current block, or the rpc head lags behind the requested time
+      if (Math.abs(head.timestamp - timestamp) < 60 * 5 || head.timestamp <= timestamp)
         return { block: head.number, number: head.number, timestamp: head.timestamp }
       floor = getFloorBlock(head)
       if (!highBlock || head.number < highBlock.number) updateBounds(head, false)
-      if (lowBlock && lowBlock.number < floor) lowBlock = undefined
     }
 
     while (!isPreciseEnough() && calls < maxCalls) {
       floor = Math.max(floor, earliestAvailableBlock[chain] ?? 0)
+      if (lowBlock && lowBlock.number < floor) lowBlock = undefined // pruned away, guesses below the floor would just repeat the horizon block
       let guesses: number[]
 
       if (lowBlock) {
@@ -400,7 +446,10 @@ async function _lookupBlock(
       } else {
         // only an upper bound: extrapolate back from it using the recent block time
         if (highBlock!.number <= floor) break // requested time is before the available history
-        blockTime = blockTime ?? await getRecentBlockTime(chain, highBlock!, floor, block => { calls++; updateBounds(block) })
+        if (!blockTime) {
+          const recentBlockTime = await getRecentBlockTime(chain, highBlock!, floor, block => { calls++; updateBounds(block) })
+          blockTime = blockTime ?? recentBlockTime // updateBounds may have set a more local slope meanwhile, keep that
+        }
         if (lowBlock) continue // the block time sample already bracketed the timestamp
         const guess = clamp(Math.round(highBlock!.number - (highBlock!.timestamp - timestamp) / blockTime), floor, highBlock!.number - 1)
         // probe around the guess too, so a slightly off block time still brackets the timestamp in one round trip
@@ -457,7 +506,7 @@ async function _lookupBlock(
   }
 
   function updateBounds(block: TimestampBlock, saveToCache = true) {
-    if (saveToCache) addBlockToCache(block)
+    if (saveToCache) addBlockToCache(chain, block)
     if (block.timestamp <= timestamp) {
       if (!lowBlock || block.number > lowBlock.number) lowBlock = block
     } else if (!highBlock || block.number < highBlock.number) {
@@ -473,25 +522,6 @@ async function _lookupBlock(
 
   function clamp(value: number, min: number, max: number) {
     return Math.min(Math.max(value, min), max)
-  }
-
-  function getChainBlockTimeCache(chain: string) {
-    if (!blockTimeCache[chain])
-      blockTimeCache[chain] = {}
-
-    return blockTimeCache[chain]
-  }
-
-
-  function addBlockToCache(block: TimestampBlock) {
-    const { number, timestamp } = block
-    getChainBlockTimeCache(chain)[block.number] = { number, timestamp, }
-
-    // save the block cache every 5 minutes
-    if (Date.now() - lastBlockCacheSave > blockCacheSaveInterval) {
-      lastBlockCacheSave = Date.now()
-      saveBlockCacheFile()
-    }
   }
 
   function getLowBlock() {

@@ -310,6 +310,7 @@ const httpRPC = {
       timeout: +(getEnvValue('LLAMA_PROVIDER_RPC_GET_BLOCK_TIMEOUT', '60000') as any)
     })
     if (error) throw error
+    if (!result) throw new Error(`block ${params[0]} not found`) // pruned or not yet synced, let callers recognise it
     result.number = parseInt(result.number)
     result.timestamp = parseInt(result.timestamp)
     return result;
