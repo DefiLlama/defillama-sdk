@@ -1,3 +1,4 @@
+import axios from "axios";
 import computeTVL from './computeTVL';
 
 test("computeTVL - tether bal", async () => {
@@ -27,6 +28,22 @@ test("computeTVL - usdTokenBalances", async () => {
   expect(usdTokenBalances.SOL).toBeGreaterThan(3000);
   expect(usdTokenBalances.USDT).toBeGreaterThan(999);
   expect(usdTokenBalances.ETH).toBeUndefined();
+})
+
+test("computeTVL - current prices refresh after cache TTL", async () => {
+  const realNow = Date.now;
+  const postSpy = jest.spyOn(axios, "post");
+  try {
+    await computeTVL({ 'ethereum': 5 });
+    const callsAfterFirst = postSpy.mock.calls.length;
+    Date.now = () => realNow() + 31 * 60 * 1000; // move past the 30-minute price cache TTL
+    const { usdTvl } = await computeTVL({ 'ethereum': 5 });
+    expect(postSpy.mock.calls.length).toBeGreaterThan(callsAfterFirst); // stale cache must be cleared and refetched live
+    expect(usdTvl).toBeGreaterThan(3000);
+  } finally {
+    Date.now = realNow;
+    postSpy.mockRestore();
+  }
 })
 
 test("computeTVL - past Ethereum balance", async () => {
