@@ -1,5 +1,5 @@
 import ChainApi from "../ChainApi";
-import { getLogs, toFilterTopic, } from "./logs";
+import { getLogs, maxLogsForStorage, toFilterTopic, trimCachesForStorage, } from "./logs";
 
 const baseApi = new ChainApi({ chain: 'base' })
 
@@ -333,3 +333,70 @@ test("logs - onlyArgs are iterable arrays with named fields", async () => {
 
   expect(totalAmount1In).toBe(BigInt(1000));
 });
+
+const mkLogs = (count: number, startBlock: number) =>
+  Array.from({ length: count }, (_, i) => ({ blockNumber: startBlock + i, transactionHash: '0x' + i, index: i })) as any[]
+
+test("trimCachesForStorage - keeps logs when the range is under the cap", () => {
+  const caches = [{ logs: mkLogs(10, 100), metadata: { fromBlock: 100, toBlock: 109 } }] as any
+  const out = trimCachesForStorage(caches, 200_000)
+  expect(out).toHaveLength(1)
+  expect(out[0].logs).toHaveLength(10)
+  expect(out[0].metadata).toEqual({ fromBlock: 100, toBlock: 109 })
+})
+
+test("trimCachesForStorage - never reports a range it has no logs for", () => {
+  const caches = [{ logs: mkLogs(5, 500), metadata: { fromBlock: 500, toBlock: 504 } }] as any
+  const out = trimCachesForStorage(caches, 200_000)
+  for (const c of out) {
+    if (!c.logs.length) continue
+    expect(c.metadata.fromBlock).toBeLessThanOrEqual(c.logs[c.logs.length - 1].blockNumber)
+  }
+  expect(out[0].logs.length).toBeGreaterThan(0)
+})
+
+test("trimCachesForStorage - trims to the cap and narrows fromBlock to what survived", () => {
+  const caches = [{ logs: mkLogs(10, 1000), metadata: { fromBlock: 1000, toBlock: 1009 } }] as any
+  const out = trimCachesForStorage(caches, 4)
+  expect(out[0].logs).toHaveLength(4)
+  expect(out[0].logs.map((l: any) => l.blockNumber)).toEqual([1009, 1008, 1007, 1006])
+  expect(out[0].metadata.fromBlock).toBe(1006)
+  expect(out[0].metadata.toBlock).toBe(1009)
+})
+
+test("trimCachesForStorage - keeps only the newest range when several are cached", () => {
+  const caches = [
+    { logs: mkLogs(3, 100), metadata: { fromBlock: 100, toBlock: 102 } },
+    { logs: mkLogs(3, 900), metadata: { fromBlock: 900, toBlock: 902 } },
+  ] as any
+  const out = trimCachesForStorage(caches, 200_000)
+  expect(out).toHaveLength(1)
+  expect(out[0].metadata.fromBlock).toBe(900)
+  expect(out[0].logs).toHaveLength(3)
+})
+
+test("maxLogsForStorage - a wide log caps below the flat 200k", () => {
+  // seaport OrderFulfilled sampled around 2192 bytes of JSON per log
+  expect(maxLogsForStorage(2192)).toBe(Math.floor((300 * 1024 * 1024) / 2192))
+  expect(maxLogsForStorage(2192)).toBeLessThan(200_000)
+  expect(maxLogsForStorage(2192) * 2192).toBeLessThanOrEqual(300 * 1024 * 1024)
+})
+
+test("maxLogsForStorage - a narrow log keeps the flat 200k cap", () => {
+  expect(maxLogsForStorage(200)).toBe(200_000)
+  expect(maxLogsForStorage(1572)).toBe(200_000)
+  expect(maxLogsForStorage(1573)).toBeLessThan(200_000)
+})
+
+test("maxLogsForStorage - a missing or absurd length falls back to the cap", () => {
+  expect(maxLogsForStorage(0)).toBe(200_000)
+  expect(maxLogsForStorage(undefined as any)).toBe(200_000)
+  expect(maxLogsForStorage(400 * 1024 * 1024)).toBe(1)
+})
+
+test("trimCachesForStorage - honours a byte derived cap", () => {
+  const caches = [{ logs: mkLogs(10, 1000), metadata: { fromBlock: 1000, toBlock: 1009 } }] as any
+  const out = trimCachesForStorage(caches, maxLogsForStorage(60 * 1024 * 1024))
+  expect(out[0].logs).toHaveLength(5)
+  expect(out[0].metadata.fromBlock).toBe(1005)
+})
