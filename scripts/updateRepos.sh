@@ -32,7 +32,14 @@ update_repo() {
   local subdirs=("$@")
   [ ${#subdirs[@]} -eq 0 ] && subdirs=(".")
 
-  echo "Update $name"
+  echo "
+
+  ---
+
+  Updating $name
+  
+  
+   "
   [ ! -d "$name" ] && git clone "$url"
 
   pushd "$name" > /dev/null
