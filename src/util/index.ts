@@ -8,6 +8,7 @@ export { getLatestBlock, getTimestamp, lookupBlock, } from "./blocks";
 export { convertToBigInt } from "./common"
 import pLimit from 'p-limit';
 import { getParallelGetLogsLimit, ENV_CONSTANTS } from "./env";
+import { getHintedBlockSpan, isRangeTooWideError } from "./logs.range";
 
 export const runInPromisePool = runInPromisePoolOrig
 
@@ -67,6 +68,23 @@ export async function getLogs(options: GetLogsOptions): Promise<{ output: EventL
   return getLimiter()(() => _getLogs(options));
 }
 
+// a node that caps by result count or by a tiny block range can need a lot of sub-queries, but not
+// an unbounded number, past this it is cheaper to fail than to walk the range a few blocks at a time
+const MAX_SUB_QUERIES = 2000;
+
+// the node either states the span it will serve or just complains about the size, in which case
+// halve. returns undefined when the error is not about the range at all, so retrying cannot help.
+function narrowBlockSpan(attemptedSpan: number, e: any): number | undefined {
+  if (!isRangeTooWideError(e)) return undefined;
+  const hinted = getHintedBlockSpan(e);
+  let next = hinted !== undefined && hinted < attemptedSpan ? hinted : Math.floor(attemptedSpan / 2);
+  // most nodes that cap by block range cap at one of these, landing on it saves a round trip
+  if (next > 510 && next < 2000) next = 1000;
+  if (next > 5100 && next < 10000) next = 10000;
+  if (next >= attemptedSpan) next = Math.floor(attemptedSpan / 2);
+  return next >= 1 ? next : undefined;
+}
+
 // SMALL INCOMPATIBILITY: On the old API we don't return ids but we should
 async function _getLogs(params: GetLogsOptions): Promise<{ output: EventLog[] }> {
   if (params.toBlock === undefined || params.fromBlock === undefined) {
@@ -80,12 +98,14 @@ async function _getLogs(params: GetLogsOptions): Promise<{ output: EventLog[] }>
     fromBlock: params.fromBlock,
     toBlock: params.toBlock // We don't replicate Defipulse's bug because the results end up being the same anyway and hopefully they'll eventually fix it
   };
+  const totalBlocks = params.toBlock - params.fromBlock + 1;
+  const minBlockSpan = Math.max(1, Math.ceil(totalBlocks / MAX_SUB_QUERIES));
   let logs: EventLog[] = [];
-  let blockSpread = params.toBlock - params.fromBlock;
+  let blockSpan = totalBlocks;
   let currentBlock = params.fromBlock;
   const provider = params.provider ?? getProvider(params.chain, true);
-  while (currentBlock < params.toBlock) {
-    const nextBlock = Math.min(params.toBlock, currentBlock + blockSpread);
+  while (currentBlock <= params.toBlock) {
+    const nextBlock = Math.min(params.toBlock, currentBlock + blockSpan - 1);
     let logParams = {
       ...filter,
       fromBlock: currentBlock,
@@ -94,23 +114,19 @@ async function _getLogs(params: GetLogsOptions): Promise<{ output: EventLog[] }>
     try {
       const partLogs = await provider.getLogs(logParams);
       logs = logs.concat(partLogs as EventLog[]);
-      currentBlock = nextBlock;
+      currentBlock = nextBlock + 1;
     } catch (e) {
 
       if (ENV_CONSTANTS.GET_LOGS_DEBUG)
-        debugLog(`Error fetching logs for chain ${params.chain} blockSpread: ${blockSpread}. ${formError(e, { chain: params.chain, target: params.target, provider })}`)
+        debugLog(`Error fetching logs for chain ${params.chain} blockSpan: ${blockSpan}. ${formError(e, { chain: params.chain, target: params.target, provider })}`)
 
-      if (blockSpread >= 1001) {
-        // We got too many results
-        // We could chop it up into 1001 block spreads as that is guaranteed to always return but then we'll have to make a lot of queries (easily >1000), so instead we'll keep dividing the block spread by two until we make it
-        blockSpread = Math.floor(blockSpread / 2);
-        if (blockSpread > 510 && blockSpread < 2000) blockSpread = 999;
-        if (blockSpread > 5100 && blockSpread < 10000) blockSpread = 9999;
-      } else {
+      const nextSpan = narrowBlockSpan(nextBlock - currentBlock + 1, e);
+      if (nextSpan === undefined || nextSpan < minBlockSpan) {
         const error = formError(e, { chain: params.chain, target: params.target, provider })
         error.message = `[chain: ${params.chain}] ${(error as any)?.message} params: ${JSON.stringify(logParams)}`
         throw e;
       }
+      blockSpan = nextSpan;
     }
   }
   if (params.keys.length > 0) {
