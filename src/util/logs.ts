@@ -354,8 +354,26 @@ export function trimCachesForStorage(caches: logCache[], maxLogs = 200_000): log
     const clone: any = { logs: c.logs, metadata: JSON.parse(JSON.stringify(c.metadata)) }
     if (c.logs.length > maxLogs) {
       const sorted = [...c.logs].sort((a: any, b: any) => b.blockNumber - a.blockNumber)
-      clone.logs = sorted.slice(0, maxLogs)
-      clone.metadata.fromBlock = clone.logs[clone.logs.length - 1].blockNumber
+      let kept = sorted.slice(0, maxLogs)
+      const oldestKept = kept[kept.length - 1].blockNumber
+      const heldInOldest = sorted.filter((i: any) => i.blockNumber === oldestKept).length
+      const keptInOldest = kept.filter((i: any) => i.blockNumber === oldestKept).length
+      if (heldInOldest === keptInOldest) {
+        clone.metadata.fromBlock = oldestKept
+      } else {
+        // the cut landed inside oldestKept, so drop it: claiming to cover a block we only hold part
+        // of would make every later read of this range silently under-report that block
+        const whole = kept.filter((i: any) => i.blockNumber > oldestKept)
+        if (whole.length) {
+          kept = whole
+          clone.metadata.fromBlock = oldestKept + 1
+        } else {
+          // the budget does not stretch to one block, keep that block whole rather than lie about it
+          kept = sorted.filter((i: any) => i.blockNumber === oldestKept)
+          clone.metadata.fromBlock = oldestKept
+        }
+      }
+      clone.logs = kept
     }
     return clone
   })
