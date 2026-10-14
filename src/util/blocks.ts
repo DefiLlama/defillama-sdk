@@ -396,7 +396,7 @@ async function _lookupBlock(
   let time = Date.now()
 
   if (chain === 'waves') {
-    const api = `https://nodes.wavesnodes.com/blocks/heightByTimestamp/${timestamp}`
+    const api = `https://nodes.wavesnodes.com/blocks/heightByTimestamp/${timestamp * 1000}`
     const data = await fetchJson(api)
     return {
       timestamp,
