@@ -262,8 +262,8 @@ export type IndexerGetLogsOptions = {
   topic?: string;
   fromBlock?: number;
   toBlock?: number;
-  topics?: (string | null)[];
-  extraTopics?: string[];
+  topics?: (string | string[] | null)[];
+  extraTopics?: (string | string[] | null)[];
   chain?: string;
   eventAbi?: string | any;
   fromTimestamp?: number;

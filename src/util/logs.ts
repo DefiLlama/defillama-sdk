@@ -36,8 +36,8 @@ export type GetLogsOptions = {
   keys?: string[];
   fromBlock?: number;
   toBlock?: number;
-  topics?: (string | null)[];
-  extraTopics?: string[];
+  topics?: (string | string[] | null)[];
+  extraTopics?: (string | string[] | null)[];
   chain?: string;
   eventAbi?: string | any;
   fromTimestamp?: number;
@@ -386,7 +386,7 @@ type GetLogsParamsResponse = {
   topic: string;
   iface?: Interface;
   transformLog: (log: any) => any;
-  topics?: (string | null)[];
+  topics?: (string | string[] | null)[];
   topic1?: string;
   topic2?: string;
   topic3?: string;
