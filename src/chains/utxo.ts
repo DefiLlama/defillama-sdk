@@ -86,6 +86,12 @@ export const CHAINS: Record<string, UtxoChainConfig> = {
     endpoints: ['https://mainnet.mvcapi.com'],
     concurrency: 5,
   },
+  bitcoincash: {
+    decimals: 8,
+    // bchblockexplorer.com is a blockbook v2 instance, takes legacy and cashaddr addresses
+    endpoints: ['https://bchblockexplorer.com/api/v2', 'https://api.blockchair.com/bitcoin-cash'],
+    concurrency: 5,
+  },
 }
 
 export const utxoChains: string[] = Object.keys(CHAINS)
@@ -304,7 +310,7 @@ const PROVIDERS: Provider[] = [
   { kind: 'whatsonchain', match: /whatsonchain\.com/i, balancePath: (a) => `/address/${a}/balance` },
   { kind: 'kaspa', match: /kaspa/i, balancePath: (a) => `/addresses/${encodeURIComponent(a)}/balance` },
   { kind: 'mvc', match: /mvcapi\.com/i, balancePath: (a) => `/address/${a}/balance` },
-  { kind: 'blockbook', match: /blockbook/i, balancePath: (a) => `/address/${a}` },
+  { kind: 'blockbook', match: /blockbook|bchblockexplorer\.com/i, balancePath: (a) => `/address/${a}` },
   { kind: 'esplora', match: /blockstream\.info|mempool\.space|litecoinspace\.org/i, balancePath: (a) => `/address/${a}` },
 ]
 

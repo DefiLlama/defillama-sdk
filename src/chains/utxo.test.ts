@@ -9,6 +9,7 @@ const BINANCE_COLD = '34xp4vRoCGJym3xR7yCVPFHoCNxv4Twseo'
 const BITFINEX_COLD = 'bc1qgdjqv0av3q56jvd82tkdjpy7gdp9ut8tlqmgrpmv24sq90ecnvqqjwvw97'
 const LTC_BITFINEX = 'LXTQdps2Pf83WdAXMinboiqLsEjSWrwJCD'
 const DOGE_ADDRESS = 'DH5yaieqoZN36fDVciNyRueRGvGLR3mr7L'
+const BCH_BINANCE_PEG = '1PFa2VjpU8mRGb4FygKPqTDtxU6FvVPMfU'
 
 const isNumericString = (s: any) => typeof s === 'string' && /^\d+$/.test(s)
 
@@ -18,7 +19,7 @@ describe('chains.utxo pure helpers', () => {
   })
 
   test('config covers the ported chains', () => {
-    for (const chain of ['bitcoin', 'litecoin', 'doge', 'dash', 'bsv', 'zcash', 'kaspa', 'mvc']) {
+    for (const chain of ['bitcoin', 'litecoin', 'doge', 'dash', 'bsv', 'zcash', 'kaspa', 'mvc', 'bitcoincash']) {
       expect(utxoChains).toContain(chain)
       expect(CHAINS[chain].decimals).toBe(8)
       expect(CHAINS[chain].endpoints.length).toBeGreaterThan(0)
@@ -157,5 +158,11 @@ describe('chains.utxo live (public explorers)', () => {
   test('getBalance doge', async () => {
     const balance = await getBalance({ chain: 'doge', address: DOGE_ADDRESS })
     expect(isNumericString(balance)).toBe(true)
+  })
+
+  test('getBalance bitcoincash', async () => {
+    const balance = await getBalance({ chain: 'bitcoincash', address: BCH_BINANCE_PEG })
+    expect(isNumericString(balance)).toBe(true)
+    expect(Number(balance)).toBeGreaterThan(50_000e8)
   })
 })
