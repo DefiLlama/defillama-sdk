@@ -10,6 +10,7 @@ const BITFINEX_COLD = 'bc1qgdjqv0av3q56jvd82tkdjpy7gdp9ut8tlqmgrpmv24sq90ecnvqqj
 const LTC_BITFINEX = 'LXTQdps2Pf83WdAXMinboiqLsEjSWrwJCD'
 const DOGE_ADDRESS = 'DH5yaieqoZN36fDVciNyRueRGvGLR3mr7L'
 const BCH_BINANCE_PEG = '1PFa2VjpU8mRGb4FygKPqTDtxU6FvVPMfU'
+const ZEC_BINANCE = 't1PKBiv7mtzD9bNafYaqyxaENeiNDbpKxxQ'
 
 const isNumericString = (s: any) => typeof s === 'string' && /^\d+$/.test(s)
 
@@ -164,5 +165,20 @@ describe('chains.utxo live (public explorers)', () => {
     const balance = await getBalance({ chain: 'bitcoincash', address: BCH_BINANCE_PEG })
     expect(isNumericString(balance)).toBe(true)
     expect(Number(balance)).toBeGreaterThan(50_000e8)
+  })
+  
+  test('getBalance zcash', async () => {
+    const balance = await getBalance({ chain: 'zcash', address: ZEC_BINANCE })
+    expect(isNumericString(balance)).toBe(true)
+  })
+
+  test('getBalance zcash via blockbook fallback', async () => {
+    process.env.ZCASH_EXPLORER_API = 'https://blockbook.zec.zelcore.io/api/v2'
+    try {
+      const balance = await getBalance({ chain: 'zcash', address: ZEC_BINANCE })
+      expect(isNumericString(balance)).toBe(true)
+    } finally {
+      delete process.env.ZCASH_EXPLORER_API
+    }
   })
 })

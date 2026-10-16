@@ -71,8 +71,9 @@ export const CHAINS: Record<string, UtxoChainConfig> = {
   },
   zcash: {
     decimals: 8,
-    // blockchair free tier: ~30 req/min per IP
-    endpoints: ['https://api.blockchair.com/zcash'],
+    // blockchair free tier: ~30 req/min per IP, temporarily blacklists on overuse;
+    // zelcore runs a keyless blockbook v2 instance as fallback
+    endpoints: ['https://api.blockchair.com/zcash', 'https://blockbook.zec.zelcore.io/api/v2'],
     concurrency: 1,
     sleepMs: 5000,
   },
