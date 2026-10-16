@@ -71,8 +71,9 @@ export const CHAINS: Record<string, UtxoChainConfig> = {
   },
   zcash: {
     decimals: 8,
-    // blockchair free tier: ~30 req/min per IP
-    endpoints: ['https://api.blockchair.com/zcash'],
+    // blockchair free tier: ~30 req/min per IP, temporarily blacklists on overuse;
+    // zelcore runs a keyless blockbook v2 instance as fallback
+    endpoints: ['https://api.blockchair.com/zcash', 'https://blockbook.zec.zelcore.io/api/v2'],
     concurrency: 1,
     sleepMs: 5000,
   },
@@ -84,6 +85,12 @@ export const CHAINS: Record<string, UtxoChainConfig> = {
   mvc: {
     decimals: 8,
     endpoints: ['https://mainnet.mvcapi.com'],
+    concurrency: 5,
+  },
+  bitcoincash: {
+    decimals: 8,
+    // bchblockexplorer.com is a blockbook v2 instance, takes legacy and cashaddr addresses
+    endpoints: ['https://bchblockexplorer.com/api/v2', 'https://api.blockchair.com/bitcoin-cash'],
     concurrency: 5,
   },
 }
@@ -304,7 +311,7 @@ const PROVIDERS: Provider[] = [
   { kind: 'whatsonchain', match: /whatsonchain\.com/i, balancePath: (a) => `/address/${a}/balance` },
   { kind: 'kaspa', match: /kaspa/i, balancePath: (a) => `/addresses/${encodeURIComponent(a)}/balance` },
   { kind: 'mvc', match: /mvcapi\.com/i, balancePath: (a) => `/address/${a}/balance` },
-  { kind: 'blockbook', match: /blockbook/i, balancePath: (a) => `/address/${a}` },
+  { kind: 'blockbook', match: /blockbook|bchblockexplorer\.com/i, balancePath: (a) => `/address/${a}` },
   { kind: 'esplora', match: /blockstream\.info|mempool\.space|litecoinspace\.org/i, balancePath: (a) => `/address/${a}` },
 ]
 
