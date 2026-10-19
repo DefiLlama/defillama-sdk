@@ -14,6 +14,7 @@ const defaultEnvValues = {
   CRONOS_MULTICALL_CHUNK_SIZE: "10", // cronos reduced gas limit, this is a workaround to make multicall work
   HEDERA_MULTICALL_CHUNK_SIZE: "50", // cronos reduced gas limit, this is a workaround to make multicall work
   KATANA_MULTICALL_CHUNK_SIZE: "50",
+  ARC_MULTICALL_CHUNK_SIZE: "50", // moved here from adapters/dimension-adapters env defaults
   INTERNAL_SDK_CACHE_FILE: './cache.json',
   TRON_RPC_CONCURRENCY_LIMIT: '5',
   LLAMA_INDEXER_ADDRESS_CHUNK_SIZE: '20',

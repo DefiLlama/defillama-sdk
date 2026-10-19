@@ -1,5 +1,5 @@
 import {
-  CHAINS, utxoChains, isUtxoChain, getEndpoints,
+  CHAINS, utxoChains, isUtxoChain, getEndpoints, getChainConfig, PROVIDER_KINDS,
   toBaseUnits, fromBaseUnits, toBigInt, isBitcoinAddress, parseBlockstreamAddressStats, parseBalanceResponse,
   getBalance, getBalances, getLatestBlock, getBlockAtTimestamp, getBitcoinBalanceAt, getUtxos,
 } from "./utxo";
@@ -9,16 +9,22 @@ const BINANCE_COLD = '34xp4vRoCGJym3xR7yCVPFHoCNxv4Twseo'
 const BITFINEX_COLD = 'bc1qgdjqv0av3q56jvd82tkdjpy7gdp9ut8tlqmgrpmv24sq90ecnvqqjwvw97'
 const LTC_BITFINEX = 'LXTQdps2Pf83WdAXMinboiqLsEjSWrwJCD'
 const DOGE_ADDRESS = 'DH5yaieqoZN36fDVciNyRueRGvGLR3mr7L'
+// genesis coinbase address in cashaddr form (same key as SATOSHI_GENESIS)
+const BCH_GENESIS_CASHADDR = 'bitcoincash:qp3wjpa3tjlj042z2wv7hahsldgwhwy0rq9sywjpyy'
 
 const isNumericString = (s: any) => typeof s === 'string' && /^\d+$/.test(s)
 
 describe('chains.utxo pure helpers', () => {
   afterEach(() => {
     delete process.env.BITCOIN_EXPLORER_API
+    delete process.env.FOOCOIN_EXPLORER_API
+    delete process.env.FOOCOIN_WHITELISTED_RPC
+    delete process.env.FOOCOIN_DECIMALS
+    delete process.env.FOOCOIN_EXPLORER_PROVIDER
   })
 
   test('config covers the ported chains', () => {
-    for (const chain of ['bitcoin', 'litecoin', 'doge', 'dash', 'bsv', 'zcash', 'kaspa', 'mvc']) {
+    for (const chain of ['bitcoin', 'bitcoincash', 'litecoin', 'doge', 'dash', 'bsv', 'zcash', 'kaspa', 'mvc']) {
       expect(utxoChains).toContain(chain)
       expect(CHAINS[chain].decimals).toBe(8)
       expect(CHAINS[chain].endpoints.length).toBeGreaterThan(0)
@@ -84,6 +90,7 @@ describe('chains.utxo pure helpers', () => {
     expect(parseBalanceResponse({ final_balance: 100 }, opts)).toBe('100')
     expect(parseBalanceResponse({ balance: 1.5, balanceSat: 150000000 }, opts)).toBe('150000000') // insight
     expect(parseBalanceResponse({ confirmed: 12, unconfirmed: 5 }, opts)).toBe('12') // whatsonchain / mvc
+    expect(parseBalanceResponse({ address: 'addr', confirmed: 7699899464, unconfirmed: 0, utxo: 1233, txs: 1232, received: 7699899464 }, opts)).toBe('7699899464') // haskoin
     expect(parseBalanceResponse({ data: { addr: { address: { balance: 42 } } } }, opts)).toBe('42') // blockchair
     expect(parseBalanceResponse({ incoming: '10.5', outgoing: '0.25' }, opts)).toBe('1025000000') // tatum
     expect(parseBalanceResponse({ balance: '123456' }, opts)).toBe('123456') // blockbook v2 / kaspa
@@ -104,6 +111,44 @@ describe('chains.utxo pure helpers', () => {
     expect(getEndpoints({ chain: 'litecoin' })).toEqual(CHAINS.litecoin.endpoints)
     delete process.env.BITCOIN_EXPLORER_API
     expect(getEndpoints({ chain: 'bitcoin' })).toEqual(CHAINS.bitcoin.endpoints)
+  })
+
+  test('unknown chains are rejected unless enabled through env', () => {
+    expect(isUtxoChain('foocoin')).toBe(false)
+    expect(() => getChainConfig('foocoin')).toThrow(/FOOCOIN_EXPLORER_API/)
+    expect(() => getEndpoints({ chain: 'foocoin' })).toThrow()
+
+    process.env.FOOCOIN_EXPLORER_API = 'https://esplora.foocoin.example/api, https://blockbook.foocoin.example/api/v2'
+    expect(isUtxoChain('foocoin')).toBe(true)
+    expect(utxoChains).not.toContain('foocoin')
+    expect(getEndpoints({ chain: 'foocoin' })).toEqual(['https://esplora.foocoin.example/api', 'https://blockbook.foocoin.example/api/v2'])
+    const config = getChainConfig('foocoin')
+    expect(config.decimals).toBe(8)
+    expect(config.provider).toBe('esplora')
+    expect(config.concurrency).toBeGreaterThan(0)
+
+    process.env.FOOCOIN_DECIMALS = '6'
+    process.env.FOOCOIN_EXPLORER_PROVIDER = 'Blockbook'
+    expect(getChainConfig('foocoin')).toMatchObject({ decimals: 6, provider: 'blockbook' })
+
+    process.env.FOOCOIN_EXPLORER_PROVIDER = 'nope'
+    expect(() => getChainConfig('foocoin')).toThrow(/FOOCOIN_EXPLORER_PROVIDER/)
+    delete process.env.FOOCOIN_EXPLORER_PROVIDER
+    process.env.FOOCOIN_DECIMALS = 'eight'
+    expect(() => getChainConfig('foocoin')).toThrow(/FOOCOIN_DECIMALS/)
+  })
+
+  test('a whitelisted rpc alone enables an env chain', () => {
+    process.env.FOOCOIN_WHITELISTED_RPC = 'https://private.foocoin.example/api'
+    expect(isUtxoChain('foocoin')).toBe(true)
+    expect(getEndpoints({ chain: 'foocoin' })).toEqual(['https://private.foocoin.example/api'])
+  })
+
+  test('provider kinds list matches the config type', () => {
+    expect(PROVIDER_KINDS).toContain('haskoin')
+    expect(PROVIDER_KINDS).toContain('esplora')
+    expect(isUtxoChain('toString')).toBe(false)
+    expect(isUtxoChain('__proto__')).toBe(false)
   })
 })
 
@@ -157,5 +202,13 @@ describe('chains.utxo live (public explorers)', () => {
   test('getBalance doge', async () => {
     const balance = await getBalance({ chain: 'doge', address: DOGE_ADDRESS })
     expect(isNumericString(balance)).toBe(true)
+  })
+
+  test('getBalance bitcoincash accepts cashaddr and legacy forms of the genesis address', async () => {
+    const cashaddr = await getBalance({ chain: 'bitcoincash', address: BCH_GENESIS_CASHADDR })
+    expect(isNumericString(cashaddr)).toBe(true)
+    expect(Number(cashaddr)).toBeGreaterThan(50e8)
+    const legacy = await getBalance({ chain: 'bitcoincash', address: SATOSHI_GENESIS })
+    expect(legacy).toBe(cashaddr)
   })
 })

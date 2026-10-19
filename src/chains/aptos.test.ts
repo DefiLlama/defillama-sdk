@@ -1,3 +1,4 @@
+import axios from "axios";
 import * as aptos from "./aptos";
 
 const APT = '0x1::aptos_coin::AptosCoin'
@@ -95,6 +96,77 @@ describe('chains.aptos offline', () => {
     expect(aptos.parseTypeTag('vector<u8>')).toMatchObject({ name: 'vector', typeArgs: ['u8'], isStruct: false })
     expect(() => aptos.parseTypeTag('0x1::coin')).toThrow(/Invalid type tag/)
     expect(() => aptos.parseTypeTag('0x1::coin::CoinStore<0x1::a::B')).toThrow(/Invalid type tag/)
+  })
+})
+
+describe('chains.aptos indexer (mocked)', () => {
+  let postSpy: jest.SpyInstance
+  afterEach(() => {
+    postSpy?.mockRestore()
+    delete process.env.APTOS_INDEXER
+    delete process.env.APTOS_API_KEY
+  })
+
+  test('indexer endpoints: env first, defaults kept as fallbacks, empty for chains without one', () => {
+    const aptosDefaults = ['https://api.mainnet.aptoslabs.com/v1/graphql', 'https://indexer.mainnet.aptoslabs.com/v1/graphql']
+    expect(aptos.getIndexerEndpointList()).toEqual(aptosDefaults)
+    expect(aptos.getIndexerEndpointList({ chain: 'move' })).toEqual(['https://indexer.mainnet.movementnetwork.xyz/v1/graphql'])
+    process.env.APTOS_INDEXER = 'https://idx1.example.com/v1/graphql,https://idx2.example.com/v1/graphql'
+    expect(aptos.getIndexerEndpointList()).toEqual(['https://idx1.example.com/v1/graphql', 'https://idx2.example.com/v1/graphql', ...aptosDefaults])
+    expect(aptos.getIndexerEndpointList({ chain: 'notachain' })).toEqual([])
+  })
+
+  test('indexerQuery rotates to the next endpoint on a transport error and sends the bearer key', async () => {
+    process.env.APTOS_INDEXER = 'https://idx1.example.com/v1/graphql,https://idx2.example.com/v1/graphql'
+    process.env.APTOS_API_KEY = 'secret'
+    const urls: string[] = []
+    postSpy = jest.spyOn(axios, 'post').mockImplementation(async (url: any, body: any, config: any) => {
+      urls.push(url)
+      expect(config.headers.Authorization).toBe('Bearer secret')
+      expect(body.query).toContain('ping')
+      if (urls.length === 1) throw Object.assign(new Error('boom'), { response: { status: 503 } })
+      return { data: { data: { ping: 1 } } }
+    })
+    await expect(aptos.indexerQuery({ query: '{ ping }' })).resolves.toEqual({ ping: 1 })
+    expect(urls).toEqual(['https://idx1.example.com/v1/graphql', 'https://idx2.example.com/v1/graphql'])
+  })
+
+  test('graphql errors fail fast, rate-limit errors are retried', async () => {
+    let calls = 0
+    postSpy = jest.spyOn(axios, 'post').mockImplementation(async () => {
+      calls++
+      return { data: { errors: [{ message: 'field "nope" not found' }] } }
+    })
+    await expect(aptos.indexerQuery({ query: '{ nope }' })).rejects.toThrow(/field "nope" not found/)
+    expect(calls).toBe(1)
+
+    postSpy.mockRestore()
+    calls = 0
+    postSpy = jest.spyOn(axios, 'post').mockImplementation(async () => {
+      calls++
+      if (calls === 1) return { data: { errors: [{ message: 'rate limit exceeded' }] } }
+      return { data: { data: { ok: true } } }
+    })
+    await expect(aptos.indexerQuery({ query: '{ ok }' })).resolves.toEqual({ ok: true })
+    expect(calls).toBe(2)
+  })
+
+  test('getFungibleAssetBalances pads owners, chunks and paginates', async () => {
+    const seenOwners: string[][] = []
+    postSpy = jest.spyOn(axios, 'post').mockImplementation(async (_url: any, body: any) => {
+      const { owners, offset, limit } = body.variables
+      seenOwners.push(owners)
+      // first chunk has two pages, second chunk one
+      const rows = owners.length === 2 && offset === 0
+        ? Array.from({ length: limit }, (_, i) => ({ owner_address: owners[0], asset_type: `0x${i}`, amount: 1 }))
+        : [{ owner_address: owners[0], asset_type: '0xa', amount: '5' }]
+      return { data: { data: { current_fungible_asset_balances: rows } } }
+    })
+    const res = await aptos.getFungibleAssetBalances({ owners: ['0x1', '0x2', '0x3'], chunkSize: 2, pageSize: 2 })
+    expect(seenOwners[0]).toEqual([aptos.normalizeAddress('0x1'), aptos.normalizeAddress('0x2')])
+    expect(seenOwners).toHaveLength(3) // chunk 1: 2 pages, chunk 2: 1 page
+    expect(res).toHaveLength(2 + 1 + 1)
+    expect(res[res.length - 1]).toEqual({ owner: aptos.normalizeAddress('0x3'), assetType: '0xa', amount: '5' })
   })
 })
 

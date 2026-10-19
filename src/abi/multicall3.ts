@@ -234,6 +234,11 @@ const DEPLOYMENT_BLOCK = {
   prom: 1238475,
   nibiru: 19587573,
   arc: 1,
+  btcwchain: 178635,
+  horizen: 1,
+  metall2: 1,
+  rbn: 2714761,
+  xpla: 19189761,
 } as {
   [key: string | Chain]: number
 }
@@ -413,4 +418,5 @@ const CUSTOM_MULTICALL_ADDRESSES: { [key: string]: string } = {
   'eni': '0xbf9d276932DF9c0AA1644b2569482f7a754433be',
   'shido': '0xe3da1EC9e9BfEa1fE8C5905133c36A86351e4561',
   'prom': '0xfF785aF3De8C2cb5727A8665984E741c16679131',
+  'btcwchain': '0xA0093EA76633A983364cb2582959870eaffDdea0',
 }

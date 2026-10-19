@@ -17,13 +17,16 @@
  * retried on the archival endpoint (`<CHAIN>_ARCHIVAL_RPC`, default `archive.mainnet.aptoslabs.com`).
  * Timestamp -> version lookups use a REST binary search over block heights instead of the
  * aptoslabs indexer GraphQL API, so they work on any full node and on Movement.
+ * Indexer GraphQL queries (`indexerQuery`, `getFungibleAssetBalances`) go through the same transport:
+ * `<CHAIN>_INDEXER` (comma separated) overrides / adds to the default endpoint, with rotation, retries
+ * and the bearer key.
  *
  * Usage: `sdk.chains.aptos.getResource({ account: '0x1', type: '0x1::coin::CoinInfo<0x1::aptos_coin::AptosCoin>' })`
  */
 import axios from "axios";
 import { getEnvValue } from "../util/env";
 import { debugLog } from "../util/debugLog";
-import { getEndpoints, getEndpoint as rpcGetEndpoint, joinUrl, withRetry, getLimiter, isRetryableError, shortUrl } from "./rpc";
+import { getEndpoints, getEndpoint as rpcGetEndpoint, joinUrl, withRetry, getLimiter, isRetryableError, isRateLimitError, shortUrl, sliceIntoChunks } from "./rpc";
 
 // ---------------------------------------------------------------------------
 // config
@@ -40,6 +43,16 @@ export const DEFAULT_ENDPOINTS: Record<string, string> = {
  */
 export const ARCHIVAL_ENDPOINTS: Record<string, string> = {
   aptos: 'https://archive.mainnet.aptoslabs.com',
+}
+
+/**
+ * Indexer (Hasura GraphQL) endpoints. Override / add fallbacks with `<CHAIN>_INDEXER` (comma separated).
+ * The `<CHAIN>_API_KEY` bearer key is sent here too (aptoslabs keys cover both the full node and the indexer).
+ */
+export const INDEXER_ENDPOINTS: Record<string, string> = {
+  // keyless public endpoints (third-party indexers like Nodit need a key: add them via <CHAIN>_INDEXER)
+  aptos: 'https://api.mainnet.aptoslabs.com/v1/graphql,https://indexer.mainnet.aptoslabs.com/v1/graphql',
+  move: 'https://indexer.mainnet.movementnetwork.xyz/v1/graphql',
 }
 
 export const aptosChains: string[] = Object.keys(DEFAULT_ENDPOINTS)
@@ -143,6 +156,16 @@ export function getArchivalEndpointList({ chain }: ChainOptions = {}): string[] 
   }
 }
 
+/** Indexer GraphQL endpoints for the chain (`<CHAIN>_INDEXER` env first, then built-in); empty when none. */
+export function getIndexerEndpointList({ chain }: ChainOptions = {}): string[] {
+  chain = resolveChain(chain)
+  try {
+    return getEndpoints(chain, INDEXER_ENDPOINTS[chain], { envKey: `${chain.toUpperCase()}_INDEXER` })
+  } catch {
+    return []
+  }
+}
+
 function getHeaders(chain: string): Record<string, string> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   const apiKey = getEnvValue(`${chain.toUpperCase()}_API_KEY`)
@@ -174,6 +197,12 @@ interface InternalRequest extends RequestOptions {
   body?: any
   allowNotFound?: boolean
   withMetadata?: boolean
+  /** concurrency limiter key, default `<CHAIN>` (the indexer uses its own so it does not starve node calls) */
+  limiterKey?: string
+  /** inspect a successful response; throw to fail (and possibly retry) the attempt */
+  validate?: (data: any) => void
+  /** overrides the default retry predicate */
+  shouldRetry?: (error: any, attempt: number) => boolean
 }
 
 /**
@@ -200,8 +229,8 @@ async function request(options: InternalRequest): Promise<any> {
 
 async function requestOn(endpoints: string[], options: InternalRequest): Promise<any> {
   const chain = resolveChain(options.chain)
-  const limiter = getLimiter(chain.toUpperCase(), 10)
-  const { method, path, params, body, allowNotFound, withMetadata, timeout = DEFAULT_TIMEOUT } = options
+  const limiter = getLimiter(options.limiterKey ?? chain.toUpperCase(), 10)
+  const { method, path, params, body, allowNotFound, withMetadata, validate, timeout = DEFAULT_TIMEOUT } = options
   const headers = getHeaders(chain)
   const config = { timeout, headers, params }
 
@@ -209,11 +238,11 @@ async function requestOn(endpoints: string[], options: InternalRequest): Promise
     const base = endpoints[attempt % endpoints.length]
     const url = joinUrl(base, path)
     return limiter(async () => {
+      let response
       try {
-        const response = method === 'post'
+        response = method === 'post'
           ? await axios.post(url, body, config)
           : await axios.get(url, config)
-        return withMetadata ? response : response.data
       } catch (e: any) {
         if (allowNotFound && isNotFound(e)) {
           debugLog(`[chains.aptos] ${chain} ${method.toUpperCase()} ${path} -> 404 (treated as not found)`)
@@ -229,11 +258,13 @@ async function requestOn(endpoints: string[], options: InternalRequest): Promise
         err._isCustomError = true // already formatted: keeps status/errorCode intact through withRetry/formError
         throw err
       }
+      if (validate) validate(response.data)
+      return withMetadata ? response : response.data
     })
   }, {
-    label: `${chain} ${method.toUpperCase()} ${path.split('?')[0].slice(0, 80)}`,
+    label: `${chain} ${method.toUpperCase()} ${(path || shortUrl(endpoints[0])).split('?')[0].slice(0, 80)}`,
     retries: options.retries ?? Math.max(3, endpoints.length),
-    shouldRetry: isRetryableError,
+    shouldRetry: options.shouldRetry ?? isRetryableError,
   })
 
   return res === NOT_FOUND ? null : res
@@ -256,6 +287,75 @@ export async function get({ chain, path, params, allowNotFound, timeout, retries
 /** POST `body` to `path` (relative to the node root, e.g. `/v1/view`). */
 export async function post({ chain, path, body, params, allowNotFound, timeout, retries, archival }: RequestOptions & { path: string, body: any, params?: Record<string, any>, allowNotFound?: boolean }): Promise<any> {
   return request({ chain, method: 'post', path, body, params, allowNotFound, timeout, retries, archival })
+}
+
+// ---------------------------------------------------------------------------
+// indexer (GraphQL)
+// ---------------------------------------------------------------------------
+
+/** GraphQL `errors` in a 200 response (bad query, or a rate limit the indexer reports in-band). */
+export class IndexerError extends Error {
+  errors: any[]
+  constructor(errors: any[]) {
+    super(`aptos indexer: ${errors.map((e) => e?.message ?? JSON.stringify(e)).join('; ').slice(0, 300)}`)
+    this.name = 'IndexerError'
+    this.errors = errors
+  }
+}
+
+/**
+ * Run a GraphQL query against the chain's indexer, returning `data`. Same transport as the node calls:
+ * rotates over `<CHAIN>_INDEXER` endpoints (then the default), retries transport/5xx/429 failures with
+ * backoff and sends the `<CHAIN>_API_KEY` bearer key. GraphQL `errors` throw `IndexerError` and are
+ * only retried when they report a rate limit (a bad query fails fast).
+ */
+export async function indexerQuery<T = any>({ chain, query, variables = {}, timeout, retries }: RequestOptions & { query: string, variables?: Record<string, any> }): Promise<T> {
+  chain = resolveChain(chain)
+  const endpoints = getIndexerEndpointList({ chain })
+  if (!endpoints.length) throw new Error(`[${chain}] no indexer endpoint configured (env ${chain.toUpperCase()}_INDEXER)`)
+  const res = await requestOn(endpoints, {
+    chain, method: 'post', path: '', body: { query, variables }, timeout, retries,
+    limiterKey: `${chain.toUpperCase()}_INDEXER`,
+    validate: (data) => { if (data?.errors?.length) throw new IndexerError(data.errors) },
+    shouldRetry: (e) => e instanceof IndexerError ? isRateLimitError(e) : isRetryableError(e),
+  })
+  return res?.data
+}
+
+export interface FungibleAssetBalance {
+  owner: string
+  /** coin type (`0x1::aptos_coin::AptosCoin`) or FA metadata address */
+  assetType: string
+  /** raw amount (coin + fungible store balance combined by the indexer) */
+  amount: string
+}
+
+const FA_BALANCES_QUERY = `query ($owners: [String!]!, $offset: Int!, $limit: Int!) {
+  current_fungible_asset_balances(where: { owner_address: { _in: $owners } }, offset: $offset, limit: $limit, order_by: [{ owner_address: asc }, { asset_type: asc }]) {
+    owner_address
+    asset_type
+    amount
+  }
+}`
+
+/**
+ * Coin + fungible asset balances of many owners from the indexer (`current_fungible_asset_balances`),
+ * `chunkSize` owners per query and paginated, so a few requests replace one node call per owner per token.
+ * Owners are matched by the indexer's 64-hex form, so short addresses are padded first.
+ */
+export async function getFungibleAssetBalances({ chain, owners, chunkSize = 50, pageSize = 1000, timeout, retries }: RequestOptions & { owners: string[], chunkSize?: number, pageSize?: number }): Promise<FungibleAssetBalance[]> {
+  const unique = [...new Set(owners.map(normalizeAddress))]
+  const out: FungibleAssetBalance[] = []
+  for (const chunk of sliceIntoChunks(unique, chunkSize)) {
+    for (let offset = 0; ; offset += pageSize) {
+      const data = await indexerQuery({ chain, query: FA_BALANCES_QUERY, variables: { owners: chunk, offset, limit: pageSize }, timeout, retries })
+      const rows = data?.current_fungible_asset_balances ?? []
+      for (const { owner_address, asset_type, amount } of rows)
+        out.push({ owner: owner_address, assetType: asset_type, amount: String(amount) })
+      if (rows.length < pageSize) break
+    }
+  }
+  return out
 }
 
 // ---------------------------------------------------------------------------

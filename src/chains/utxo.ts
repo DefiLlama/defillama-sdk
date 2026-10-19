@@ -1,14 +1,14 @@
 /**
  * Balance client for bitcoin-like UTXO chains via public explorer APIs
  * (esplora/blockstream, mempool.space, blockbook, blockcypher, tatum, insight,
- * whatsonchain, blockchair, kaspa REST, mvcapi).
+ * whatsonchain, blockchair, haskoin, kaspa REST, mvcapi).
  *
  * Replaces the chain access parts of:
  *   - DefiLlama-Adapters  projects/helper/chain/bitcoin.js (getBalanceNow,
  *     getBalance(addr, timestamp), getCachedBitcoinBalances / cachedBTCBalCall,
  *     blockchain.info multiaddr batching)
  *   - DefiLlama-Adapters  projects/helper/chain/litecoin.js, doge.js, dash.js,
- *     bsv.js, zcash.js, kaspa.js, mvc.js (per-chain getBalance)
+ *     bsv.js, zcash.js, kaspa.js, mvc.js, bitcoincash.js (per-chain getBalance)
  *   - defillama-server    coins/src/adapters/other/others2.ts getBtcBalanceSats
  *     (blockstream -> mempool.space failover)
  *
@@ -17,18 +17,26 @@
  * sompi, ...) as a decimal string.
  *
  * Explorer base urls are overridable per chain with `<CHAIN>_EXPLORER_API`
- * (comma separated fallbacks, also `SDK_` / `LLAMA_SDK_` prefixed). Unknown
- * hosts are assumed to speak the chain's default provider dialect.
+ * (comma separated fallbacks, also `SDK_` / `LLAMA_SDK_` prefixed). Known hosts
+ * pick their dialect automatically; unknown hosts use `<CHAIN>_EXPLORER_PROVIDER`
+ * (one of the provider kinds below) and otherwise the chain's default dialect.
+ *
+ * Chains not listed in `CHAINS` can be enabled purely through env: setting
+ * `<CHAIN>_EXPLORER_API` (or `<CHAIN>_WHITELISTED_RPC`) makes `isUtxoChain`
+ * accept the chain, with `<CHAIN>_DECIMALS` (default 8), `<CHAIN>_EXPLORER_PROVIDER`
+ * (default esplora) and `<CHAIN>_RPC_CONCURRENCY` (default 5) completing the config.
  *
  * Usage: `sdk.chains.utxo.getBalance({ chain: 'bitcoin', address: 'bc1q...' })`
  */
 import { debugLog } from "../util/debugLog";
-import { getEnvValue } from "../util/env";
-import { getEndpoints as resolveEndpoints, getLimiter, httpGet, httpPost, runInChunks, sliceIntoChunks, sleep, } from "./rpc";
+import { getEnvValue, getWhitelistedRPCs } from "../util/env";
+import { getEndpoints as resolveEndpoints, getLimiter, httpGet, httpPost, runInChunks, sliceIntoChunks, sleep, toEndpointList, } from "./rpc";
 
 // ---------------------------------------------------------------------------
 // config
 // ---------------------------------------------------------------------------
+
+export type ProviderKind = 'esplora' | 'blockbook' | 'blockcypher' | 'tatum' | 'insight' | 'whatsonchain' | 'blockchair' | 'haskoin' | 'kaspa' | 'mvc'
 
 export interface UtxoChainConfig {
   decimals: number
@@ -38,12 +46,21 @@ export interface UtxoChainConfig {
   concurrency: number
   /** pause before every request (free-tier rate limits), applied inside the limiter */
   sleepMs?: number
+  /** dialect for endpoints whose host is not recognised, overridable with `<CHAIN>_EXPLORER_PROVIDER` */
+  provider?: ProviderKind
 }
 
 export const CHAINS: Record<string, UtxoChainConfig> = {
   bitcoin: {
     decimals: 8,
     endpoints: ['https://blockstream.info/api', 'https://mempool.space/api', 'https://rpc.ankr.com/http/btc_blockbook/api/v2'],
+    concurrency: 5,
+  },
+  bitcoincash: {
+    decimals: 8,
+    // haskoin (also mirrored by blockchain.com) takes cashaddr with or without the
+    // `bitcoincash:` prefix as well as legacy base58 addresses
+    endpoints: ['https://api.haskoin.com/bch', 'https://api.blockchain.info/haskoin-store/bch', 'https://api.tatum.io/v3/bcash', 'https://api.blockchair.com/bitcoin-cash'],
     concurrency: 5,
   },
   litecoin: {
@@ -88,7 +105,12 @@ export const CHAINS: Record<string, UtxoChainConfig> = {
   },
 }
 
+/** Built-in chains; env-defined chains (see `getChainConfig`) are not listed here. */
 export const utxoChains: string[] = Object.keys(CHAINS)
+
+export const PROVIDER_KINDS: ProviderKind[] = ['esplora', 'blockbook', 'blockcypher', 'tatum', 'insight', 'whatsonchain', 'blockchair', 'haskoin', 'kaspa', 'mvc']
+const ENV_CHAIN_DEFAULT_DECIMALS = 8
+const ENV_CHAIN_DEFAULT_CONCURRENCY = 5
 
 /** mempool.space base url, used for the timestamp -> block lookup (`BITCOIN_MEMPOOL_API`). */
 export const DEFAULT_MEMPOOL_API = 'https://mempool.space/api'
@@ -105,15 +127,49 @@ const DEFAULT_CHAIN = 'bitcoin'
 /** UTXO snapshots newer than this are read from `/utxo`, older ones by replaying `/txs` */
 const RECENT_WINDOW_SECONDS = 30 * 60
 
+/** True for built-in chains and for chains enabled through env (`<CHAIN>_EXPLORER_API` / `<CHAIN>_WHITELISTED_RPC`). */
 export function isUtxoChain(chain: any): boolean {
-  return typeof chain === 'string' && Object.prototype.hasOwnProperty.call(CHAINS, chain)
+  if (typeof chain !== 'string') return false
+  if (Object.prototype.hasOwnProperty.call(CHAINS, chain)) return true
+  return getEnvChainConfig(chain) !== undefined
 }
 
-function getConfig(chain: string): UtxoChainConfig {
-  const config = CHAINS[chain]
-  if (!config) throw new Error(`utxo: unsupported chain "${chain}" (known: ${utxoChains.join(', ')})`)
+function parseProviderKind(value: string | undefined, chain: string): ProviderKind | undefined {
+  if (!value) return undefined
+  const kind = value.trim().toLowerCase() as ProviderKind
+  if (!PROVIDER_KINDS.includes(kind)) throw new Error(`utxo: unknown provider "${value}" for ${chain} (${chain.toUpperCase()}_EXPLORER_PROVIDER), expected one of ${PROVIDER_KINDS.join(', ')}`)
+  return kind
+}
+
+/**
+ * Config for a chain that is not in `CHAINS`, built from env: `<CHAIN>_EXPLORER_API`
+ * (or `<CHAIN>_WHITELISTED_RPC`) enables it, `<CHAIN>_DECIMALS` defaults to 8 and
+ * `<CHAIN>_EXPLORER_PROVIDER` picks the dialect for unrecognised hosts (default esplora).
+ */
+function getEnvChainConfig(chain: string): UtxoChainConfig | undefined {
+  if (!/^[a-z0-9_-]+$/i.test(chain)) return undefined
+  const key = chain.toUpperCase()
+  const endpoints = toEndpointList(getEnvValue(`${key}_EXPLORER_API`))
+  if (!endpoints.length && !toEndpointList(getWhitelistedRPCs(key)).length) return undefined
+  const decimals = getEnvValue(`${key}_DECIMALS`)
+  if (decimals !== undefined && !/^\d+$/.test(decimals.trim())) throw new Error(`utxo: invalid ${key}_DECIMALS "${decimals}"`)
+  return {
+    decimals: decimals === undefined ? ENV_CHAIN_DEFAULT_DECIMALS : +decimals,
+    // env endpoints are picked up by resolveEndpoints, keep defaults empty so they are not listed twice
+    endpoints: [],
+    concurrency: ENV_CHAIN_DEFAULT_CONCURRENCY,
+    provider: parseProviderKind(getEnvValue(`${key}_EXPLORER_PROVIDER`), chain) ?? 'esplora',
+  }
+}
+
+/** Resolved config for `chain`: `CHAINS[chain]` or the env-defined config. Throws for unknown chains. */
+export function getChainConfig(chain: string): UtxoChainConfig {
+  const config = CHAINS[chain] ?? getEnvChainConfig(chain)
+  if (!config) throw new Error(`utxo: unsupported chain "${chain}" (known: ${utxoChains.join(', ')}; set ${String(chain).toUpperCase()}_EXPLORER_API to add it)`)
   return config
 }
+
+const getConfig = getChainConfig
 
 /** Explorer base urls for `chain`: env `<CHAIN>_EXPLORER_API` wins, then `CHAINS[chain].endpoints`. */
 export function getEndpoints({ chain = DEFAULT_CHAIN }: { chain?: string } = {}): string[] {
@@ -265,7 +321,7 @@ export function parseBalanceResponse(json: any, { address, decimals }: { address
   if (json.final_balance !== undefined) return toBigInt(json.balance ?? json.final_balance).toString()
   // insight (dash): `balance` is in coins, `balanceSat` in base units
   if (json.balanceSat !== undefined) return toBigInt(json.balanceSat).toString()
-  // whatsonchain (bsv) / mvcapi: `{ confirmed, unconfirmed }` in base units
+  // whatsonchain (bsv) / mvcapi / haskoin (bitcoincash): `{ confirmed, unconfirmed }` in base units
   if (json.confirmed !== undefined) {
     if (typeof json.confirmed !== 'number' && typeof json.confirmed !== 'string') throw new Error(`utxo: unexpected balance response for ${address}`)
     return toBigInt(json.confirmed).toString()
@@ -287,8 +343,6 @@ export function parseBalanceResponse(json: any, { address, decimals }: { address
 // providers (explorer dialects)
 // ---------------------------------------------------------------------------
 
-type ProviderKind = 'esplora' | 'blockbook' | 'blockcypher' | 'tatum' | 'insight' | 'whatsonchain' | 'blockchair' | 'kaspa' | 'mvc'
-
 interface Provider {
   kind: ProviderKind
   match: RegExp
@@ -302,6 +356,8 @@ const PROVIDERS: Provider[] = [
   { kind: 'blockcypher', match: /blockcypher\.com/i, balancePath: (a) => `/addrs/${a}/balance` },
   { kind: 'insight', match: /insight/i, balancePath: (a) => `/addr/${a}` },
   { kind: 'whatsonchain', match: /whatsonchain\.com/i, balancePath: (a) => `/address/${a}/balance` },
+  // haskoin store (api.haskoin.com, api.blockchain.info/haskoin-store): `{ confirmed, unconfirmed }` in base units
+  { kind: 'haskoin', match: /haskoin/i, balancePath: (a) => `/address/${a}/balance` },
   { kind: 'kaspa', match: /kaspa/i, balancePath: (a) => `/addresses/${encodeURIComponent(a)}/balance` },
   { kind: 'mvc', match: /mvcapi\.com/i, balancePath: (a) => `/address/${a}/balance` },
   { kind: 'blockbook', match: /blockbook/i, balancePath: (a) => `/address/${a}` },
@@ -314,12 +370,22 @@ function tatumHeaders(): Record<string, string> | undefined {
   return { 'x-api-key': key, 'User-Agent': 'Thunder Client (https://www.thunderclient.com)' }
 }
 
-/** Provider dialect for an endpoint; unknown hosts use the chain's first default endpoint's dialect. */
+const ESPLORA_PROVIDER = PROVIDERS[PROVIDERS.length - 1]
+
+/**
+ * Provider dialect for an endpoint. Known hosts match directly; otherwise
+ * `<CHAIN>_EXPLORER_PROVIDER` / `config.provider` wins, then the dialect of the
+ * chain's first default endpoint, then esplora.
+ */
 function detectProvider(endpoint: string, chain: string): Provider {
   const found = PROVIDERS.find(p => p.match.test(endpoint))
   if (found) return found
-  const fallback = PROVIDERS.find(p => p.match.test(getConfig(chain).endpoints[0]))
-  return fallback ?? PROVIDERS[PROVIDERS.length - 1]
+  const config = getConfig(chain)
+  const kind = parseProviderKind(getEnvValue(`${chain.toUpperCase()}_EXPLORER_PROVIDER`), chain) ?? config.provider
+  if (kind) return PROVIDERS.find(p => p.kind === kind)!
+  const firstDefault = config.endpoints[0]
+  const fallback = firstDefault ? PROVIDERS.find(p => p.match.test(firstDefault)) : undefined
+  return fallback ?? ESPLORA_PROVIDER
 }
 
 /** Endpoints of `chain` that speak esplora (needed for utxo / tx / block calls). */
