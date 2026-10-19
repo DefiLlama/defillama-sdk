@@ -142,6 +142,7 @@ test("imports", async () => {
     "getSluggifiedChainLabel": [Function],
     "isDeadChain": [Function],
     "sluggifyString": [Function],
+    "updateChainLabels": [Function],
     "updateData": [Function],
   },
   "coins": {
