@@ -37,7 +37,7 @@ async function getChainData() {
 async function main() {
   await updateChainLabels()
 
-  const oldProviders = await fetchJson(`https://unpkg.com/@defillama/sdk@latest/build/providers.json`)
+  const oldProviders = await fetchJson(`https://unpkg.com/@defillama/sdk@v5.0.238/build/providers.json`)
   const currentChains = await fetchJson(`https://raw.githubusercontent.com/DefiLlama/DefiLlama-Adapters/refs/heads/main/projects/helper/chains.json`)
   const currentChainsSet = new Set(currentChains)
   let chainData = await getChainData()

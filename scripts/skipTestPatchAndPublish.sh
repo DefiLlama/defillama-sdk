@@ -20,10 +20,25 @@ if [[ $? -ne 0 ]] ; then
   exit 1
 fi
 
+# build and verify the tarball contents before touching npm (prepublishOnly repeats this as a second guard)
+npm run build
+if [[ $? -ne 0 ]] ; then
+  echo "Build failed, aborting publish"
+  exit 1
+fi
+npm run verify-package
+if [[ $? -ne 0 ]] ; then
+  echo "Package verification failed, aborting publish"
+  exit 1
+fi
 
 read -p "Ready to npm login and npm publish. Press enter to continue, Ctrl+C to abort..." _ack
 npm login
 npm publish
+if [[ $? -ne 0 ]] ; then
+  echo "npm publish failed, aborting"
+  exit 1
+fi
 
 # reset the files we changed
 git checkout master -- README.md

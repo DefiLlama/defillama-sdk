@@ -16,7 +16,8 @@
     "update-providers": "ts-node src/util/updateProviderList.ts",
     "update-chain-labels": "ts-node src/util/updateChainLabels.ts",
     "remove-rpcs": "ts-node src/util/removeRedundantRPCs.ts",
-    "prepublishOnly": "npm run build"
+    "verify-package": "node scripts/verifyPackage.js",
+    "prepublishOnly": "npm run build && npm run verify-package"
   },
   "repository": {
     "type": "git",
