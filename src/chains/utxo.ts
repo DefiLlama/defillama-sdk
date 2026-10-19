@@ -88,8 +88,10 @@ export const CHAINS: Record<string, UtxoChainConfig> = {
   },
   zcash: {
     decimals: 8,
-    // blockchair free tier: ~30 req/min per IP
-    endpoints: ['https://api.blockchair.com/zcash'],
+    // blockchair free tier: ~30 req/min per IP; zelcore blockbook is unthrottled; nownodes needs NOWNODES_API_KEY.
+    // Dead or gated as of 2026-10: zcha.in, zcashblockexplorer.com, zcashnetwork.info, zcashexplorer.app (403),
+    // trezor blockbooks (cloudflare), ankr zec_blockbook (plan-gated), cryptoid (no zec), tatum (no zec), 3xpl (token)
+    endpoints: ['https://api.blockchair.com/zcash', 'https://blockbook.zec.zelcore.io/api/v2', 'https://zecbook.nownodes.io/api/v2'],
     concurrency: 1,
     sleepMs: 5000,
   },
@@ -347,12 +349,17 @@ interface Provider {
   kind: ProviderKind
   match: RegExp
   balancePath: (address: string) => string
+  /** returns undefined when the required api key is not configured; the endpoint is then skipped */
   headers?: () => Record<string, string> | undefined
+  /** env var holding the api key, for the skip message */
+  keyEnv?: string
 }
 
 const PROVIDERS: Provider[] = [
   { kind: 'blockchair', match: /blockchair\.com/i, balancePath: (a) => `/dashboards/address/${a}?limit=0` },
-  { kind: 'tatum', match: /tatum\.io/i, balancePath: (a) => `/address/balance/${a}`, headers: tatumHeaders },
+  { kind: 'tatum', match: /tatum\.io/i, balancePath: (a) => `/address/balance/${a}`, headers: tatumHeaders, keyEnv: 'TATUM_API_KEY' },
+  // nownodes `<coin>book.nownodes.io` hosts are blockbooks behind an `api-key` header
+  { kind: 'blockbook', match: /nownodes\.io/i, balancePath: (a) => `/address/${a}`, headers: nownodesHeaders, keyEnv: 'NOWNODES_API_KEY' },
   { kind: 'blockcypher', match: /blockcypher\.com/i, balancePath: (a) => `/addrs/${a}/balance` },
   { kind: 'insight', match: /insight/i, balancePath: (a) => `/addr/${a}` },
   { kind: 'whatsonchain', match: /whatsonchain\.com/i, balancePath: (a) => `/address/${a}/balance` },
@@ -370,7 +377,18 @@ function tatumHeaders(): Record<string, string> | undefined {
   return { 'x-api-key': key, 'User-Agent': 'Thunder Client (https://www.thunderclient.com)' }
 }
 
+function nownodesHeaders(): Record<string, string> | undefined {
+  const key = getEnvValue('NOWNODES_API_KEY')
+  if (!key) return undefined
+  return { 'api-key': key }
+}
+
 const ESPLORA_PROVIDER = PROVIDERS[PROVIDERS.length - 1]
+
+/** Provider for an explicitly requested dialect; keyless entries win over keyed host-specific ones. */
+function providerByKind(kind: ProviderKind): Provider {
+  return PROVIDERS.find(p => p.kind === kind && !p.headers) ?? PROVIDERS.find(p => p.kind === kind)!
+}
 
 /**
  * Provider dialect for an endpoint. Known hosts match directly; otherwise
@@ -382,7 +400,7 @@ function detectProvider(endpoint: string, chain: string): Provider {
   if (found) return found
   const config = getConfig(chain)
   const kind = parseProviderKind(getEnvValue(`${chain.toUpperCase()}_EXPLORER_PROVIDER`), chain) ?? config.provider
-  if (kind) return PROVIDERS.find(p => p.kind === kind)!
+  if (kind) return providerByKind(kind)
   const firstDefault = config.endpoints[0]
   const fallback = firstDefault ? PROVIDERS.find(p => p.match.test(firstDefault)) : undefined
   return fallback ?? ESPLORA_PROVIDER
@@ -424,7 +442,7 @@ export async function getBalance({ chain = DEFAULT_CHAIN, address, retries = 2, 
     const provider = detectProvider(endpoint, chain)
     const headers = provider.headers ? provider.headers() : undefined
     if (provider.headers && !headers) {
-      debugLog(`[chains.utxo] ${chain}: skipping ${endpoint}, no api key configured (TATUM_API_KEY)`)
+      debugLog(`[chains.utxo] ${chain}: skipping ${endpoint}, no api key configured (${provider.keyEnv ?? 'api key env'})`)
       continue
     }
     try {

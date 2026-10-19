@@ -204,6 +204,11 @@ describe('chains.utxo live (public explorers)', () => {
     expect(isNumericString(balance)).toBe(true)
   })
 
+  test('getBalance zcash (ECC dev fund address, transparent)', async () => {
+    const balance = await getBalance({ chain: 'zcash', address: 't3LmX1cxWPPPqL4TZHx42HU3U5ghbFjRiif' })
+    expect(isNumericString(balance)).toBe(true)
+  })
+
   test('getBalance bitcoincash accepts cashaddr and legacy forms of the genesis address', async () => {
     const cashaddr = await getBalance({ chain: 'bitcoincash', address: BCH_GENESIS_CASHADDR })
     expect(isNumericString(cashaddr)).toBe(true)
