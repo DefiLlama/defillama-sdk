@@ -130,6 +130,7 @@ export class LlamaProvider extends FallbackProvider {
     let errors = []
     if (method === 'getLogs') {
       runners = runners.slice(1).concat(this.rpcs)
+      runners = runners.filter(i => !i.url.includes('llamarpc.com'))
       runners = runners.sort(() => Math.random() - 0.5) // randomize order of runners
     } else
       runners = runners.slice(1).sort(() => Math.random() - 0.5) // randomize order of runners
@@ -146,6 +147,14 @@ export class LlamaProvider extends FallbackProvider {
       runners.splice(1, 0, primaryRunner);
     }
 
+    if (method === 'getLogs') {
+      const seenRPCs = new Set<string>()
+      runners = runners.filter(i => {
+        if (seenRPCs.has(i.url)) return false
+        seenRPCs.add(i.url)
+        return true
+      })
+    }
     runners = runners.slice(0, attempts)
 
     // print stats every 5 minutes
