@@ -128,11 +128,7 @@ export class LlamaProvider extends FallbackProvider {
     if (!runners.length) throw new Error('No RPCs available for ' + this.chainName)
     let primaryRunner = runners[0]
     let errors = []
-    if (method === 'getLogs') {
-      runners = runners.slice(1).concat(this.rpcs)
-      runners = runners.sort(() => Math.random() - 0.5) // randomize order of runners
-    } else
-      runners = runners.slice(1).sort(() => Math.random() - 0.5) // randomize order of runners
+    runners = runners.slice(1).sort(() => Math.random() - 0.5) // randomize order of runners
     const isArchivalRequest = ['call', 'getBalance'].includes(method) && params[1] !== 'latest'
     // check if domain name of primaryRunner.url is llama
     const isLlamaRPC = primaryRunner.url.includes('llama')
