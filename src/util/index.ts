@@ -37,7 +37,7 @@ type GetLogsOptions = {
   keys: string[]; // This is just used to select only part of the logs
   fromBlock: number;
   toBlock: number; // DefiPulse's implementation is buggy and doesn't take this into account
-  topics?: (string | null)[]; // This is an outdated part of DefiPulse's API which is still used in some old adapters
+  topics?: (string | string[] | null)[]; // This is an outdated part of DefiPulse's API which is still used in some old adapters
   chain?: Chain;
   provider?: ethers.Provider;
 }

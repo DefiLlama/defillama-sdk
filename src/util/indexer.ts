@@ -262,8 +262,8 @@ export type IndexerGetLogsOptions = {
   topic?: string;
   fromBlock?: number;
   toBlock?: number;
-  topics?: (string | null)[];
-  extraTopics?: string[];
+  topics?: (string | string[] | null)[];
+  extraTopics?: (string | string[] | null)[];
   chain?: string;
   eventAbi?: string | any;
   fromTimestamp?: number;
@@ -394,6 +394,20 @@ async function decodeStreamingLogs(
   });
 }
 
+// eth_getLogs takes an array at a topic position to mean "any of these", the indexer takes one
+// value per position. The streaming path would hand URLSearchParams.set an array and send it as a
+// single comma joined topic, and the buffered path would let axios serialise it its own way, so
+// both are rejected here instead. logs.ts catches this and falls back to the RPC path, which does
+// support the OR form.
+export function requireSingleTopic(value: string | string[] | undefined | null, position: number): string | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (Array.isArray(value))
+    throw new Error(
+      `indexer getLogs cannot filter an OR list at topic${position}, only a single value; eth_getLogs supports it, so do not set onlyIndexer for this query`
+    );
+  return value;
+}
+
 export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
   let {
     all = true,
@@ -427,6 +441,8 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
     topics,
     transformLog,
   } = await getLogParams(options, true);
+
+  [topic, topic1, topic2, topic3].forEach((value, position) => requireSingleTopic(value as any, position));
 
   const viemFastPath =
     // Preserve the historical streaming shape, including entireLog: the viem
@@ -564,9 +580,10 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
       const qs = new URLSearchParams();
       qs.set("chainId", String(chainId));
       qs.set("topic0", topic);
-      if (topic1) qs.set("topic1", topic1);
-      if (topic2) qs.set("topic2", topic2);
-      if (topic3) qs.set("topic3", topic3);
+      const [single1, single2, single3] = [requireSingleTopic(topic1, 1), requireSingleTopic(topic2, 2), requireSingleTopic(topic3, 3)];
+      if (single1) qs.set("topic1", single1);
+      if (single2) qs.set("topic2", single2);
+      if (single3) qs.set("topic3", single3);
       if (fromBlock != null) qs.set("from_block", String(fromBlock));
       if (toBlock != null) qs.set("to_block", String(toBlock));
       if (chunk && Array.isArray(chunk)) qs.set("addresses", chunk.join(",").toLowerCase());
@@ -641,7 +658,7 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
     const params = {
       addresses: hasAddressFilter ? chunk?.join(",") : undefined,
       chainId, topic0: topic, from_block: fromBlock, to_block: toBlock,
-      topic1, topic2, topic3, noTarget,
+      topic1: requireSingleTopic(topic1, 1), topic2: requireSingleTopic(topic2, 2), topic3: requireSingleTopic(topic3, 3), noTarget,
     };
     for await (const rows of getIndexerPages(indexerVersion, "/logs", "logs", params, limit, initialOffset, all, getLogCursor)) {
       const filtered = rows.filter((l: any) => {

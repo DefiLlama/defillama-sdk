@@ -36,8 +36,8 @@ export type GetLogsOptions = {
   keys?: string[];
   fromBlock?: number;
   toBlock?: number;
-  topics?: (string | null)[];
-  extraTopics?: string[];
+  topics?: (string | string[] | null)[];
+  extraTopics?: (string | string[] | null)[];
   chain?: string;
   eventAbi?: string | any;
   fromTimestamp?: number;
@@ -386,10 +386,10 @@ type GetLogsParamsResponse = {
   topic: string;
   iface?: Interface;
   transformLog: (log: any) => any;
-  topics?: (string | null)[];
-  topic1?: string;
-  topic2?: string;
-  topic3?: string;
+  topics?: (string | string[] | null)[];
+  topic1?: string | string[];
+  topic2?: string | string[];
+  topic3?: string | string[];
 };
 
 export async function getLogParams(
@@ -567,9 +567,9 @@ export async function getLogParams(
     toBlock,
     target,
     topic: topic!,
-    topic1: topics[1] as string,
-    topic2: topics[2] as string,
-    topic3: topics[3] as string,
+    topic1: topics[1] as string | string[],
+    topic2: topics[2] as string | string[],
+    topic3: topics[3] as string | string[],
     iface,
     transformLog,
     topics,
