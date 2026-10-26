@@ -299,7 +299,9 @@ const httpRPC = {
       // try again
       data = await getData()
     }
-    return parseInt(data)
+    const block = parseInt(data)
+    if (isNaN(block)) throw new Error('bad eth_blockNumber response') // so the health check drops the rpc instead of keeping it with a NaN block
+    return block
   },
   getBlock: async (rpc: string, params: any): Promise<any> => {
     params[0] = toHex(params[0])
@@ -335,6 +337,7 @@ const httpRPC = {
       timeout: +(getEnvValue('LLAMA_PROVIDER_RPC_CALL_TIMEOUT', '30000') as any)
     })
     if (data.error) throw data.error
+    if (typeof data?.result !== 'string') throw new Error('bad eth_call response') // not a json-rpc body (eg. an http redirect to a web page), fail over to the next rpc
     return data.result;
   },
   getLogs: async (rpc: string, params: any): Promise<any> => {

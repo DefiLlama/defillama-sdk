@@ -170,9 +170,9 @@
   },
   "telos": {
     "rpc": [
-      "https://mainnet.telos.net/evm",
-      "https://rpc1.eu.telos.net/evm",
-      "https://rpc1.us.telos.net/evm"
+      "https://rpc1.us.telos.net/evm",
+      "https://rpc.telos.net",
+      "https://telos.drpc.org"
     ],
     "chainId": 40
   },
@@ -782,6 +782,7 @@
   },
   "strato": {
     "rpc": [
+      "https://app.strato.nexus/rpc",
       "https://noderpc.strato.nexus/rpc"
     ],
     "chainId": 123354377739506,
