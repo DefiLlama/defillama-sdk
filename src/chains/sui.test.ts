@@ -3,6 +3,8 @@ import * as sui from "./sui";
 const SUI = '0x2::sui::SUI'
 const SUI_PADDED = '0x0000000000000000000000000000000000000000000000000000000000000002::sui::SUI'
 const USDC = '0xdba34672e30cb065b1f93e3ab55318768fd6fef66c15942c9f7cb846e2f900e7::usdc::USDC'
+// Alpha Gold: no 0x2::coin::CoinMetadata, only a 0x2::coin_registry::Currency entry
+const XAUA = '0xbed7eeda3f172e5b106a1d407a42055c6b1083beefb0ab1a7c9a01d45330eb81::xaua::XAUA'
 const CETUS_SWAP_EVENT = '0x1eabed72c53feb3805120a081dc15963c204dc8d091542592abaf7a35689b2fb::pool::SwapEvent'
 // Cetus SUI/USDC pool (shared object, owns coin balances via the pool struct, not as an address) - used as a plain address for balances
 const KNOWN_ADDRESS = '0xdba34672e30cb065b1f93e3ab55318768fd6fef66c15942c9f7cb846e2f900e7'
@@ -296,6 +298,21 @@ describe('chains.sui offline', () => {
     expect(sui.formatObject({ json: {} })).toBeNull()
   })
 
+  test('variantNumber reads the Supply nested inside SupplyState Fixed / BurnOnly', () => {
+    // SupplyState is Fixed(Supply<T>) | BurnOnly(Supply<T>) | Unknown, and balance::Supply wraps
+    // the number again, so a registry entry that carries its own supply nests it two structs deep
+    const supplyField = (variant: any) => sui.formatObject({
+      json: { id: '0x7', decimals: 9, supply: variant },
+      type: { repr: '0x2::coin_registry::Currency<0x2::sui::SUI>' },
+    })!.fields.supply
+    for (const name of ['Fixed', 'BurnOnly'])
+      expect(sui.variantNumber(supplyField({ '@variant': name, pos0: { value: '123' } }))).toBe('123')
+    expect(sui.variantNumber(supplyField({ '@variant': 'Unknown' }))).toBeUndefined()
+    // an immediate scalar payload still works, and a non-numeric variant stays undefined
+    expect(sui.variantNumber(supplyField({ '@variant': 'Fixed', pos0: '456' }))).toBe('456')
+    expect(sui.variantNumber(supplyField({ '@variant': 'Regulated' }))).toBeUndefined()
+  })
+
   test('toParsedJson shapes event json like JSON-RPC parsedJson', () => {
     const layout = {
       struct: {
@@ -390,6 +407,49 @@ describe('chains.sui live', () => {
     expect(supply.decimals).toBe(6)
     expect(BigInt(supply.supply) > BigInt(0)).toBe(true)
     expect(supply.normalized).toBeGreaterThan(0)
+  })
+
+  test('getCoinMetadata / getTokenSupply fall back to coin_registry when there is no CoinMetadata', async () => {
+    // Alpha Gold XAUa is registered under 0x2::coin_registry::Currency with its legacy
+    // metadata_cap_id Deleted, so `coinMetadata` is null and the pre-fallback reader threw.
+    const raw = await sui.graphqlCall({
+      query: `query ($coinType: String!) { coinMetadata(coinType: $coinType) { decimals } }`,
+      variables: { coinType: XAUA },
+    })
+    expect(raw.coinMetadata).toBeNull()
+
+    const currency = await sui.getCoinRegistryCurrency({ coinType: XAUA })
+    expect(currency).not.toBeNull()
+    expect(currency!.decimals).toBe(9)
+    expect(currency!.symbol).toBe('XAUa')
+    expect(currency!.treasuryCapId).toMatch(/^0x[0-9a-f]{64}$/)
+
+    const meta = await sui.getCoinMetadata({ coinType: XAUA })
+    expect(meta.decimals).toBe(9)
+    expect(meta.symbol).toBe('XAUa')
+
+    // supply is the Unknown variant in the registry, so it has to come from the TreasuryCap
+    const supply = await sui.getTokenSupply({ coinType: XAUA })
+    expect(supply.decimals).toBe(9)
+    expect(BigInt(supply.supply) > BigInt(0)).toBe(true)
+    expect(supply.normalized).toBeGreaterThan(0)
+  })
+
+  test('legacy metadata wins over a registry entry that carries no supply', async () => {
+    // SUI and USDC are in the registry too, but only for decimals/symbol: no supply and no
+    // treasury_cap_id. Preferring the registry over legacy metadata would drop their supply
+    // entirely, which is why getCoinMetadata only falls back when legacy has no supply.
+    for (const [coinType, decimals] of [[SUI, 9], [USDC, 6]] as [string, number][]) {
+      const currency = await sui.getCoinRegistryCurrency({ coinType })
+      expect(currency).not.toBeNull()
+      expect(currency!.decimals).toBe(decimals)
+      expect(currency!.supply).toBeUndefined()
+      expect(currency!.treasuryCapId).toBeUndefined()
+
+      const meta = await sui.getCoinMetadata({ coinType })
+      expect(meta.decimals).toBe(decimals)
+      expect(BigInt(meta.supply!) > BigInt(0)).toBe(true)
+    }
   })
 
   test('getObject on the Clock (0x6)', async () => {

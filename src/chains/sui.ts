@@ -1043,8 +1043,92 @@ export async function getCoinMetadata({ chain = 'sui', coinType }: CoinTypeOptio
   }`, variables: { coinType }
   })
   const meta = data.coinMetadata
-  if (!meta) throw new Error(`[${chain}] Failed to fetch coin metadata for token: ${coinType}`)
-  return { decimals: meta.decimals ?? 0, symbol: meta.symbol, name: meta.name, description: meta.description, iconUrl: meta.iconUrl, supply: meta.supply ?? undefined }
+  if (meta && meta.supply != null)
+    return { decimals: meta.decimals ?? 0, symbol: meta.symbol, name: meta.name, description: meta.description, iconUrl: meta.iconUrl, supply: meta.supply }
+
+  // No legacy metadata, or metadata without a supply: try the coin_registry standard below.
+  const currency = await getCoinRegistryCurrency({ chain, coinType }).catch((e: any) => {
+    debugLog(`[${chain}] coin_registry lookup failed for ${coinType}: ${e?.message}`)
+    return null
+  })
+  if (!meta && !currency) throw new Error(`[${chain}] Failed to fetch coin metadata for token: ${coinType}`)
+  return {
+    decimals: meta?.decimals ?? currency?.decimals ?? 0,
+    symbol: meta?.symbol ?? currency?.symbol,
+    name: meta?.name ?? currency?.name,
+    description: meta?.description ?? currency?.description,
+    iconUrl: meta?.iconUrl ?? currency?.iconUrl,
+    supply: meta?.supply ?? currency?.supply ?? undefined,
+  }
+}
+
+/** `0x2::coin_registry::Currency<T>` — the standard that replaces `0x2::coin::CoinMetadata<T>` */
+export const COIN_REGISTRY_TYPE = '0x2::coin_registry::Currency'
+
+export interface CoinRegistryCurrency {
+  decimals: number
+  symbol: string
+  name: string
+  description?: string
+  iconUrl?: string
+  /** base units: the registry's own value when it has one, else the TreasuryCap's `total_supply` */
+  supply?: string
+  treasuryCapId?: string
+  regulated?: boolean
+}
+
+/**
+ * First numeric payload of a BCS enum variant (`{ '@variant': 'Fixed', pos0: '123' }`), if any.
+ * `SupplyState::Fixed` / `BurnOnly` wrap a `balance::Supply<T>`, so the number sits a struct deeper
+ * (`pos0.fields.value`): recurse into nested structs instead of only reading immediate scalars.
+ */
+export function variantNumber(value: any, depth = 4): string | undefined {
+  const fields = value?.fields ?? value
+  if (!fields || typeof fields !== 'object') return undefined
+  for (const [key, inner] of Object.entries(fields)) {
+    if (key === '@variant') continue
+    if (typeof inner === 'number') return String(inner)
+    if (typeof inner === 'string' && /^\d+$/.test(inner)) return inner
+    if (depth > 0 && inner && typeof inner === 'object') {
+      const nested = variantNumber(inner, depth - 1)
+      if (nested !== undefined) return nested
+    }
+  }
+  return undefined
+}
+
+/**
+ * Metadata for a coin registered under `coin_registry`. A coin minted that way can have **no**
+ * `0x2::coin::CoinMetadata<T>` object at all (`metadata_cap_id: Deleted`), which is exactly why
+ * `coinMetadata` returns null for it — a null there is not evidence the coin type is wrong.
+ * The registry's own `supply` is usually the `Unknown` variant, so the number is read from the
+ * `TreasuryCap` it points at. Returns null when the coin is not in the registry.
+ */
+export async function getCoinRegistryCurrency({ chain = 'sui', coinType }: CoinTypeOptions): Promise<CoinRegistryCurrency | null> {
+  if (!hasGraphql(chain)) return null
+  const [currency] = await getObjectsByType({ chain, type: `${COIN_REGISTRY_TYPE}<${normalizeCoinType(coinType)}>`, skipLayout: true, limit: 1 })
+  const fields = (currency as SuiObject | undefined)?.fields
+  if (!fields) return null
+
+  const treasuryCapId = fields.treasury_cap_id ? toAddr(fields.treasury_cap_id) : undefined
+  let supply = variantNumber(fields.supply)
+  if (supply === undefined && treasuryCapId) {
+    const cap = await getObject({ chain, objectId: treasuryCapId, skipLayout: true })
+    const total = cap?.fields?.total_supply
+    const value = total?.fields?.value ?? total?.value
+    if (value !== undefined && value !== null) supply = String(value)
+  }
+
+  return {
+    decimals: Number(fields.decimals ?? 0),
+    symbol: fields.symbol,
+    name: fields.name,
+    description: fields.description || undefined,
+    iconUrl: fields.icon_url || undefined,
+    supply,
+    treasuryCapId,
+    regulated: fields.regulated?.fields?.['@variant'] === 'Regulated' || undefined,
+  }
 }
 
 export interface TokenSupply {
