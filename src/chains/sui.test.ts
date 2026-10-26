@@ -298,6 +298,21 @@ describe('chains.sui offline', () => {
     expect(sui.formatObject({ json: {} })).toBeNull()
   })
 
+  test('variantNumber reads the Supply nested inside SupplyState Fixed / BurnOnly', () => {
+    // SupplyState is Fixed(Supply<T>) | BurnOnly(Supply<T>) | Unknown, and balance::Supply wraps
+    // the number again, so a registry entry that carries its own supply nests it two structs deep
+    const supplyField = (variant: any) => sui.formatObject({
+      json: { id: '0x7', decimals: 9, supply: variant },
+      type: { repr: '0x2::coin_registry::Currency<0x2::sui::SUI>' },
+    })!.fields.supply
+    for (const name of ['Fixed', 'BurnOnly'])
+      expect(sui.variantNumber(supplyField({ '@variant': name, pos0: { value: '123' } }))).toBe('123')
+    expect(sui.variantNumber(supplyField({ '@variant': 'Unknown' }))).toBeUndefined()
+    // an immediate scalar payload still works, and a non-numeric variant stays undefined
+    expect(sui.variantNumber(supplyField({ '@variant': 'Fixed', pos0: '456' }))).toBe('456')
+    expect(sui.variantNumber(supplyField({ '@variant': 'Regulated' }))).toBeUndefined()
+  })
+
   test('toParsedJson shapes event json like JSON-RPC parsedJson', () => {
     const layout = {
       struct: {

@@ -1077,14 +1077,22 @@ export interface CoinRegistryCurrency {
   regulated?: boolean
 }
 
-/** First numeric payload of a BCS enum variant (`{ '@variant': 'Fixed', pos0: '123' }`), if any */
-function variantNumber(value: any): string | undefined {
+/**
+ * First numeric payload of a BCS enum variant (`{ '@variant': 'Fixed', pos0: '123' }`), if any.
+ * `SupplyState::Fixed` / `BurnOnly` wrap a `balance::Supply<T>`, so the number sits a struct deeper
+ * (`pos0.fields.value`): recurse into nested structs instead of only reading immediate scalars.
+ */
+export function variantNumber(value: any, depth = 4): string | undefined {
   const fields = value?.fields ?? value
   if (!fields || typeof fields !== 'object') return undefined
   for (const [key, inner] of Object.entries(fields)) {
     if (key === '@variant') continue
     if (typeof inner === 'number') return String(inner)
     if (typeof inner === 'string' && /^\d+$/.test(inner)) return inner
+    if (depth > 0 && inner && typeof inner === 'object') {
+      const nested = variantNumber(inner, depth - 1)
+      if (nested !== undefined) return nested
+    }
   }
   return undefined
 }
