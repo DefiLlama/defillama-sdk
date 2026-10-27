@@ -239,6 +239,8 @@ const DEPLOYMENT_BLOCK = {
   metall2: 1,
   rbn: 2714761,
   xpla: 19189761,
+  funki: 1,
+  etn: 15031577,
 } as {
   [key: string | Chain]: number
 }
