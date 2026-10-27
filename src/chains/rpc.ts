@@ -13,6 +13,7 @@ import pLimit from "p-limit";
 import { getEnvRPC, getEnvValue, getWhitelistedRPCs } from "../util/env";
 import { formError, sleep } from "../util/common";
 import { debugLog } from "../util/debugLog";
+import { registerEndpoints } from "../util/callStats";
 
 export type Endpoints = string | string[] | undefined
 
@@ -77,6 +78,12 @@ export function toEndpointList(value: Endpoints): string[] {
  * Throws when nothing is configured so a misconfigured chain fails loudly.
  */
 export function getEndpoints(chain: string | undefined, defaults?: Endpoints, { envKey, fallback, }: { envKey?: string, fallback?: Endpoints } = {}): string[] {
+  const list = _getEndpoints(chain, defaults, { envKey, fallback })
+  registerEndpoints(chain, list) // so http level call stats are attributed to this chain
+  return list
+}
+
+function _getEndpoints(chain: string | undefined, defaults?: Endpoints, { envKey, fallback, }: { envKey?: string, fallback?: Endpoints } = {}): string[] {
   if (chain) {
     const whitelisted = toEndpointList(getWhitelistedRPCs(chain))
     if (whitelisted.length) return whitelisted

@@ -4,6 +4,7 @@ import { getArchivalRPCs, getChainId, getChainRPCs, getEnvValue, getWhitelistedR
 import { debugLog, debugTable } from './debugLog';
 import { Chain } from "../types";
 import axios from "axios";
+import { registerEndpoints, recordMethod } from "./callStats";
 
 let buildProviders: any = undefined
 if (process.env['TEST_MODE']) {
@@ -164,6 +165,7 @@ export class LlamaProvider extends FallbackProvider {
 
     for (const runner of runners) {
       try {
+        recordMethod(method, this.chainName) // per attempt: call stats count requests, not successes
         const result = await (httpRPC as any)[method](runner.url, params)
         return result
       } catch (e: any) {
@@ -213,6 +215,7 @@ function createProvider(name: string, rpcString: string, chainId = 400069, archi
     // return getProviderObject(rpcList[0], name)
     rpcList = [rpcList[0]]
   }
+  registerEndpoints(name, [...rpcList, ...archivalRPCList]) // so http level call stats are attributed to this chain
   try {
     const fallbackConfig = { cacheTimeout: 5 * 1000, quorum: 1, eventQuorum: 1, }
     const getProviderWithURL = (url: string) => ({ url, provider: getProviderObject(url, name) })
@@ -280,38 +283,40 @@ function toHex(n: number | string) {
   return '0x' + n.toString(16)
 }
 
+// A public RPC behind a dead or re-routed domain can answer HTTP 200 with an HTML page, an empty body or a JSON object without `result`
+// (seen on mainnet.telos.net/evm). Reading `data.result` off that gave `undefined`, which the caller treated as a successful
+// call and handed to the ABI decoder, so the error surfaced as "invalid BytesLike value null" / a multicall failure instead of the
+// provider moving on to the next RPC. Anything that is not a JSON-RPC envelope with a `result` is therefore thrown here.
+async function rpcPost(rpc: string, method: string, params: any[], timeoutEnvKey: string, defaultTimeout: string): Promise<any> {
+  const { data } = await axios.post(rpc, { jsonrpc: '2.0', id: 1, params, method }, {
+    timeout: +(getEnvValue(timeoutEnvKey, defaultTimeout) as any)
+  })
+  if (!data || typeof data !== 'object' || Array.isArray(data))
+    throw new Error(`${method} on ${rpc}: not a JSON-RPC response: ${String(data).slice(0, 120)}`)
+  if (data.error) throw data.error
+  if (!Object.prototype.hasOwnProperty.call(data, 'result'))
+    throw new Error(`${method} on ${rpc}: response has no result field: ${JSON.stringify(data).slice(0, 120)}`)
+  return data.result
+}
+
 const httpRPC = {
   getBlockNumber: async (rpc: string): Promise<number> => {
     const getData = async () => {
-      const data = (await axios.post(rpc, {
-        jsonrpc: '2.0', id: 1, params: [],
-        method: 'eth_blockNumber',
-      }, {
-        timeout: +(getEnvValue('LLAMA_PROVIDER_RPC_GET_BLOCKNUMBER_TIMEOUT', '30000') as any)
-      })).data
-      if (data.error) throw data.error
-      return data.result
+      const result = await rpcPost(rpc, 'eth_blockNumber', [], 'LLAMA_PROVIDER_RPC_GET_BLOCKNUMBER_TIMEOUT', '30000')
+      const block = parseInt(result)
+      if (isNaN(block)) throw new Error(`eth_blockNumber on ${rpc}: bad result ${JSON.stringify(result)}`)
+      return block
     }
-    let data
     try {
-      data = await getData()
+      return await getData()
     } catch (e) {
       // try again
-      data = await getData()
+      return await getData()
     }
-    const block = parseInt(data)
-    if (isNaN(block)) throw new Error('bad eth_blockNumber response') // so the health check drops the rpc instead of keeping it with a NaN block
-    return block
   },
   getBlock: async (rpc: string, params: any): Promise<any> => {
     params[0] = toHex(params[0])
-    const { data: { result, error } } = await axios.post(rpc, {
-      jsonrpc: '2.0', id: 1, params,
-      method: 'eth_getBlockByNumber',
-    }, {
-      timeout: +(getEnvValue('LLAMA_PROVIDER_RPC_GET_BLOCK_TIMEOUT', '60000') as any)
-    })
-    if (error) throw error
+    const result = await rpcPost(rpc, 'eth_getBlockByNumber', params, 'LLAMA_PROVIDER_RPC_GET_BLOCK_TIMEOUT', '60000')
     if (!result) throw new Error(`block ${params[0]} not found`) // pruned or not yet synced, let callers recognise it
     result.number = parseInt(result.number)
     result.timestamp = parseInt(result.timestamp)
@@ -319,37 +324,21 @@ const httpRPC = {
   },
   getBalance: async (rpc: string, params: any): Promise<any> => {
     params[1] = toHex(params[1])
-    const { data: { result, error } } = await axios.post(rpc, {
-      jsonrpc: '2.0', id: 1, params,
-      method: 'eth_getBalance',
-    }, {
-      timeout: +(getEnvValue('LLAMA_PROVIDER_RPC_GET_BALANCE_TIMEOUT', '30000') as any)
-    })
-    if (error) throw error
+    const result = await rpcPost(rpc, 'eth_getBalance', params, 'LLAMA_PROVIDER_RPC_GET_BALANCE_TIMEOUT', '30000')
     return BigInt(result).toString();
   },
   call: async (rpc: string, params: any): Promise<any> => {
     params[1] = toHex(params[1])
-    const { data } = await axios.post(rpc, {
-      jsonrpc: '2.0', id: 1, params,
-      method: 'eth_call',
-    }, {
-      timeout: +(getEnvValue('LLAMA_PROVIDER_RPC_CALL_TIMEOUT', '30000') as any)
-    })
-    if (data.error) throw data.error
-    if (typeof data?.result !== 'string') throw new Error('bad eth_call response') // not a json-rpc body (eg. an http redirect to a web page), fail over to the next rpc
-    return data.result;
+    const result = await rpcPost(rpc, 'eth_call', params, 'LLAMA_PROVIDER_RPC_CALL_TIMEOUT', '30000')
+    // eth_call always returns hex data (`0x` when the target has no code); a null here is a broken node, not an empty return
+    if (typeof result !== 'string') throw new Error(`eth_call on ${rpc}: bad result ${JSON.stringify(result)}`)
+    return result;
   },
   getLogs: async (rpc: string, params: any): Promise<any> => {
     params[0].fromBlock = toHex(params[0].fromBlock)
     params[0].toBlock = toHex(params[0].toBlock)
-    const { data: { result, error } } = await axios.post(rpc, {
-      jsonrpc: '2.0', id: 1, params,
-      method: 'eth_getLogs',
-    }, {
-      timeout: +(getEnvValue('LLAMA_PROVIDER_RPC_GET_LOGS_TIMEOUT', '30000') as any)
-    })
-    if (error) throw error
+    const result = await rpcPost(rpc, 'eth_getLogs', params, 'LLAMA_PROVIDER_RPC_GET_LOGS_TIMEOUT', '30000')
+    if (!Array.isArray(result)) throw new Error(`eth_getLogs on ${rpc}: bad result ${JSON.stringify(result)}`)
     result.forEach((i: any) => {
       i.blockNumber = parseInt(i.blockNumber)
       i.transactionIndex = parseInt(i.transactionIndex)
@@ -359,13 +348,7 @@ const httpRPC = {
     return result;
   },
   getTransaction: async (rpc: string, params: any): Promise<any> => {
-    const { data: { result, error } } = await axios.post(rpc, {
-      jsonrpc: '2.0', id: 1, params,
-      method: 'eth_getTransactionByHash',
-    }, {
-      timeout: +(getEnvValue('LLAMA_PROVIDER_RPC_GET_TRANSACTION_TIMEOUT', '180000') as any)
-    })
-    if (error) throw error
+    const result = await rpcPost(rpc, 'eth_getTransactionByHash', params, 'LLAMA_PROVIDER_RPC_GET_TRANSACTION_TIMEOUT', '180000')
     if (!result) return null
     result.blockNumber = parseInt(result.blockNumber)
     result.transactionIndex = parseInt(result.transactionIndex)
@@ -373,13 +356,7 @@ const httpRPC = {
     return result;
   },
   getTransactionReceipt: async (rpc: string, params: any): Promise<any> => {
-    const { data: { result, error } } = await axios.post(rpc, {
-      jsonrpc: '2.0', id: 1, params,
-      method: 'eth_getTransactionReceipt',
-    }, {
-      timeout: +(getEnvValue('LLAMA_PROVIDER_RPC_GET_TXN_RECEIPT_TIMEOUT', '180000') as any)
-    })
-    if (error) throw error
+    const result = await rpcPost(rpc, 'eth_getTransactionReceipt', params, 'LLAMA_PROVIDER_RPC_GET_TXN_RECEIPT_TIMEOUT', '180000')
     if (!result) return null
     result.blockNumber = parseInt(result.blockNumber)
     result.transactionIndex = parseInt(result.transactionIndex)

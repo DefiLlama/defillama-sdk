@@ -170,9 +170,10 @@
   },
   "telos": {
     "rpc": [
-      "https://rpc1.us.telos.net/evm",
       "https://rpc.telos.net",
-      "https://telos.drpc.org"
+      "https://rpc1.us.telos.net/evm",
+      "https://telos.drpc.org",
+      "https://public.1rpc.io/telos/evm"
     ],
     "chainId": 40
   },
@@ -491,7 +492,7 @@
   },
   "darwinia": {
     "rpc": [
-      "https://darwinia-rpc.darwiniacommunitydao.xyz"
+      "https://rpc.darwinia.network"
     ],
     "chainId": 46
   },

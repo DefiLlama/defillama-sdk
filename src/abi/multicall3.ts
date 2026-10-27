@@ -39,7 +39,7 @@ const DEPLOYMENT_BLOCK = {
   flare: 3002461,
   milkomeda: 4377424,
   velas: 55883577,
-  // telos: 246530709,
+  telos: 246530709,
   step: 5734583,
   canto: 2905789,
   iotex: 22163670,

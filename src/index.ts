@@ -21,6 +21,7 @@ export * as erc20 from "./erc20";
 export * as coins from "./util/coins";
 export * as chainUtils from "./util/chainUtils";
 export * as chains from "./chains";
+export * as callStats from "./util/callStats";
 import _providerListJSON from "./providers.json";
 
 export const log = debugLog

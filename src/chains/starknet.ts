@@ -31,6 +31,7 @@
 import { keccak256, toUtf8Bytes } from "ethers";
 import { getEnvValue } from "../util/env";
 import { debugLog } from "../util/debugLog";
+import { recordMethod } from "../util/callStats";
 import { getEndpoints as resolveEndpoints, getLimiter, jsonRpc, jsonRpcBatch, JsonRpcError, sliceIntoChunks, sleep } from "./rpc";
 
 // ---------------------------------------------------------------------------
@@ -798,6 +799,7 @@ export async function getLogs({ target, fromBlock, toBlock, topics, keys, chunkS
     while (true) {
       let page: any
       try {
+        recordMethod('getLogs', 'starknet')
         page = await rpc('starknet_getEvents', [filter])
       } catch (e) {
         // providers cap chunk_size at different values; shrink and retry the same page
