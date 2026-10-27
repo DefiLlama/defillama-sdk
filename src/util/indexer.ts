@@ -10,6 +10,7 @@ import { sliceIntoChunks } from ".";
 import { Address } from "../types";
 import { getBlockNumber } from "./blocks";
 import { formError } from "./common";
+import { recordMethod } from "./callStats";
 import { DEBUG_LEVEL2, debugLog } from "./debugLog";
 import { ENV_CONSTANTS, getEnvValue } from "./env";
 import { getLogParams, getLogs as getLogsParent } from "./logs";
@@ -456,6 +457,8 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
 
   // Ensure the indexer is synced far enough
   const indexerVersion = getChainIndexerVersion(chain);
+  // one logical getLogs query against the indexer (chunks over maxBlockRange recurse here and count separately)
+  if (blockRange <= effectiveMaxBlockRange) recordMethod('indexerGetLogs', chain);
   checkIndexerConfig(indexerVersion);
   const chainId = getChainId(chain);
   const chainIndexStatus = await getChainIndexStatus(indexerVersion);

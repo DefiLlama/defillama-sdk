@@ -26,6 +26,8 @@ import { getEnvValue } from './env'
 
 export const ES_INDEX = 'adapter-call-stats'
 export const DEFAULT_MIN_CALLS = 50
+/** a chain bucket is also kept when it has at least this many getLogs requests, however few calls it made */
+export const DEFAULT_MIN_GET_LOGS = 10
 
 export type CallStatsMeta = {
   /** 'tvl' | 'dimensions' | ... */
@@ -45,9 +47,14 @@ export type CallStats = {
   byHost: Record<string, number>
   /** requests that matched no registered endpoint */
   unattributed: number
+  /**
+   * logical rpc method -> chain -> requests, recorded by the SDK at the call site (`recordMethod`):
+   * every LlamaProvider attempt (`call`, `getLogs`, `getBlock`, ...), starknet `getLogs`, and `indexerGetLogs`
+   */
+  byMethod: Record<string, Record<string, number>>
 }
 
-export type CallStatsSnapshot = Pick<CallStats, 'total' | 'byChain' | 'byHost' | 'unattributed'>
+export type CallStatsSnapshot = Pick<CallStats, 'total' | 'byChain' | 'byHost' | 'unattributed' | 'byMethod'>
 
 type EndpointEntry = { path: string, chain: string }
 
@@ -64,7 +71,7 @@ type SharedState = {
 const STATE_KEY = Symbol.for('@defillama/sdk/callStats')
 
 function newStats(meta: CallStatsMeta): CallStats {
-  return { meta, startTime: Date.now(), total: 0, byChain: {}, byHost: {}, unattributed: 0 }
+  return { meta, startTime: Date.now(), total: 0, byChain: {}, byHost: {}, unattributed: 0, byMethod: {} }
 }
 
 const shared: SharedState = (globalThis as any)[STATE_KEY] ?? ((globalThis as any)[STATE_KEY] = {
@@ -141,6 +148,39 @@ function record(url: string): void {
   const chain = resolveChain(url)
   if (chain) stats.byChain[chain] = (stats.byChain[chain] ?? 0) + 1
   else stats.unattributed++
+}
+
+/**
+ * Count a logical rpc request (one attempt, so retries count) against `method` and `chain` in the current run.
+ * The http layer already counts the request itself; this adds the method breakdown (getLogs being the one that matters).
+ */
+export function recordMethod(method: string, chain: string = 'unknown'): void {
+  const stats = shared.als.getStore() ?? shared.global
+  const byChain = stats.byMethod[method] ?? (stats.byMethod[method] = {})
+  chain = chain.toLowerCase()
+  byChain[chain] = (byChain[chain] ?? 0) + 1
+}
+
+function getLogsCount(stats: CallStatsSnapshot, chain?: string): number {
+  const byChain = stats.byMethod?.getLogs ?? {}
+  if (chain) return byChain[chain] ?? 0
+  return Object.values(byChain).reduce((a, b) => a + b, 0)
+}
+
+/** method -> requests across chains */
+function methodTotals(stats: CallStatsSnapshot): Record<string, number> {
+  const out: Record<string, number> = {}
+  for (const [method, byChain] of Object.entries(stats.byMethod ?? {}))
+    out[method] = Object.values(byChain).reduce((a, b) => a + b, 0)
+  return out
+}
+
+/** method -> requests for one chain (only methods the chain used) */
+function methodsForChain(stats: CallStatsSnapshot, chain: string): Record<string, number> {
+  const out: Record<string, number> = {}
+  for (const [method, byChain] of Object.entries(stats.byMethod ?? {}))
+    if (byChain[chain]) out[method] = byChain[chain]
+  return out
 }
 
 function urlFromRequestArgs(args: any[], defaultProtocol: string): string | undefined {
@@ -222,17 +262,23 @@ export function getCurrent(): CallStats {
 }
 
 export function snapshot(stats: CallStats = getCurrent()): CallStatsSnapshot {
-  return { total: stats.total, byChain: { ...stats.byChain }, byHost: { ...stats.byHost }, unattributed: stats.unattributed }
+  const byMethod: CallStats['byMethod'] = {}
+  for (const [method, byChain] of Object.entries(stats.byMethod)) byMethod[method] = { ...byChain }
+  return { total: stats.total, byChain: { ...stats.byChain }, byHost: { ...stats.byHost }, unattributed: stats.unattributed, byMethod }
 }
 
 export function mergeSnapshots(snapshots: CallStatsSnapshot[]): CallStatsSnapshot {
-  const out: CallStatsSnapshot = { total: 0, byChain: {}, byHost: {}, unattributed: 0 }
+  const out: CallStatsSnapshot = { total: 0, byChain: {}, byHost: {}, unattributed: 0, byMethod: {} }
   for (const s of snapshots) {
     if (!s) continue
     out.total += s.total ?? 0
     out.unattributed += s.unattributed ?? 0
     for (const [k, v] of Object.entries(s.byChain ?? {})) out.byChain[k] = (out.byChain[k] ?? 0) + v
     for (const [k, v] of Object.entries(s.byHost ?? {})) out.byHost[k] = (out.byHost[k] ?? 0) + v
+    for (const [method, byChain] of Object.entries(s.byMethod ?? {})) {
+      const target = out.byMethod[method] ?? (out.byMethod[method] = {})
+      for (const [k, v] of Object.entries(byChain)) target[k] = (target[k] ?? 0) + v
+    }
   }
   return out
 }
@@ -275,24 +321,44 @@ export function getMinCalls(minCalls?: number): number {
   return +(getEnvValue('CALL_STATS_MIN_CALLS', String(DEFAULT_MIN_CALLS)) as string)
 }
 
+function getMinGetLogs(): number {
+  return +(getEnvValue('CALL_STATS_MIN_GET_LOGS', String(DEFAULT_MIN_GET_LOGS)) as string)
+}
+
+/**
+ * Chains worth a row: at least `minCalls` http requests, or at least `minGetLogs` getLogs requests
+ * (a chain that makes 20 getLogs calls is heavier than one making 50 eth_calls). Most calls first.
+ */
+function chainEntries(stats: CallStatsSnapshot, minCalls: number): { key: string, calls: number, getLogs: number }[] {
+  const minGetLogs = getMinGetLogs()
+  const chains = new Set([...Object.keys(stats.byChain), ...Object.keys(stats.byMethod?.getLogs ?? {})])
+  const entries = [...chains]
+    .map(key => ({ key, calls: stats.byChain[key] ?? 0, getLogs: getLogsCount(stats, key) }))
+    .filter(i => i.calls >= minCalls || i.getLogs >= minGetLogs)
+  entries.sort((a, b) => b.calls - a.calls || b.getLogs - a.getLogs)
+  return entries
+}
+
 /** Elasticsearch documents for a run: one `run` summary, one `chain` doc per chain and one `host` doc per unattributed host at or above `minCalls`. */
 export function buildDocs(stats: CallStatsSnapshot, meta: CallStatsMeta, { success, runtime, minCalls }: { success?: boolean, runtime?: number, minCalls?: number } = {}) {
   minCalls = getMinCalls(minCalls)
   const timestamp = Date.now()
-  const chains = sortedEntries(stats.byChain, minCalls)
+  const chains = chainEntries(stats, minCalls)
   const hosts = sortedEntries(stats.byHost, minCalls, 25)
   const rpcCalls = Object.values(stats.byChain).reduce((a, b) => a + b, 0)
+  const getLogsCalls = getLogsCount(stats)
   const unattributedHosts = sortedEntries(
     Object.fromEntries(Object.entries(stats.byHost).filter(([host]) => !shared.endpoints.has(host))), minCalls)
   const docs: any[] = []
-  if (stats.total < minCalls) return docs
+  if (stats.total < minCalls && getLogsCalls < getMinGetLogs()) return docs
   docs.push({
     timestamp, type: 'run', metadata: meta, success, runtime,
-    calls: stats.total, rpcCalls, otherCalls: stats.unattributed,
-    chains: chains.map(i => ({ chain: i.key, calls: i.calls })),
+    calls: stats.total, rpcCalls, otherCalls: stats.unattributed, getLogsCalls,
+    methods: methodTotals(stats),
+    chains: chains.map(i => ({ chain: i.key, calls: i.calls, getLogs: i.getLogs })),
     hosts: hosts.map(i => ({ host: i.key, calls: i.calls })),
   })
-  for (const i of chains) docs.push({ timestamp, type: 'chain', metadata: meta, chain: i.key, calls: i.calls })
+  for (const i of chains) docs.push({ timestamp, type: 'chain', metadata: meta, chain: i.key, calls: i.calls, getLogs: i.getLogs, methods: methodsForChain(stats, i.key) })
   for (const i of unattributedHosts) docs.push({ timestamp, type: 'host', metadata: meta, host: i.key, calls: i.calls })
   return docs
 }
@@ -309,11 +375,12 @@ export async function report(stats: CallStats | CallStatsSnapshot, { success, ru
 }
 
 function printStats(stats: CallStatsSnapshot, meta: CallStatsMeta, minCalls: number, log: Function, table: Function) {
-  if (stats.total < minCalls) return
-  log(`[callStats] ${meta.application}/${meta.name}: ${stats.total} http requests (${stats.unattributed} not matching a known rpc)`)
+  const getLogsCalls = getLogsCount(stats)
+  if (stats.total < minCalls && getLogsCalls < getMinGetLogs()) return
+  log(`[callStats] ${meta.application}/${meta.name}: ${stats.total} http requests (${stats.unattributed} not matching a known rpc, ${getLogsCalls} getLogs)`)
   const rows = [
-    ...sortedEntries(stats.byChain, minCalls).map(i => ({ chain: i.key, calls: i.calls })),
-    ...sortedEntries(Object.fromEntries(Object.entries(stats.byHost).filter(([host]) => !shared.endpoints.has(host))), minCalls).map(i => ({ chain: `host: ${i.key}`, calls: i.calls })),
+    ...chainEntries(stats, minCalls).map(i => ({ chain: i.key, calls: i.calls, getLogs: i.getLogs })),
+    ...sortedEntries(Object.fromEntries(Object.entries(stats.byHost).filter(([host]) => !shared.endpoints.has(host))), minCalls).map(i => ({ chain: `host: ${i.key}`, calls: i.calls, getLogs: 0 })),
   ]
   if (rows.length) table(rows)
 }

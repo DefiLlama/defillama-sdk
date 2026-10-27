@@ -4,7 +4,7 @@ import { getArchivalRPCs, getChainId, getChainRPCs, getEnvValue, getWhitelistedR
 import { debugLog, debugTable } from './debugLog';
 import { Chain } from "../types";
 import axios from "axios";
-import { registerEndpoints } from "./callStats";
+import { registerEndpoints, recordMethod } from "./callStats";
 
 let buildProviders: any = undefined
 if (process.env['TEST_MODE']) {
@@ -165,6 +165,7 @@ export class LlamaProvider extends FallbackProvider {
 
     for (const runner of runners) {
       try {
+        recordMethod(method, this.chainName) // per attempt: call stats count requests, not successes
         const result = await (httpRPC as any)[method](runner.url, params)
         return result
       } catch (e: any) {
