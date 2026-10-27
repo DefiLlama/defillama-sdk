@@ -41,6 +41,7 @@ import { getEnvRPC, getEnvValue } from "../util/env";
 import { isEvmChain } from "../util/LlamaProvider";
 import { debugLog } from "../util/debugLog";
 import { Endpoints, getEndpoints as resolveEndpoints, httpGet, jsonRpc, toEndpointList, isRetryableError } from "./rpc";
+import { registerEndpoints } from "../util/callStats";
 
 // ---------------------------------------------------------------------------
 // config
@@ -187,10 +188,16 @@ export function getEndpoints({ chain }: { chain: string }): string[] {
   if (!chain) throw new Error('cosmos.getEndpoints: chain is required')
   const envKey = `${chain.toUpperCase()}_LCD`
   const fromLcdEnv = toEndpointList(getEnvValue(envKey))
-  if (fromLcdEnv.length) return fromLcdEnv
+  if (fromLcdEnv.length) {
+    registerEndpoints(chain, fromLcdEnv)
+    return fromLcdEnv
+  }
   if (!isEvmLikeChain(chain)) {
     const fromRpcEnv = toEndpointList(getEnvRPC(chain))
-    if (fromRpcEnv.length) return fromRpcEnv
+    if (fromRpcEnv.length) {
+      registerEndpoints(chain, fromRpcEnv)
+      return fromRpcEnv
+    }
   }
   return resolveEndpoints(chain, DEFAULT_ENDPOINTS[chain], { envKey, fallback: `${COSMOS_DIRECTORY_REST}/${chain}` })
 }

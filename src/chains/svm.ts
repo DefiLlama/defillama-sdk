@@ -34,6 +34,7 @@ import { createHash } from "crypto";
 import { getEnvValue } from "../util/env";
 import { debugLog } from "../util/debugLog";
 import { getEndpoints as resolveEndpoints, getLimiter, jsonRpc, runInChunks, } from "./rpc";
+import { registerEndpoints } from "../util/callStats";
 
 // ---------------------------------------------------------------------------
 // config
@@ -75,7 +76,11 @@ export interface EndpointOptions extends ChainOptions {
 export function getEndpoints({ chain = 'solana', isClient = false }: EndpointOptions = {}): string[] {
   if (isClient && chain === 'solana') {
     const client = getEnvValue('SOLANA_RPC_CLIENT')
-    if (client) return client.split(',').map(i => i.trim()).filter(Boolean)
+    if (client) {
+      const list = client.split(',').map(i => i.trim()).filter(Boolean)
+      registerEndpoints(chain, list)
+      return list
+    }
   }
   return resolveEndpoints(chain, DEFAULT_ENDPOINTS[chain])
 }

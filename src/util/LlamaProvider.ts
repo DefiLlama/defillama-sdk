@@ -4,6 +4,7 @@ import { getArchivalRPCs, getChainId, getChainRPCs, getEnvValue, getWhitelistedR
 import { debugLog, debugTable } from './debugLog';
 import { Chain } from "../types";
 import axios from "axios";
+import { registerEndpoints } from "./callStats";
 
 let buildProviders: any = undefined
 if (process.env['TEST_MODE']) {
@@ -213,6 +214,7 @@ function createProvider(name: string, rpcString: string, chainId = 400069, archi
     // return getProviderObject(rpcList[0], name)
     rpcList = [rpcList[0]]
   }
+  registerEndpoints(name, [...rpcList, ...archivalRPCList]) // so http level call stats are attributed to this chain
   try {
     const fallbackConfig = { cacheTimeout: 5 * 1000, quorum: 1, eventQuorum: 1, }
     const getProviderWithURL = (url: string) => ({ url, provider: getProviderObject(url, name) })

@@ -5,6 +5,7 @@ import pLimit from 'p-limit';
 import { getEnvValue } from "../util/env";
 import { evmToTronAddress, postJson, shortenString, sleepRandom, tronToEvmAddress } from "../util/common";
 import * as evmAbi from "./index";
+import { registerEndpoints } from "../util/callStats";
 
 const limitRPCCalls = pLimit(+getEnvValue('TRON_RPC_CONCURRENCY_LIMIT', '5')!);
 
@@ -85,6 +86,7 @@ export const hexifyTarget = tronToEvmAddress
 async function post(body = {}, endpoint = '/wallet/triggerconstantcontract') {
   await sleepRandom(3000)   // sleep random time to avoid rate limit
   const hosts = (getEndpoint()).split(',')
+  registerEndpoints('tron', hosts)
 
   hosts.sort(() => Math.random() - 0.5) // shuffle hosts
 
