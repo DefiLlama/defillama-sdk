@@ -35,6 +35,8 @@ const opts = { skipElastic: true, minCalls: 0 }
 test("resolveChain uses the longest registered path prefix on a host", () => {
   registerEndpoints('chainA', ['https://rpc.example.com/a', 'https://rpc.example.com/a/'])
   registerEndpoints('chainB', 'https://rpc.example.com/a/b,https://other.example.com')
+  registerEndpoints('chainB', 'https://rpc.example.com/a/b,https://other.example.com') // repeat is a no-op
+  registerEndpoints('chainB', ['https://rpc.example.com/a/b', 'https://other.example.com'])
   expect(resolveChain('https://rpc.example.com/a/eth_call')).toBe('chaina')
   expect(resolveChain('https://rpc.example.com/a/b/x?key=1')).toBe('chainb')
   expect(resolveChain('https://rpc.example.com/ab')).toBeUndefined()

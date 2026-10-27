@@ -66,6 +66,8 @@ type SharedState = {
   /** counters for requests made outside any `run` context */
   global: CallStats
   ignoredHosts: Set<string>
+  /** `chain|endpoints` keys already registered: the endpoint resolvers are not cached and run per request */
+  registered: Set<string>
 }
 
 const STATE_KEY = Symbol.for('@defillama/sdk/callStats')
@@ -80,6 +82,7 @@ const shared: SharedState = (globalThis as any)[STATE_KEY] ?? ((globalThis as an
   endpoints: new Map(),
   global: newStats({ application: 'global', name: '-' }),
   ignoredHosts: new Set(),
+  registered: new Set(),
 } as SharedState)
 
 // ---------------------------------------------------------------------------
@@ -102,8 +105,12 @@ function parseUrl(url: string): { host: string, path: string } | undefined {
  */
 export function registerEndpoints(chain: string | undefined, endpoints: string | string[] | undefined): void {
   if (!chain || !endpoints) return
-  const list = Array.isArray(endpoints) ? endpoints : endpoints.split(',')
   chain = chain.toLowerCase()
+  // callers pass the same list on every request: skip the url parsing after the first time
+  const key = chain + '|' + (Array.isArray(endpoints) ? endpoints.join(',') : endpoints)
+  if (shared.registered.has(key)) return
+  shared.registered.add(key)
+  const list = Array.isArray(endpoints) ? endpoints : endpoints.split(',')
   for (const raw of list) {
     const parsed = parseUrl(String(raw).trim())
     if (!parsed) continue
