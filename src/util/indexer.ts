@@ -10,7 +10,7 @@ import { sliceIntoChunks } from ".";
 import { Address } from "../types";
 import { getBlockNumber } from "./blocks";
 import { formError } from "./common";
-import { recordMethod } from "./callStats";
+import { INDEXER_METHOD, OTHER_CHAIN, recordLogs, recordMethod } from "./callStats";
 import { DEBUG_LEVEL2, debugLog } from "./debugLog";
 import { ENV_CONSTANTS, getEnvValue } from "./env";
 import { getLogParams, getLogs as getLogsParent } from "./logs";
@@ -164,6 +164,11 @@ function assertCursorAdvances(next: CursorPaginationParams | undefined, previous
   if (!advances) throw new Error("Indexer v4 pagination cursor did not advance");
 }
 
+// chain of an indexer query, for call stats: every page request is counted against it
+function chainOfParams(params: any): string {
+  return allChainIdChainMapping[params?.chainId] ?? OTHER_CHAIN;
+}
+
 // Translate the public offset/limit contract into keyset pagination. Even all=false
 // may need several requests: the v4 server caps offsets, not the public SDK API.
 async function* getV4Pages(
@@ -176,8 +181,10 @@ async function* getV4Pages(
   let cursor: CursorPaginationParams | undefined;
   let remainingOffset = offset;
   let remainingLimit = all ? Infinity : limit;
+  const chain = chainOfParams(params);
   while (remainingLimit > 0) {
     const pageParams = { ...params, limit, offset: 0, includeTotal: false, ...cursor };
+    recordMethod(INDEXER_METHOD, chain);
     const response = await axiosInstances.v4(path, {
       params: pageParams,
       ...(key === "transfers" ? { responseType: "text" as const, transformResponse: (data: any) => data } : {}),
@@ -186,6 +193,7 @@ async function* getV4Pages(
       ? await parseTransferResponse(response.data) : response.data;
     const page = data[key];
     if (!Array.isArray(page)) throw new Error(`Indexer v4 returned an invalid ${key} response`);
+    if (key === "logs") recordLogs('indexer', chain, page.length);
     // Capture the cursor before consumers normalize/mutate the raw rows.
     const next = getCursor(page[page.length - 1]);
     const result = applyLocalOffset(page, remainingOffset);
@@ -208,10 +216,13 @@ async function* getIndexerPages(version: IndexerVersion, path: string, key: Inde
     return;
   }
   let count = 0;
+  const chain = chainOfParams(params);
   do {
+    recordMethod(INDEXER_METHOD, chain);
     const { data } = await axiosInstances.v2(path, { params: { ...params, limit, offset } })
       .catch((e: any) => { throw formError(e) });
     const rows = data[key];
+    if (key === "logs" && Array.isArray(rows)) recordLogs('indexer', chain, rows.length);
     yield rows;
     count += rows.length;
     if (!rows.length || rows.length < limit || (key === "logs" && typeof data.totalCount === "number" && data.totalCount <= count)) return;
@@ -234,6 +245,7 @@ async function getChainIndexStatus(version: IndexerVersion): Promise<ChainIndexS
 
   state.timestamp = Date.now();
   state.chainIndexStatus = (async () => {
+    recordMethod(INDEXER_METHOD); // serves every chain: counted under _other
     const {
       data: { syncStatus },
     } = await axiosInstances[version].get(`/sync`).catch((e: any) => { throw formError(e) });
@@ -318,15 +330,17 @@ export type IndexerGetTokenTransfersOptions = {
 async function streamLogs(opts: {
   path: string;
   version: IndexerVersion;
+  chain: string;
   onItem: (obj: any) => Promise<void> | void;
   onChunkStats?: (s: { chunkSize: number; bytesReceived: number; itemsProcessed: number }) => void;
   shouldStop?: () => boolean;
 }) {
-  const { path, version, onItem, onChunkStats, shouldStop } = opts;
+  const { path, version, chain, onItem, onChunkStats, shouldStop } = opts;
   const controller = new AbortController();
   let bytesReceived = 0;
   let itemsProcessed = 0;
 
+  recordMethod(INDEXER_METHOD, chain);
   const res = await axiosInstances[version].get(path, {
     responseType: "stream",
     timeout: INDEXER_REQUEST_TIMEOUT_MS,
@@ -372,6 +386,8 @@ async function streamLogs(opts: {
     // Only our requested early stop is successful; remote truncation and decode
     // or processor errors must reject instead of returning incomplete results.
     if (!stopped) throw processingError ?? e;
+  } finally {
+    recordLogs('indexer', chain, itemsProcessed); // rows received, including those of a stream that then failed
   }
   onChunkStats?.({ chunkSize: 0, bytesReceived, itemsProcessed });
 }
@@ -583,6 +599,7 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
       await streamLogs({
         path: `/logs?${qs.toString()}`,
         version: indexerVersion,
+        chain,
         onItem: async (raw) => {
           if (stopNow) return;
           if (indexerVersion === "v4") normalizeV4Row(raw, "logs");

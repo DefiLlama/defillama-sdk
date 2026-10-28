@@ -31,7 +31,7 @@
 import { keccak256, toUtf8Bytes } from "ethers";
 import { getEnvValue } from "../util/env";
 import { debugLog } from "../util/debugLog";
-import { recordMethod } from "../util/callStats";
+import { recordLogs, recordMethod } from "../util/callStats";
 import { getEndpoints as resolveEndpoints, getLimiter, jsonRpc, jsonRpcBatch, JsonRpcError, sliceIntoChunks, sleep } from "./rpc";
 
 // ---------------------------------------------------------------------------
@@ -811,6 +811,7 @@ export async function getLogs({ target, fromBlock, toBlock, topics, keys, chunkS
         throw e
       }
       logs.push(...(page?.events ?? []))
+      recordLogs('rpc', 'starknet', page?.events?.length ?? 0)
       pages++
       if (!page?.continuation_token) break
       filter.continuation_token = page.continuation_token

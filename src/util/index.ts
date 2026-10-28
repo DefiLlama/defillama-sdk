@@ -3,6 +3,7 @@ import type { Address } from "../types";
 import { ethers, EventLog } from "ethers";
 import { formError, getProviderUrl, sumSingleBalance } from "./common";
 import { debugLog } from "./debugLog";
+import { recordLogs } from "./callStats";
 import runInPromisePoolOrig from "./promisePool";
 export { getLatestBlock, getTimestamp, lookupBlock, } from "./blocks";
 export { convertToBigInt } from "./common"
@@ -93,6 +94,7 @@ async function _getLogs(params: GetLogsOptions): Promise<{ output: EventLog[] }>
     }
     try {
       const partLogs = await provider.getLogs(logParams);
+      recordLogs('rpc', params.chain, partLogs.length);
       logs = logs.concat(partLogs as EventLog[]);
       currentBlock = nextBlock;
     } catch (e) {
