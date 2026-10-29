@@ -121,9 +121,13 @@ export class LlamaProvider extends FallbackProvider {
     await this._isReady
     let runners = [...this.rpcs]
     if (method === 'getLogs') {
-      runners = [...this.archivalRPCs]
-      this.rpcs.filter(i => !runners.map(i => i.url).includes(i.url)).forEach(i => runners.push(i)) // ensure that there are no duplicates
-      runners = runners.filter(i => !i.url.includes('llamarpc.com'));
+      // archival RPCs first, then the remaining regular RPCs, each URL once
+      const seen = new Set<string>()
+      runners = [...this.archivalRPCs, ...this.rpcs].filter(i => {
+        if (i.url.includes('llamarpc.com') || seen.has(i.url)) return false
+        seen.add(i.url)
+        return true
+      })
     }
     if (!runners.length) throw new Error('No RPCs available for ' + this.chainName)
     let primaryRunner = runners[0]
