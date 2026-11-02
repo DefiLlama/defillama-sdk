@@ -1,6 +1,7 @@
 import axios from "axios";
 import http from "http";
 import https from "https";
+import pLimit from "p-limit";
 import { Readable } from "stream";
 import { pipeline } from "stream/promises";
 import { parser as streamJsonParser } from "stream-json";
@@ -13,8 +14,8 @@ import { formError } from "./common";
 import { INDEXER_METHOD, OTHER_CHAIN, recordLogs, recordMethod } from "./callStats";
 import { DEBUG_LEVEL2, debugLog } from "./debugLog";
 import { ENV_CONSTANTS, getEnvValue } from "./env";
-import { getLogParams, getLogs as getLogsParent } from "./logs";
-import { createViemFastPathBatchDecoder, normalizeLog } from "./logs.decode.shared";
+import { getLogParams, getLogs as getLogsParent, GetLogsTopics } from "./logs";
+import { createViemFastPathBatchDecoder, normalizeLog, padTopic32 } from "./logs.decode.shared";
 import { GetTransactionOptions } from "./transactions";
 import { normalizeV4Row, parseTransferResponse } from "./indexer.compatibility";
 
@@ -141,6 +142,38 @@ function getTransferCursor(transfer: any): CursorPaginationParams | undefined {
 function getTransactionCursor(transaction: any): CursorPaginationParams | undefined {
   if (!transaction) return;
   return { after_block: +transaction.block_number, after_index: +transaction.transaction_index };
+}
+
+type TopicQuery = { topic0?: string; topic1?: string; topic2?: string; topic3?: string };
+const TOPIC_QUERY_CONCURRENCY = 5;
+
+const normalizeTopic = (topic: string) => padTopic32(topic.toLowerCase());
+
+// The indexer filters a topic position by a single value, while eth_getLogs topics also take
+// null or [] (any topic) and arrays (any of their values). OR'd positions become one query per
+// combination of values; the combinations match disjoint sets of logs.
+function getTopicQueries(topics: GetLogsTopics = []): TopicQuery[] {
+  let queries: TopicQuery[] = [{}];
+  topics.slice(0, 4).forEach((filter, i) => {
+    const values = Array.isArray(filter) ? filter : [filter];
+    if (!values.length || values.some((v) => !v)) return;
+    const unique = [...new Map(values.map((v) => [normalizeTopic(v!), v!])).values()];
+    queries = queries.flatMap((q) => unique.map((v) => ({ ...q, [`topic${i}`]: v })));
+  });
+  return queries;
+}
+
+// Guards against the indexer ignoring a topic filter: such rows are dropped before decoding.
+function getTopicMatcher(query: TopicQuery) {
+  const expected = Object.entries(query).map(([key, value]) => [key, normalizeTopic(value)]);
+  return (log: any) => expected.every(([key, value]) => typeof log[key] === "string" && normalizeTopic(log[key]) === value);
+}
+
+// Each topic query returns rows in (block, log index) order; rows merged from OR'd topic queries
+// are sorted back into it, as eth_getLogs returns them.
+function compareLogRows(a: any, b: any) {
+  return +(a.block_number ?? a.blockNumber) - +(b.block_number ?? b.blockNumber)
+    || +(a.log_index ?? a.logIndex ?? a.index) - +(b.log_index ?? b.logIndex ?? b.index);
 }
 
 function safePush(target: any[], source: any[]) {
@@ -275,7 +308,7 @@ export type IndexerGetLogsOptions = {
   topic?: string;
   fromBlock?: number;
   toBlock?: number;
-  topics?: (string | null)[];
+  topics?: GetLogsTopics;
   extraTopics?: string[];
   chain?: string;
   eventAbi?: string | any;
@@ -438,12 +471,10 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
     fromBlock,
     toBlock,
     topic,
-    topic1,
-    topic2,
-    topic3,
     topics,
     transformLog,
   } = await getLogParams(options, true);
+  const topicQueries = getTopicQueries(topics);
 
   const viemFastPath =
     // Preserve the historical streaming shape, including entireLog: the viem
@@ -577,15 +608,31 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
       }
     };
 
-    for (const chunk of addressChunks) {
-      if (Array.isArray(chunk) && chunk.length === 0) throw new Error("Address chunk cannot be empty");
+    const transformBatch: any[] = [];
 
+    // applies offset/limit and decodes in micro batches; false once the limit is reached
+    const take = async (raw: any) => {
+      if (remainingOffset > 0) {
+        remainingOffset--;
+        return true;
+      }
+      if (remainingLimit <= 0) return false;
+
+      transformBatch.push(raw);
+      remainingLimit--;
+
+      if (transformBatch.length >= MICRO_BATCH_SIZE) {
+        const batch = transformBatch.splice(0, MICRO_BATCH_SIZE);
+        await flushBatch(batch);
+      }
+      return remainingLimit > 0;
+    };
+
+    const streamTopicQuery = async (chunk: string[] | undefined, topicQuery: TopicQuery, onRow: (raw: any) => Promise<boolean> | boolean) => {
       const qs = new URLSearchParams();
       qs.set("chainId", String(chainId));
-      qs.set("topic0", topic);
-      if (topic1) qs.set("topic1", topic1);
-      if (topic2) qs.set("topic2", topic2);
-      if (topic3) qs.set("topic3", topic3);
+      for (const [key, value] of Object.entries(topicQuery)) qs.set(key, value);
+      const matchesTopics = getTopicMatcher(topicQuery);
       if (fromBlock != null) qs.set("from_block", String(fromBlock));
       if (toBlock != null) qs.set("to_block", String(toBlock));
       if (chunk && Array.isArray(chunk)) qs.set("addresses", chunk.join(",").toLowerCase());
@@ -593,7 +640,6 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
       qs.set("limit", "all");
       qs.set("offset", "0");
 
-      const transformBatch: any[] = [];
       let stopNow = false;
 
       await streamLogs({
@@ -605,29 +651,32 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
           if (indexerVersion === "v4") normalizeV4Row(raw, "logs");
 
           const okAddress = !addressSet.size || addressSet.has((raw.source ?? raw.address)?.toLowerCase?.());
-          if (!okAddress) return;
-
-          if (remainingOffset > 0) {
-            remainingOffset--;
-            return;
-          }
-          if (remainingLimit <= 0) {
-            stopNow = true;
-            return;
-          }
-
-          transformBatch.push(raw);
-          remainingLimit--;
-          if (remainingLimit <= 0) stopNow = true;
-
-          if (transformBatch.length >= MICRO_BATCH_SIZE) {
-            const batch = transformBatch.splice(0, MICRO_BATCH_SIZE);
-            await flushBatch(batch);
-          }
+          if (okAddress && matchesTopics(raw) && !(await onRow(raw))) stopNow = true;
         },
         shouldStop: () => stopNow,
         onChunkStats: onWireStats,
       });
+    };
+
+    for (const chunk of addressChunks) {
+      if (Array.isArray(chunk) && chunk.length === 0) throw new Error("Address chunk cannot be empty");
+
+      if (topicQueries.length === 1) {
+        await streamTopicQuery(chunk, topicQueries[0], take);
+      } else {
+        // OR'd topic queries stream in parallel; their rows are merged into block order before
+        // offset/limit apply, so each query needs at most offset + limit rows
+        const maxRows = remainingOffset + remainingLimit;
+        const limitTopicQuery = pLimit(TOPIC_QUERY_CONCURRENCY);
+        const rowsByQuery = await Promise.all(topicQueries.map((topicQuery) => limitTopicQuery(async () => {
+          const queryRows: any[] = [];
+          await streamTopicQuery(chunk, topicQuery, (raw) => queryRows.push(raw) < maxRows);
+          return queryRows;
+        })));
+        for (const raw of rowsByQuery.flat().sort(compareLogRows)) {
+          if (!(await take(raw))) break;
+        }
+      }
 
       if (transformBatch.length > 0) {
         await flushBatch(transformBatch.splice(0, transformBatch.length));
@@ -655,42 +704,67 @@ export async function getLogs(options: IndexerGetLogsOptions): Promise<any[]> {
     console.time(debugTimeKey);
   }
 
+  const transformBatchFn =
+    (transformLog as any).batch || ((logs: any[]) => Promise.all(logs.map((log: any) => transformLog(log))));
+
+  const processLogs = async (filtered: any[]) => {
+    const t0 = Date.now();
+
+    for (const log of filtered) {
+      normalizeLog(log, true);
+    }
+
+    const transformedLogs = await transformBatchFn(filtered);
+
+    const transformedPair = filtered.map((log: any, idx: number) => ({ raw: log, transformed: transformedLogs[idx] }));
+    const decodeTime = Date.now() - t0;
+    if (onDecodeStats && filtered.length > 0) onDecodeStats({ batchSize: filtered.length, decodeTime, itemsDecoded: filtered.length });
+
+    if (processor) await processor(transformedPair.map((i: any) => i.transformed));
+
+    if (options.collect !== false) {
+      safePush(allLogsPairs, transformedPair);
+    }
+  };
+
   for (const chunk of addressChunks) {
     if (Array.isArray(chunk) && chunk.length === 0) throw new Error("Address chunk cannot be empty");
 
-    const params = {
-      addresses: hasAddressFilter ? chunk?.join(",") : undefined,
-      chainId, topic0: topic, from_block: fromBlock, to_block: toBlock,
-      topic1, topic2, topic3, noTarget,
+    const getTopicQueryPages = async function* (topicQuery: TopicQuery, offset: number, fetchAll: boolean) {
+      const params = {
+        addresses: hasAddressFilter ? chunk?.join(",") : undefined,
+        chainId, from_block: fromBlock, to_block: toBlock,
+        ...topicQuery, noTarget,
+      };
+      const matchesTopics = getTopicMatcher(topicQuery);
+      for await (const rows of getIndexerPages(indexerVersion, "/logs", "logs", params, limit, offset, fetchAll, getLogCursor)) {
+        yield rows.filter((l: any) => {
+          const isWhitelisted = !addressSet.size || addressSet.has((l.source ?? l.address)?.toLowerCase?.());
+          return !!isWhitelisted && matchesTopics(l);
+        });
+      }
     };
-    for await (const rows of getIndexerPages(indexerVersion, "/logs", "logs", params, limit, initialOffset, all, getLogCursor)) {
-      const filtered = rows.filter((l: any) => {
-        const isWhitelisted = !addressSet.size || addressSet.has((l.source ?? l.address)?.toLowerCase?.());
-        return !!isWhitelisted;
-      });
 
-      const t0 = Date.now();
-
-      for (const log of filtered) {
-        normalizeLog(log, true);
-      }
-
-      const transformBatchFn =
-        (transformLog as any).batch || ((logs: any[]) => Promise.all(logs.map((log: any) => transformLog(log))));
-
-      const transformedLogs = await transformBatchFn(filtered);
-
-      const transformedPair = filtered.map((log: any, idx: number) => ({ raw: log, transformed: transformedLogs[idx] }));
-      const decodeTime = Date.now() - t0;
-      if (onDecodeStats && filtered.length > 0) onDecodeStats({ batchSize: filtered.length, decodeTime, itemsDecoded: filtered.length });
-
-      if (processor) await processor(transformedPair.map((i: any) => i.transformed));
-
-      if (options.collect !== false) {
-        safePush(allLogsPairs, transformedPair);
-      }
-
+    if (topicQueries.length === 1) {
+      for await (const rows of getTopicQueryPages(topicQueries[0], initialOffset, all)) await processLogs(rows);
+      continue;
     }
+
+    // OR'd topic queries are fetched in parallel and merged into block order before offset/limit
+    // apply, so each query needs at most offset + limit rows; the merged rows are then decoded
+    // and processed in page-sized batches
+    const maxRows = all ? Infinity : initialOffset + limit;
+    const limitTopicQuery = pLimit(TOPIC_QUERY_CONCURRENCY);
+    const rowsByQuery = await Promise.all(topicQueries.map((topicQuery) => limitTopicQuery(async () => {
+      const queryRows: any[] = [];
+      for await (const rows of getTopicQueryPages(topicQuery, 0, true)) {
+        safePush(queryRows, rows);
+        if (queryRows.length >= maxRows) break;
+      }
+      return queryRows;
+    })));
+    const merged = rowsByQuery.flat().sort(compareLogRows).slice(initialOffset, maxRows);
+    for (const rows of sliceIntoChunks(merged, Math.max(limit, 1))) await processLogs(rows);
   }
 
   if (debugMode) {

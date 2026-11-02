@@ -157,6 +157,7 @@ describe("pagination", () => {
   let requests: Array<{ version: string; path: string; params?: any }> = [];
   let routeCalls: Record<string, number> = {};
   let pages: Record<string, any[][]> = {};
+  let logsHandler: ((params: any) => any[]) | undefined;
   let transferWireText = false;
 
   beforeAll(() => {
@@ -214,6 +215,7 @@ describe("pagination", () => {
     requests = [];
     routeCalls = {};
     pages = {};
+    logsHandler = undefined;
     transferWireText = false;
     jest.resetModules();
     for (const key of ENV_KEYS) delete process.env[key];
@@ -228,7 +230,8 @@ describe("pagination", () => {
           if (path === "/logs") {
             return Promise.resolve({
               data: {
-                logs: nextPage(version, path, [makeLog(10, 0), makeLog(11, 0)], [makeLog(12, 0)]),
+                logs: logsHandler ? logsHandler(requestConfig.params)
+                  : nextPage(version, path, [makeLog(10, 0), makeLog(11, 0)], [makeLog(12, 0)]),
               },
             });
           }
@@ -445,6 +448,59 @@ describe("pagination", () => {
     await indexer.getLogs({ ...logOptions, fromBlock: 1, toBlock: 5, maxBlockRange: 2, all: false });
     expect(requests.filter(r => r.path === "/logs").map(r => [r.params.from_block, r.params.to_block]))
       .toEqual([[1, 2], [3, 4], [5, 5]]);
+  });
+
+  describe("OR'd topic values", () => {
+    const [A, B, C, OTHER] = ["a", "b", "c", "f"].map(c => `0x${c.repeat(64)}`);
+    const rows = [A, OTHER, B, OTHER, C].map((topic1, i) => ({ ...makeLog(10 + i, 0), topic1 }));
+    // the server applies a scalar topic1 and ignores anything else, as the indexer does with arrays
+    const scalarTopicServer = (params: any) =>
+      rows.filter(r => typeof params.topic1 !== "string" || r.topic1 === params.topic1).map(r => ({ ...r }));
+
+    test("fan out to one query per value instead of pulling every log of topic0", async () => {
+      const indexer = loadIndexer(v4Env);
+      logsHandler = scalarTopicServer;
+      const logs = await indexer.getLogs({ ...logOptions, chain: "robinhood", limit: 1000, topic: undefined, topics: [TOPIC0, [C, A, B, A]] });
+      const logRequests = requests.filter(r => r.path === "/logs");
+      expect(logRequests.map(r => r.params.topic1)).toEqual([C, A, B]);
+      expect(logRequests.every(r => r.params.topic0 === TOPIC0)).toBe(true);
+      expect(logs.map(l => l.blockNumber)).toEqual([10, 12, 14]);
+    });
+
+    test("merged rows reach the processor in block order, one batch at a time, with offset and limit over the merge", async () => {
+      const indexer = loadIndexer(v4Env);
+      logsHandler = params => scalarTopicServer(params).filter(r => params.after_block === undefined || r.block_number > params.after_block);
+      let active = false;
+      const batches: number[][] = [];
+      const processor = async (batch: any[]) => {
+        expect(active).toBe(false);
+        active = true;
+        await new Promise(resolve => setTimeout(resolve, 1));
+        batches.push(batch.map(l => l.blockNumber));
+        active = false;
+      };
+      const options = { ...logOptions, chain: "robinhood", topic: undefined, topics: [TOPIC0, [C, A, B]] };
+      await indexer.getLogs({ ...options, limit: 1, processor, collect: false });
+      expect(batches).toEqual([[10], [12], [14]]);
+      // per query, offset 1 would skip each query's only row
+      const logs = await indexer.getLogs({ ...options, limit: 2, offset: 1, all: false });
+      expect(logs.map(l => l.blockNumber)).toEqual([12, 14]);
+    });
+
+    test("null and [] positions stay unfiltered; combinations cover every OR'd position", async () => {
+      const indexer = loadIndexer(v4Env);
+      logsHandler = () => [];
+      await indexer.getLogs({ ...logOptions, limit: 1000, topic: undefined, topics: [[TOPIC0, OTHER], null, [], [A, B]] });
+      expect(requests.filter(r => r.path === "/logs").map(r => [r.params.topic0, r.params.topic1, r.params.topic2, r.params.topic3]))
+        .toEqual([[TOPIC0, undefined, undefined, A], [TOPIC0, undefined, undefined, B], [OTHER, undefined, undefined, A], [OTHER, undefined, undefined, B]]);
+    });
+
+    test("rows outside the requested topics are dropped even if the server ignores the filter", async () => {
+      const indexer = loadIndexer(v4Env);
+      logsHandler = () => rows.map(r => ({ ...r, topic1: r.topic1.toUpperCase().replace("0X", "0x") }));
+      const logs = await indexer.getLogs({ ...logOptions, limit: 1000, topic: undefined, topics: [TOPIC0, [B, C]] });
+      expect(logs.map(l => l.blockNumber)).toEqual([12, 14]);
+    });
   });
 
   test("transaction pagination uses transaction_index and keeps the public shape", async () => {
@@ -669,7 +725,7 @@ describe("streaming transport", () => {
   const options = { chain: "ethereum", target, topic, fromBlock: 1, toBlock: 20, clientStreaming: true };
   let indexer: typeof import("./indexer");
   let rows: any[];
-  let streamFactory: () => Readable;
+  let streamFactory: (path: string) => Readable;
   let syncFails = false;
   let versions: string[];
   const env = { ...process.env };
@@ -689,7 +745,7 @@ describe("streaming transport", () => {
             if (syncFails) throw new Error("sync unavailable");
             return { data: { syncStatus: [{ chain: 1, lastIndexedBlock: 100, lastIndexedDate: "2026-01-01" }] } };
           }
-          return { data: streamFactory() };
+          return { data: streamFactory(path) };
         };
         return instance;
       };
@@ -802,5 +858,21 @@ describe("streaming transport", () => {
   test("explicit collect=false keeps buckets empty", async () => {
     const result = await indexer.getLogs({ ...options, target: undefined, targets: [target], flatten: false, collect: false });
     expect(result).toEqual([[]]);
+  });
+
+  test("OR'd topic values stream one query per value and drop rows of other topics", async () => {
+    const [A, B, OTHER] = ["a", "b", "f"].map(c => `0x${c.repeat(64)}`);
+    [A, B, A, B, OTHER].forEach((topic1, i) => rows[i].topic1 = topic1);
+    const topic1s: (string | null)[] = [];
+    streamFactory = path => {
+      topic1s.push(new URLSearchParams(path.split("?")[1]).get("topic1"));
+      return Readable.from([JSON.stringify({ logs: rows })]); // the server ignores topic1 here
+    };
+    const result = await indexer.getLogs({ ...options, topic: undefined, topics: [topic, [A, B]] });
+    expect(topic1s).toEqual([A, B]);
+    expect(result.map(l => l.logIndex)).toEqual([0, 1, 2, 3]);
+
+    const limited = await indexer.getLogs({ ...options, topic: undefined, topics: [topic, [A, B]], all: false, offset: 1, limit: 2 });
+    expect(limited.map(l => l.logIndex)).toEqual([1, 2]);
   });
 });
