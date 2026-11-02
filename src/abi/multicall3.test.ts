@@ -173,3 +173,17 @@ describe("multicall v3 contract via env override", () => {
     expect(getMulticallAddress('ethereum')).toBe('0xca11bde05977b3631167028862be2a173976ca11')
   })
 })
+describe("multicall3 deployment block keys", () => {
+  // the keys have to match the provider chain keys, otherwise the chain silently falls back to one eth_call per item
+  test("ontology_evm uses multicall3", () => {
+    expect(isMulticallV3Supported('ontology_evm')).toBe(true)
+    expect(getMulticallAddress('ontology_evm')).toBe('0xca11bde05977b3631167028862be2a173976ca11')
+  })
+
+  test("edgex uses multicall3 from its deployment block", () => {
+    // deployed by the keyless multicall3 tx 0x07471adf...184ed1 in edgex block 2121
+    expect(isMulticallV3Supported('edgex')).toBe(true)
+    expect(isMulticallV3Supported('edgex', 2122)).toBe(true)
+    expect(isMulticallV3Supported('edgex', 2121)).toBe(false)
+  })
+})
