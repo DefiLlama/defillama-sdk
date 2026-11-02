@@ -29,6 +29,7 @@ export function getBufferedToBlock(toBlock: number, head?: number, buffer = BLOC
 /* -------------------------------------------------------------------------- */
 /*                                   Types                                    */
 /* -------------------------------------------------------------------------- */
+export type GetLogsTopics = (string | string[] | null)[];
 
 export type GetLogsOptions = {
   target?: Address;
@@ -36,7 +37,7 @@ export type GetLogsOptions = {
   keys?: string[];
   fromBlock?: number;
   toBlock?: number;
-  topics?: (string | null)[];
+  topics?: GetLogsTopics;
   extraTopics?: string[];
   chain?: string;
   eventAbi?: string | any;
@@ -386,7 +387,7 @@ type GetLogsParamsResponse = {
   topic: string;
   iface?: Interface;
   transformLog: (log: any) => any;
-  topics?: (string | null)[];
+  topics?: GetLogsTopics;
   topic1?: string;
   topic2?: string;
   topic3?: string;
