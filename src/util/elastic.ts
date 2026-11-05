@@ -12,20 +12,22 @@ export function getClient() {
     const envString = getEnvValue('ELASTICSEARCH_CONFIG')
     if (!envString) return;
     config = JSON.parse(envString.replace(/\\"/g, '"')) // replace escaped quotes
+
+    if (!_client)
+      _client = new Client({
+        maxRetries: 3,
+        requestTimeout: 5000,
+        compression: true,
+        node: config.host,
+        auth: {
+          username: config.username,
+          password: config.password,
+        },
+      })
+
   } catch (error) {
     return;
   }
-  if (!_client)
-    _client = new Client({
-      maxRetries: 3,
-      requestTimeout: 5000,
-      compression: true,
-      node: config.host,
-      auth: {
-        username: config.username,
-        password: config.password,
-      },
-    })
   return _client
 }
 
@@ -161,10 +163,8 @@ export async function reportIssues(issues: DataIssue[], { limitMs = 50_000 }: { 
     return;
   }
 
-  const cutoff = dayOf(Date.now() / 1000 - 7 * 86400) // a check can find old items again on each run
   const timestamp = +Date.now()
   const docs = issues
-    .filter((i) => !i.day || i.day >= cutoff)
     .map(({ value, baseline, ...issue }) => ({ ...issue, value, baseline, timestamp, deviation: value != null && baseline ? (value - baseline) / baseline : null }))
   if (!docs.length) return;
 

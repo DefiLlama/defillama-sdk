@@ -66,17 +66,16 @@ test('adds deviation and timestamp to each doc', async () => {
   }
 })
 
-test('drops issues older than 7 days, keeps those without a day', async () => {
-  const old = dayOf(Date.now() / 1000 - 8 * 86400)
+test('keeps issues of any age, including those without a day', async () => {
+  const old = dayOf(Date.now() / 1000 - 30 * 86400)
   const recent = dayOf(Date.now() / 1000 - 6 * 86400)
   await reportIssues([issue({ name: 'old', day: old }), issue({ name: 'recent', day: recent }), issue({ name: 'noday', day: null })])
 
   const docs = bulk.mock.calls[0][0].operations.filter((_: any, i: number) => i % 2 === 1)
-  expect(docs.map((d: any) => d.name)).toEqual(['recent', 'noday'])
+  expect(docs.map((d: any) => d.name)).toEqual(['old', 'recent', 'noday'])
 })
 
-test('sends nothing when no issue survives the cutoff', async () => {
-  await reportIssues([issue({ day: dayOf(Date.now() / 1000 - 30 * 86400) })])
+test('sends nothing for an empty list', async () => {
   await reportIssues([])
   expect(bulk).not.toHaveBeenCalled()
 })

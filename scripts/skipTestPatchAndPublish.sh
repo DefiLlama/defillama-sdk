@@ -14,10 +14,32 @@ git push
 # regen build and update providers list
 rm -rf build
 rm README.md
-npm run update-providers
-if [[ $? -ne 0 ]] ; then
-  echo "Failed to update providers"
-  exit 1
+
+# SDK_PUBLISH_REUSE_PROVIDERS=true  -> copy providers.json from the latest published release (fast, for back-to-back releases where the list did not change)
+# SDK_PUBLISH_REUSE_PROVIDERS=false -> rebuild it from chainlist + rpc health checks (the default behaviour)
+# unset                             -> ask
+REUSE_PROVIDERS=${SDK_PUBLISH_REUSE_PROVIDERS:-}
+if [[ -z "$REUSE_PROVIDERS" ]] ; then
+  read -p "Reuse providers.json from the latest published sdk instead of rebuilding it? [y/N] " _reuse
+  case "$_reuse" in
+    y|Y|yes|YES) REUSE_PROVIDERS=true ;;
+    *) REUSE_PROVIDERS=false ;;
+  esac
+fi
+
+if [[ "$REUSE_PROVIDERS" == "true" ]] ; then
+  echo "Reusing providers.json from the latest published release"
+  curl -sf https://unpkg.com/@defillama/sdk@latest/build/providers.json -o src/providers.json
+  if [[ $? -ne 0 ]] ; then
+    echo "Failed to download providers.json"
+    exit 1
+  fi
+else
+  npm run update-providers
+  if [[ $? -ne 0 ]] ; then
+    echo "Failed to update providers"
+    exit 1
+  fi
 fi
 
 # build and verify the tarball contents before touching npm (prepublishOnly repeats this as a second guard)
