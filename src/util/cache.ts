@@ -4,7 +4,6 @@ import { constants, brotliCompress, brotliDecompress } from "zlib";
 import { promisify } from 'util';
 import { getEnvCacheFolder } from "./env";
 import { fetchJson, formError, getHash, postJson } from "./common";
-import crypto from 'crypto';
 
 const brotliOptions = {
   [constants.BROTLI_PARAM_MODE]: constants.BROTLI_MODE_TEXT,
@@ -91,7 +90,7 @@ export async function readCache(file: string, options: ReadCacheOptions = {}): P
   async function readDataFromR2() {
     if (options.skipR2Cache) return;
     try {
-      const r2Data = await getR2JSONString(currentVersion + '/' + file, { throwErrorOnFail: options.readFromR2Cache ?? false })
+      const r2Data = await getR2JSONString(currentVersion + '/' + file, { throwErrorOnFail: options.readFromR2Cache ?? false, private: options.private })
 
       if (r2Data) {
         // `file` already carries the `-uncompressed` suffix (added above), so omit skipCompression here to avoid writeCache appending it again
@@ -117,6 +116,7 @@ interface WriteCacheOptions {
   skipR2CacheWrite?: boolean,
   alreadyCompressed?: boolean
   skipCompression?: boolean // if true, data will not be compressed before writing to cache, more suited for local cache, it is faster but takes more space
+  private?: boolean // if true, write to the private R2 bucket instead of the public one
 }
 
 interface ReadCacheOptions {
@@ -124,6 +124,7 @@ interface ReadCacheOptions {
   readFromR2Cache?: boolean,
   skipR2Cache?: boolean,
   skipCompression?: boolean // if true, data will not be decompressed after reading from cache
+  private?: boolean // if true, read from the private R2 bucket instead of the public one
 }
 
 export async function writeCache(file: string, data: any, options: WriteCacheOptions = {}): Promise<string | undefined> {
@@ -144,7 +145,7 @@ export async function writeCache(file: string, data: any, options: WriteCacheOpt
     await createSubPath(path.dirname(filePath))
     await fs.writeFile(filePath, fileData)
     if (!options.skipR2CacheWrite) {
-      await storeR2JSONString(currentVersion + '/' + file, fileData)
+      await storeR2JSONString(currentVersion + '/' + file, fileData, { private: options.private })
     }
 
     return fileData

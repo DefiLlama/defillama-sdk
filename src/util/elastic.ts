@@ -134,3 +134,42 @@ export async function getAllLogs({ index, scrollTime = '1m', size = 100000, quer
 
   return allLogs;
 }
+
+
+export type DataIssue = {
+  entity_type: 'protocol' | 'chain' | 'coin' | 'stablecoin' | 'rwa' | 'market' | 'pool' | 'table' | 'job'
+  entity_id: string | null // the numeric Protocol.id; parent#x and chain#x as they are; never a slug
+  parent_id: string | null
+  name: string
+  metric: string
+  day: string | null // the day of the number, not of the run
+  value: number | null
+  baseline: number | null // the normal level the check compares with
+  check: string
+  type: 'spike' | 'drop' | 'gap' | 'stale' | 'missing' | 'mismatch' | 'other'
+  state: 'live' | 'removed' | 'blocked' | 'disabled' // did the check keep the value out?
+  message: string
+}
+
+export const dayOf = (unixSeconds: number) => new Date(unixSeconds * 1000).toISOString().slice(0, 10)
+
+// Never rejects. One bulk request, time-limited, as a write to a down Elasticsearch takes up to 20 s.
+export async function reportIssues(issues: DataIssue[], { limitMs = 50_000 }: { limitMs?: number } = {}) {
+  const client = getClient()
+  if (!client) {
+    console.warn('Elasticsearch client not configured, skipping reportIssues')
+    return;
+  }
+
+  const cutoff = dayOf(Date.now() / 1000 - 7 * 86400) // a check can find old items again on each run
+  const timestamp = +Date.now()
+  const docs = issues
+    .filter((i) => !i.day || i.day >= cutoff)
+    .map(({ value, baseline, ...issue }) => ({ ...issue, value, baseline, timestamp, deviation: value != null && baseline ? (value - baseline) / baseline : null }))
+  if (!docs.length) return;
+
+  const write = client.bulk({ index: addYearAndMonth('data-issues'), operations: docs.flatMap((doc) => [{ index: {} }, doc]), timeout: `${limitMs}ms` })
+    .then((res) => { if (res.errors) console.error('data-issues bulk write: some items failed') })
+    .catch((e: any) => console.error('data-issues write failed:', e?.message))
+  await Promise.race([write, new Promise((resolve) => setTimeout(resolve, limitMs).unref?.())])
+}

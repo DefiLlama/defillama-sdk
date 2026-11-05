@@ -21,3 +21,6 @@ export * as icp from "./icp";
 export * as substrate from "./substrate";
 export * as utxo from "./utxo";
 export * as tron from "./tron";
+export * as zilliqa from "./zilliqa";
+export * as icon from "./icon";
+export * as ontology from "./ontology";

@@ -20,7 +20,7 @@ test("imports", async () => {
 
   // chains has hundreds of exports, snapshot only the module list here (each module has its own test file)
   expect(Object.keys(data.chains).sort()).toEqual([
-    'algorand', 'aptos', 'cardano', 'cosmos', 'icp', 'near', 'rpc', 'starknet', 'stellar', 'substrate', 'sui', 'svm', 'tezos', 'ton', 'tron', 'utxo', 'xrpl',
+    'algorand', 'aptos', 'cardano', 'cosmos', 'icon', 'icp', 'near', 'ontology', 'rpc', 'starknet', 'stellar', 'substrate', 'sui', 'svm', 'tezos', 'ton', 'tron', 'utxo', 'xrpl', 'zilliqa',
   ])
   expect(typeof data.chains.svm.getAccounts).toBe('function')
   expect(typeof data.chains.cosmos.queryContract).toBe('function')
@@ -175,8 +175,10 @@ test("imports", async () => {
     "addDebugLog": [Function],
     "addErrorLog": [Function],
     "addRuntimeLog": [Function],
+    "dayOf": [Function],
     "getAllLogs": [Function],
     "getClient": [Function],
+    "reportIssues": [Function],
     "search": [Function],
     "writeLog": [Function],
   },
