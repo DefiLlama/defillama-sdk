@@ -13,7 +13,7 @@
  *
  * Usage: `sdk.chains.icon.call({ to: 'cx88fd...', method: 'totalSupply' })`
  */
-import { getEndpoints as resolveEndpoints, jsonRpc, JsonRpcOptions } from "./rpc";
+import { getEndpoints as resolveEndpoints, isRateLimitError, jsonRpc, JsonRpcError, JsonRpcOptions } from "./rpc";
 
 export const CHAIN = 'icon'
 export const DEFAULT_ENDPOINTS: string[] = ['https://ctz.solidwallet.io/api/v3']
@@ -71,9 +71,24 @@ export function toHex(value: number | bigint | string): string {
 
 export type RpcOptions = Omit<JsonRpcOptions, 'chain' | 'endpoints' | 'defaultEndpoints'>
 
-/** Raw JSON-RPC call (`params` is an object for ICON methods). */
-export async function rpc(method: string, params?: any, options: RpcOptions = {}): Promise<any> {
-  return jsonRpc(method, params, { ...options, chain: CHAIN, endpoints: getEndpoints() })
+// ICON answers JSON-RPC errors (reverted call, unknown method, missing block) with HTTP 400, which
+// axios reports as a transport error; surface those as JsonRpcError and do not retry them
+function rpcErrorBody(e: any): any {
+  return e?.response?.status === 400 ? e?.response?.data?.error : undefined
+}
+
+/** Raw JSON-RPC call. ICON wants `params` to be an object (never an array), so none becomes `{}`. */
+export async function rpc(method: string, params?: Record<string, any>, options: RpcOptions = {}): Promise<any> {
+  try {
+    return await jsonRpc(method, params ?? {}, {
+      ...options, chain: CHAIN, endpoints: getEndpoints(),
+      shouldRetry: options.shouldRetry ?? ((e) => !rpcErrorBody(e) && !(e instanceof JsonRpcError && !isRateLimitError(e))),
+    })
+  } catch (e) {
+    const error = rpcErrorBody(e)
+    if (error) throw new JsonRpcError(method, error)
+    throw e
+  }
 }
 
 export interface CallOptions extends RpcOptions {
