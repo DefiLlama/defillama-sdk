@@ -163,6 +163,81 @@ describe('getR2JSONString', () => {
     expect(send).not.toHaveBeenCalled()
   })
 
+  describe('private read falls back to public when the key is missing', () => {
+    const missing = Object.assign(new Error('The specified key does not exist.'), { name: 'NoSuchKey' })
+    const found = { Body: { transformToString: async () => '{"pub":1}' } }
+
+    function loadBoth() {
+      const publicSend = jest.fn()
+      const privateSend = jest.fn()
+      S3Client.mockImplementationOnce(() => ({ send: publicSend })).mockImplementationOnce(() => ({ send: privateSend }))
+      const r2 = loadR2({ R2_CONFIG: JSON.stringify({ public: publicCfg, private: privateCfg }) })
+      return { r2, publicSend, privateSend }
+    }
+
+    test('reads from the public bucket and copies to the private one', async () => {
+      const { r2, publicSend, privateSend } = loadBoth()
+      privateSend.mockRejectedValueOnce(missing).mockResolvedValueOnce('ok')
+      publicSend.mockResolvedValueOnce(found)
+
+      await expect(r2.getR2JSONString('a:b', { private: true, throwErrorOnFail: true })).resolves.toBe('{"pub":1}')
+
+      expect(GetObjectCommand).toHaveBeenNthCalledWith(1, { Bucket: 'my-private-bucket', Key: 'a/b' })
+      expect(GetObjectCommand).toHaveBeenNthCalledWith(2, { Bucket: 'defillama-datasets', Key: 'a/b' })
+      expect(PutObjectCommand).toHaveBeenCalledWith({ Bucket: 'my-private-bucket', Key: 'a/b', Body: '{"pub":1}', ContentType: 'application/json' })
+      expect(privateSend).toHaveBeenCalledTimes(2)
+      expect(privateSend.mock.calls[1][0].kind).toBe('put')
+      expect(publicSend).toHaveBeenCalledTimes(1)
+      expect(fetchJson).not.toHaveBeenCalled()
+    })
+
+    test('treats a 404 status as missing', async () => {
+      const { r2, publicSend, privateSend } = loadBoth()
+      privateSend.mockRejectedValueOnce({ $metadata: { httpStatusCode: 404 } }).mockResolvedValueOnce('ok')
+      publicSend.mockResolvedValueOnce(found)
+      await expect(r2.getR2JSONString('file', { private: true, throwErrorOnFail: true })).resolves.toBe('{"pub":1}')
+      expect(publicSend).toHaveBeenCalledTimes(1)
+    })
+
+    test('still returns the public data when the copy fails', async () => {
+      const { r2, publicSend, privateSend } = loadBoth()
+      privateSend.mockRejectedValueOnce(missing).mockRejectedValueOnce(new Error('write denied'))
+      publicSend.mockResolvedValueOnce(found)
+      await expect(r2.getR2JSONString('file', { private: true, throwErrorOnFail: true })).resolves.toBe('{"pub":1}')
+      expect(privateSend).toHaveBeenCalledTimes(2)
+    })
+
+    test('uses the public URL when no public client is configured', async () => {
+      const r2 = loadR2({ R2_CONFIG: JSON.stringify({ private: privateCfg }) })
+      send.mockRejectedValueOnce(missing).mockResolvedValueOnce('ok')
+      fetchJson.mockResolvedValue({ pub: 1 })
+
+      await expect(r2.getR2JSONString('a:b', { private: true, throwErrorOnFail: true })).resolves.toEqual({ pub: 1 })
+
+      expect(fetchJson).toHaveBeenCalledWith('https://defillama-datasets.llama.fi/a:b')
+      expect(GetObjectCommand).toHaveBeenCalledTimes(1)
+      expect(lastCall(PutObjectCommand)).toEqual({ Bucket: 'my-private-bucket', Key: 'a/b', Body: '{"pub":1}', ContentType: 'application/json' })
+    })
+
+    test('missing in both buckets fails without copying', async () => {
+      const { r2, publicSend, privateSend } = loadBoth()
+      privateSend.mockRejectedValueOnce(missing)
+      publicSend.mockRejectedValueOnce(missing)
+      await expect(r2.getR2JSONString('file', { private: true, throwErrorOnFail: true })).rejects.toThrow('does not exist')
+      expect(PutObjectCommand).not.toHaveBeenCalled()
+      expect(privateSend).toHaveBeenCalledTimes(1)
+    })
+
+    test('non-missing private errors do not fall back', async () => {
+      const { r2, publicSend, privateSend } = loadBoth()
+      privateSend.mockRejectedValueOnce(new Error('AccessDenied'))
+      await expect(r2.getR2JSONString('file', { private: true, throwErrorOnFail: true })).rejects.toThrow('AccessDenied')
+      await expect(r2.getR2JSONString('file', { private: true })).resolves.toEqual({})
+      expect(publicSend).not.toHaveBeenCalled()
+      expect(PutObjectCommand).not.toHaveBeenCalled()
+    })
+  })
+
   test('failures return {} unless throwErrorOnFail', async () => {
     const r2 = loadR2({ R2_CONFIG: JSON.stringify({ public: publicCfg }) })
     send.mockRejectedValue(new Error('NoSuchKey'))

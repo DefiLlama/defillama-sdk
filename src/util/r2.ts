@@ -1,5 +1,6 @@
 import { ENV_CONSTANTS } from "./env";
 import { fetchJson } from "./common";
+import { debugLog } from "./debugLog";
 
 const { S3Client, PutObjectCommand, GetObjectCommand, } = require("@aws-sdk/client-s3");
 const { R2_ENDPOINT, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_CONFIG } = ENV_CONSTANTS
@@ -81,17 +82,42 @@ export async function storeR2JSONString(filename: string, body: string | Buffer,
   return client.send(command)
 }
 
+function isMissingKeyError(e: any) {
+  const name = e?.name ?? e?.Code
+  return name === 'NoSuchKey' || name === 'NotFound' || e?.$metadata?.httpStatusCode === 404
+}
+
+async function getFromBucket(filename: string, isPrivate: boolean) {
+  const { client, bucket } = getClient(isPrivate)
+  const command = new GetObjectCommand({ Bucket: bucket, Key: getKey(filename), });
+  const { Body } = await client.send(command);
+  return Body.transformToString()
+}
+
 export async function getR2JSONString(filename: string, { throwErrorOnFail = false, private: isPrivate = false }: { throwErrorOnFail?: boolean } & R2Options = {}) {
   try {
 
-    const { client, bucket } = getClient(isPrivate)
+    const { client } = getClient(isPrivate)
     if (!client) {
       if (isPrivate) throw new Error('Private R2 bucket is not configured, set R2_CONFIG.private')
       return await _fetchData()
     }
-    const command = new GetObjectCommand({ Bucket: bucket, Key: getKey(filename), });
-    const { Body } = await client.send(command);
-    return await Body.transformToString()
+    if (!isPrivate) return await getFromBucket(filename, false)
+
+    try {
+      return await getFromBucket(filename, true)
+    } catch (e) {
+      if (!isMissingKeyError(e)) throw e
+      // missing in the private bucket: fall back to the public copy and seed the private bucket with it
+      const data = R2 ? await getFromBucket(filename, false) : await _fetchData()
+      const body = typeof data === 'string' ? data : JSON.stringify(data)
+      try {
+        await storeR2JSONString(filename, body, { private: true })
+      } catch (copyError) {
+        debugLog('Failed to copy', filename, 'from public to private R2 bucket:', copyError)
+      }
+      return data
+    }
 
   } catch (e) {
 
