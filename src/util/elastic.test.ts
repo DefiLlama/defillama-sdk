@@ -66,17 +66,25 @@ test('adds deviation and timestamp to each doc', async () => {
   }
 })
 
-test('drops issues older than 7 days, keeps those without a day', async () => {
-  const old = dayOf(Date.now() / 1000 - 8 * 86400)
-  const recent = dayOf(Date.now() / 1000 - 6 * 86400)
-  await reportIssues([issue({ name: 'old', day: old }), issue({ name: 'recent', day: recent }), issue({ name: 'noday', day: null })])
-
+test('writes an old day of any type: a problem can be weeks old, and the queue merges repeats', async () => {
+  const old = dayOf(Date.now() / 1000 - 30 * 86400)
+  await reportIssues([issue({ name: 'stale', day: old, type: 'stale' }), issue({ name: 'spike', day: old, type: 'spike' }), issue({ name: 'noday', day: null })])
   const docs = bulk.mock.calls[0][0].operations.filter((_: any, i: number) => i % 2 === 1)
-  expect(docs.map((d: any) => d.name)).toEqual(['recent', 'noday'])
+  expect(docs.map((d: any) => d.name)).toEqual(['stale', 'spike', 'noday'])
 })
 
-test('sends nothing when no issue survives the cutoff', async () => {
-  await reportIssues([issue({ day: dayOf(Date.now() / 1000 - 30 * 86400) })])
+test('a config with no host does not reject, as some callers do not wait for this', async () => {
+  let fresh: typeof reportIssues
+  jest.isolateModules(() => {
+    const { Client } = require('@elastic/elasticsearch')
+    Client.mockImplementationOnce(() => { throw new Error('Missing node(s) option') })
+    fresh = require('./elastic').reportIssues
+  })
+  await expect(fresh!([issue()])).resolves.toBeUndefined()
+  expect(console.error).toHaveBeenCalledWith('data-issues write failed:', 'Missing node(s) option')
+})
+
+test('sends nothing for an empty list', async () => {
   await reportIssues([])
   expect(bulk).not.toHaveBeenCalled()
 })

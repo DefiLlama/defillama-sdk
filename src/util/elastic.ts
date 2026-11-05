@@ -155,16 +155,20 @@ export const dayOf = (unixSeconds: number) => new Date(unixSeconds * 1000).toISO
 
 // Never rejects. One bulk request, time-limited, as a write to a down Elasticsearch takes up to 20 s.
 export async function reportIssues(issues: DataIssue[], { limitMs = 50_000 }: { limitMs?: number } = {}) {
-  const client = getClient()
+  let client
+  try {
+    client = getClient()
+  } catch (e: any) { // a config with no host: callers that do not wait for this must not crash
+    console.error('data-issues write failed:', e?.message)
+    return;
+  }
   if (!client) {
     console.warn('Elasticsearch client not configured, skipping reportIssues')
     return;
   }
 
-  const cutoff = dayOf(Date.now() / 1000 - 7 * 86400) // a check can find old items again on each run
   const timestamp = +Date.now()
   const docs = issues
-    .filter((i) => !i.day || i.day >= cutoff)
     .map(({ value, baseline, ...issue }) => ({ ...issue, value, baseline, timestamp, deviation: value != null && baseline ? (value - baseline) / baseline : null }))
   if (!docs.length) return;
 
