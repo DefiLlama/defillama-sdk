@@ -49,7 +49,7 @@ echo "Published successfully"
 
 
 echo "Waiting for npm registry to update..."
-sleep 150 # sleep for 100 seconds to allow npm registry to update
+sleep 600 # sleep for 10 minutes to allow npm registry to update
 
 
 echo "Updating repos that depend on sdk..."
