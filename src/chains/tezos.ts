@@ -26,8 +26,9 @@ export const DEFAULT_TZKT = 'https://api.tzkt.io'
 
 /** Tezos node RPC endpoints, overridable with `TEZOS_RPC` (comma separated). */
 export const DEFAULT_RPC_ENDPOINTS: string[] = [
-  'https://mainnet.api.tez.ie',
   'https://rpc.tzkt.io/mainnet',
+  'https://mainnet.smartpy.io',
+  'https://rpc.tzbeta.net',
 ]
 
 export const MUTEZ_PER_TEZ = 1_000_000

@@ -178,8 +178,9 @@ describe('chains.cosmos live', () => {
   })
 
   test('getBlockAtTimestamp osmosis returns the last block at or before the timestamp', async () => {
-    // 3 days ago rounded to the hour - fixed within a test run and inside the public nodes' retention window
-    const timestamp = Math.floor((now() - 3 * 24 * 3600) / 3600) * 3600
+    // 1 day ago rounded to the hour - fixed within a test run and inside the public nodes' retention window
+    // (rest-osmosis.ecostake.com keeps roughly 2 days of history, so 3 days was already pruned)
+    const timestamp = Math.floor((now() - 24 * 3600) / 3600) * 3600
     const block = await cosmos.getBlockAtTimestamp({ chain: 'osmosis', timestamp })
     expect(block.timestamp).toBeLessThanOrEqual(timestamp)
     const [same, next] = await Promise.all([
