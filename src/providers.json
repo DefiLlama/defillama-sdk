@@ -1,4 +1,13 @@
 {
+  "elysium": {
+    "rpc": [
+      "https://rpc-live.elysp.com",
+      "https://rpc-live.boxa.club",
+      "https://rpc.ronspad.fun"
+    ],
+    "chainId": 99901,
+    "explorer": "https://elysium.kinetiq.xyz/explorer"
+  },
   "ethereum": {
     "rpc": [],
     "chainId": 1
