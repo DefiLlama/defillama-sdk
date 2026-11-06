@@ -29,7 +29,7 @@ fi
 
 if [[ "$REUSE_PROVIDERS" == "true" ]] ; then
   echo "Reusing providers.json from the latest published release"
-  curl -sf https://unpkg.com/@defillama/sdk@latest/build/providers.json -o src/providers.json
+  curl -sfL https://unpkg.com/@defillama/sdk@latest/build/providers.json -o src/providers.json
   if [[ $? -ne 0 ]] ; then
     echo "Failed to download providers.json"
     exit 1
