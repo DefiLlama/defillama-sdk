@@ -68,17 +68,13 @@ export async function getLogs(options: GetLogsOptions): Promise<{ output: EventL
   return getLimiter()(() => _getLogs(options));
 }
 
-// a node that caps by result count or by a tiny block range can need a lot of sub-queries, but not
-// an unbounded number, past this it is cheaper to fail than to walk the range a few blocks at a time
 const MAX_SUB_QUERIES = 2000;
 
-// the node either states the span it will serve or just complains about the size, in which case
-// halve. returns undefined when the error is not about the range at all, so retrying cannot help.
 function narrowBlockSpan(attemptedSpan: number, e: any): number | undefined {
   if (!isRangeTooWideError(e)) return undefined;
   const hinted = getHintedBlockSpan(e);
-  let next = hinted !== undefined && hinted < attemptedSpan ? hinted : Math.floor(attemptedSpan / 2);
-  // most nodes that cap by block range cap at one of these, landing on it saves a round trip
+  if (hinted !== undefined && hinted < attemptedSpan) return hinted;
+  let next = Math.floor(attemptedSpan / 2);
   if (next > 510 && next < 2000) next = 1000;
   if (next > 5100 && next < 10000) next = 10000;
   if (next >= attemptedSpan) next = Math.floor(attemptedSpan / 2);

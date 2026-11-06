@@ -1,7 +1,6 @@
 import { getLogs } from '.'
 import { getHintedBlockSpan, isRangeTooWideError } from './logs.range'
 
-// a node that refuses any range wider than `cap` blocks, the ordinary shape of a public rpc
 function cappedProvider(cap: number, logsPerBlock = 1) {
   const asked: Array<[number, number]> = []
   return {
@@ -55,7 +54,7 @@ test('a cap below 1000 blocks is still reachable', async () => {
 })
 
 test('a stated cap is used directly instead of halving down to it', async () => {
-  const provider = cappedProvider(112) // the etherlink case
+  const provider = cappedProvider(112)
   await call(provider, 1_000_000, 1_002_000)
   expect(provider.asked.length).toBe(Math.ceil(2001 / 112))
 })
@@ -66,6 +65,22 @@ test('an error that is not about the range is not retried at a narrower span', a
     getLogs: async () => { calls++; throw new Error('Unauthorized: You must authenticate your request') },
   }
   await expect(call(provider, 1_000_000, 1_100_000)).rejects.toThrow(/Unauthorized/)
+  expect(calls).toBe(1)
+})
+
+test('a stated cap below a snap point is used as stated, not snapped up past it', async () => {
+  const provider = cappedProvider(800)
+  await call(provider, 1_000_000, 1_002_000)
+  expect(provider.asked.length).toBe(Math.ceil(2001 / 800))
+  for (const [from, to] of provider.asked) expect(to - from + 1).toBeLessThanOrEqual(800)
+})
+
+test('a request-rate error is not retried at a narrower span', async () => {
+  let calls = 0
+  const provider: any = {
+    getLogs: async () => { calls++; throw new Error('Rate limited to 10 requests per second') },
+  }
+  await expect(call(provider, 1_000_000, 1_010_000)).rejects.toThrow(/Rate limited/)
   expect(calls).toBe(1)
 })
 
@@ -82,6 +97,8 @@ describe('range hints', () => {
     ['query exceeds max block range 10000 for this key', 10000],
     ['Log response size exceeded. Maximum allowed number of requested blocks is 112', 112],
     ['query exceeds max results 20000, retry with the range 26174185-26174468', 284],
+    ['eth_getLogs is limited to 50 blocks range for this API key', 50],
+    ['eth_getLogs is limited to 800 blocks range', 800],
   ])('%s', (msg, span) => {
     expect(getHintedBlockSpan(new Error(msg as string))).toBe(span)
     expect(isRangeTooWideError(new Error(msg as string))).toBe(true)
@@ -91,6 +108,10 @@ describe('range hints', () => {
     'Unauthorized: You must authenticate your request',
     'method not available',
     'Archive requests require a personal token',
+    'Rate limited to 10 requests per second',
+    'Too Many Requests',
+    'Invalid API key',
+    'API key is missing',
   ])('not a range complaint: %s', (msg) => {
     expect(isRangeTooWideError(new Error(msg))).toBe(false)
   })

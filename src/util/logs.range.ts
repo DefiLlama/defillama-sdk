@@ -1,7 +1,3 @@
-// a node that refuses a getLogs range says so in its error, and usually says what it would have
-// accepted. these are the phrasings the rpcs in providers.json actually return.
-
-// the node's message sits in different fields depending on who wrapped the error
 const errorMessageFields = ['message', 'shortMessage', 'reason', 'data', '_underlyingError', 'error', 'info', 'response', 'errors']
 
 export function getErrorText(e: any, depth = 0): string {
@@ -30,10 +26,13 @@ const rangeComplaint = [
   /exceeds? the (?:maximum|limit)/i,
 ]
 
-// retrying a narrower range cannot fix any of these
 const notAboutRange = [
   /unauthor/i,
-  /api ?key/i,
+  /(?:invalid|missing|wrong|bad|no) api ?key/i,
+  /api ?key (?:is )?(?:invalid|missing|required|not valid|not found)/i,
+  /rate ?limit/i,
+  /requests? per (?:second|minute|sec|min)\b/i,
+  /too many requests/i,
   /personal token/i,
   /forbidden/i,
   /authenticate/i,
@@ -50,7 +49,6 @@ export function isRangeTooWideError(e: any): boolean {
   return rangeComplaint.some((p) => p.test(text))
 }
 
-// a stated block count, as a count of blocks rather than a from/to delta
 const spanHints = [
   /limited to\s+\d+\s*-\s*(\d+)\s*blocks?/i,
   /maximum allowed(?:\s+number of requested blocks)? is\s+(\d+)/i,
@@ -61,7 +59,6 @@ const spanHints = [
   /(\d+)\s*blocks?\s+max/i,
 ]
 
-// "retry with the range 26174185-26174468" states a window rather than a width
 const windowHint = /retry with the (?:block )?range\s+(\d+)\s*-\s*(\d+)/i
 
 export function getHintedBlockSpan(e: any): number | undefined {
