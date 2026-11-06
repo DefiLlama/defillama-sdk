@@ -26,7 +26,6 @@ export function getBufferedToBlock(toBlock: number, head?: number, buffer = BLOC
   return Math.min(buffered, Math.max(toBlock, head));
 }
 
-// how much of BLOCK_BUFFER fits on each side without taking the request over the caller's cap
 export function getCacheBuffer(requestedSpan: number, maxBlockRange?: number, buffer = BLOCK_BUFFER): number {
   if (!maxBlockRange) return buffer;
   return Math.max(0, Math.min(buffer, Math.floor((maxBlockRange - requestedSpan) / 2)));
@@ -115,8 +114,6 @@ export async function getLogs(
 
   /* ------------------------ Multi-target parallel ------------------------- */
 
-  // before any range split, so one entry per target comes back rather than one per block chunk.
-  // each target's own call splits its range if it needs to, and flattens its own chunks.
   if (targets?.length) {
     const baseOpts = { ...options, fromBlock, toBlock, skipIndexer: true, flatten: true };
     delete baseOpts.targets;
@@ -138,8 +135,8 @@ export async function getLogs(
 
   /* ----------------------- Split by maxBlockRange ------------------------- */
 
-  const blockRange = toBlock - fromBlock;
-  if (maxBlockRange && blockRange > maxBlockRange) {
+  const blockCount = toBlock - fromBlock + 1;
+  if (maxBlockRange && blockCount > maxBlockRange) {
     const results: any[][] = [];
     for (
       let currentFromBlock = fromBlock;
@@ -225,8 +222,6 @@ export async function getLogs(
 
     if (fromBlock > toBlock) return;
 
-    // a caller passing maxBlockRange is stating the widest range its node will accept, so the
-    // padding has to fit inside what is left of it rather than widen the request past the cap
     const buffer = getCacheBuffer(toBlock - fromBlock + 1, maxBlockRange);
     fromBlock = Math.max(fromBlock - buffer, 0); // avoid negative block
 

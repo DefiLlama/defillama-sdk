@@ -57,6 +57,22 @@ test('the range is still covered end to end', async () => {
   for (let i = 1; i < sorted.length; i++) expect(sorted[i][0]).toBeLessThanOrEqual(sorted[i - 1][1] + 1)
 })
 
+test.each([100, 101, 102, 256])('%s inclusive blocks under a cap of 100 stay inside it on the wire', async (count) => {
+  const asked = recordRanges()
+  const fromBlock = 10_000
+  const toBlock = fromBlock + count - 1
+  await getLogs({
+    chain: 'ethereum', target: TARGETS[0], eventAbi: TRANSFER,
+    fromBlock, toBlock,
+    maxBlockRange: 100, skipIndexer: true, skipCache: true,
+  })
+  expect(Math.max(...asked.map(([f, t]) => t - f + 1))).toBeLessThanOrEqual(100)
+  const sorted = [...asked].sort((a, b) => a[0] - b[0])
+  expect(sorted[0][0]).toBeLessThanOrEqual(fromBlock)
+  expect(sorted[sorted.length - 1][1]).toBeGreaterThanOrEqual(toBlock)
+  for (let i = 1; i < sorted.length; i++) expect(sorted[i][0]).toBeLessThanOrEqual(sorted[i - 1][1] + 1)
+})
+
 test('the cache padding is kept when the cap leaves room for it', async () => {
   const asked = recordRanges()
   await getLogs({
@@ -79,7 +95,6 @@ test('no cap means the padding is unchanged', async () => {
 
 describe('targets with a block range split', () => {
   beforeEach(() => {
-    // one log per target per sub-query, tagged with its target so attribution is checkable
     rpc.mockImplementation(async ({ target, fromBlock }: any) => ({
       output: [{ address: target, blockNumber: fromBlock, transactionHash: '0x' + fromBlock.toString(16) + target.slice(-1), index: 0, topics: [], args: {} }],
     }))
