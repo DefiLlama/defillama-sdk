@@ -23,6 +23,11 @@ export function sliceIntoChunks(arr: any[], chunkSize = 100) {
 
 const chainLogLimiters: any = {}
 
+// some public RPCs cap eth_getLogs below 1000 blocks (etherlink: 500), so small ranges keep splitting, never below this spread
+const MIN_LOG_BLOCK_SPREAD = 100
+// below 1001 blocks, split only while the rest of the range fits in this many requests, so bigger scans still fail fast
+const MAX_SMALL_SPREAD_REQUESTS = 500
+
 function getChainLimiter(chain: string, providerUrl: string) {
   if (!chainLogLimiters[chain]) chainLogLimiters[chain] = createLimiter(chain)
   return chainLogLimiters[chain]
@@ -84,6 +89,7 @@ async function _getLogs(params: GetLogsOptions): Promise<{ output: EventLog[] }>
   let logs: EventLog[] = [];
   let blockSpread = params.toBlock - params.fromBlock;
   let currentBlock = params.fromBlock;
+  let chunkCount = 0;
   const provider = params.provider ?? getProvider(params.chain, true);
   while (currentBlock < params.toBlock) {
     const nextBlock = Math.min(params.toBlock, currentBlock + blockSpread);
@@ -97,6 +103,7 @@ async function _getLogs(params: GetLogsOptions): Promise<{ output: EventLog[] }>
       recordLogs('rpc', params.chain, partLogs.length);
       logs = logs.concat(partLogs as EventLog[]);
       currentBlock = nextBlock;
+      chunkCount++;
     } catch (e) {
 
       if (ENV_CONSTANTS.GET_LOGS_DEBUG)
@@ -108,12 +115,26 @@ async function _getLogs(params: GetLogsOptions): Promise<{ output: EventLog[] }>
         blockSpread = Math.floor(blockSpread / 2);
         if (blockSpread > 510 && blockSpread < 2000) blockSpread = 999;
         if (blockSpread > 5100 && blockSpread < 10000) blockSpread = 9999;
+      } else if (blockSpread >= 2 * MIN_LOG_BLOCK_SPREAD && params.toBlock - currentBlock <= MAX_SMALL_SPREAD_REQUESTS * Math.floor(blockSpread / 2)) {
+        blockSpread = Math.floor(blockSpread / 2);
       } else {
         const error = formError(e, { chain: params.chain, target: params.target, provider })
         error.message = `[chain: ${params.chain}] ${(error as any)?.message} params: ${JSON.stringify(logParams)}`
         throw e;
       }
     }
+  }
+  if (chunkCount > 1) {
+    // consecutive chunks share their boundary block, so a log there is fetched twice
+    const seen = new Set<string>();
+    logs = logs.filter((log: any) => {
+      const index = log.index ?? log.logIndex;
+      if (log.transactionHash === undefined || index === undefined) return true;
+      const key = `${log.transactionHash}-${index}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   }
   if (params.keys.length > 0) {
     if (params.keys[0] !== "topics") {
