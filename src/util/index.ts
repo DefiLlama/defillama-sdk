@@ -85,7 +85,7 @@ async function _getLogs(params: GetLogsOptions): Promise<{ output: EventLog[] }>
   let blockSpread = params.toBlock - params.fromBlock;
   let currentBlock = params.fromBlock;
   const provider = params.provider ?? getProvider(params.chain, true);
-  while (currentBlock < params.toBlock) {
+  while (currentBlock <= params.toBlock) {
     const nextBlock = Math.min(params.toBlock, currentBlock + blockSpread);
     let logParams = {
       ...filter,
@@ -96,7 +96,7 @@ async function _getLogs(params: GetLogsOptions): Promise<{ output: EventLog[] }>
       const partLogs = await provider.getLogs(logParams);
       recordLogs('rpc', params.chain, partLogs.length);
       logs = logs.concat(partLogs as EventLog[]);
-      currentBlock = nextBlock;
+      currentBlock = nextBlock + 1;
     } catch (e) {
 
       if (ENV_CONSTANTS.GET_LOGS_DEBUG)
