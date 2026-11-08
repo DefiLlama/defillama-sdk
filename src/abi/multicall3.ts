@@ -241,6 +241,7 @@ const DEPLOYMENT_BLOCK = {
   xpla: 19189761,
   funki: 1,
   etn: 15031577,
+  zilliqa: 1,
 } as {
   [key: string | Chain]: number
 }
