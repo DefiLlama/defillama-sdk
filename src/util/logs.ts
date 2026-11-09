@@ -26,6 +26,11 @@ export function getBufferedToBlock(toBlock: number, head?: number, buffer = BLOC
   return Math.min(buffered, Math.max(toBlock, head));
 }
 
+export function getCacheBuffer(requestedSpan: number, maxBlockRange?: number, buffer = BLOCK_BUFFER): number {
+  if (!maxBlockRange) return buffer;
+  return Math.max(0, Math.min(buffer, Math.floor((maxBlockRange - requestedSpan) / 2)));
+}
+
 /* -------------------------------------------------------------------------- */
 /*                                   Types                                    */
 /* -------------------------------------------------------------------------- */
@@ -108,10 +113,31 @@ export async function getLogs(
 
   if (!debugMode) debugMode = DEBUG_LEVEL2 && !!ENV_CONSTANTS.GET_LOGS_DEBUG;
 
+  /* ------------------------ Multi-target parallel ------------------------- */
+
+  if (targets?.length) {
+    const baseOpts = { ...options, fromBlock, toBlock, skipIndexer: true, flatten: true };
+    delete baseOpts.targets;
+
+    const jobs = targets.map((address, idx) => ({ idx, address }));
+
+    const proc = async (job: { idx: number; address: Address }) => {
+      const logs = await getLogs({ ...baseOpts, target: job.address });
+      return { idx: job.idx, logs };
+    };
+
+    const results = await runInPromisePool({ items: jobs, concurrency: 5, processor: proc });
+
+    const ordered: any[][] = new Array(targets.length);
+    for (const { idx, logs } of results) ordered[idx] = logs;
+
+    return flatten ? ordered.flat() : ordered;
+  }
+
   /* ----------------------- Split by maxBlockRange ------------------------- */
 
-  const blockRange = toBlock - fromBlock;
-  if (maxBlockRange && blockRange > maxBlockRange) {
+  const blockCount = toBlock - fromBlock + 1;
+  if (maxBlockRange && blockCount > maxBlockRange) {
     const results: any[][] = [];
     for (
       let currentFromBlock = fromBlock;
@@ -130,27 +156,6 @@ export async function getLogs(
       results.push(chunk);
     }
     return flatten ? results.flat() : results;
-  }
-
-  /* ------------------------ Multi-target parallel ------------------------- */
-
-  if (targets?.length) {
-    const baseOpts = { ...options, fromBlock, toBlock, skipIndexer: true };
-    delete baseOpts.targets;
-
-    const jobs = targets.map((address, idx) => ({ idx, address }));
-
-    const proc = async (job: { idx: number; address: Address }) => {
-      const logs = await getLogs({ ...baseOpts, target: job.address });
-      return { idx: job.idx, logs };
-    };
-
-    const results = await runInPromisePool({ items: jobs, concurrency: 5, processor: proc });
-
-    const ordered: any[][] = new Array(targets.length);
-    for (const { idx, logs } of results) ordered[idx] = logs;
-
-    return flatten ? ordered.flat() : ordered;
   }
 
   /* ----------------------------- RPC fallback ----------------------------- */
@@ -217,14 +222,16 @@ export async function getLogs(
     if (debugMode) debugLog("adding logs to cache:", fromBlock, toBlock);
 
     if (fromBlock > toBlock) return;
-    fromBlock = Math.max(fromBlock - BLOCK_BUFFER, 0); // avoid negative block
+
+    const buffer = getCacheBuffer(toBlock - fromBlock + 1, maxBlockRange);
+    fromBlock = Math.max(fromBlock - buffer, 0); // avoid negative block
 
     // the forward buffer must not run past the chain head. Several RPCs reject a range that ends
     // beyond their latest block outright, and since every RPC in the pool rejects it the whole call
     // fails. If the head cannot be read (halted chain, provider error) keep the previous behaviour.
     let head: number | undefined
     try { head = await getBlockNumber(chain) } catch (e) { }
-    toBlock = getBufferedToBlock(toBlock, head);
+    toBlock = getBufferedToBlock(toBlock, head, buffer);
 
     if (debugMode) console.time(dbgKey);
 
