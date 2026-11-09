@@ -209,6 +209,7 @@ const DEPLOYMENT_BLOCK = {
   citrea: 1,
   tempo: 1,
   edgex: 2121,
+  elysiumkinetiq: 1343,
   wchain: 2207643,
   fluent: 754598,
   pharos: 1,

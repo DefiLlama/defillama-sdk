@@ -119,6 +119,13 @@
     "chainId": 3343,
     "explorer": "https://pro.edgex.exchange/en-US/explorer"
   },
+  "elysiumkinetiq": {
+    "rpc": [
+      "https://rpc.elysium.kinetiq.xyz"
+    ],
+    "chainId": 99901,
+    "explorer": "https://elysium.kinetiq.xyz"
+  },
   "elastos": {
     "rpc": [
       "https://api.trinity-tech.cn/eth"
