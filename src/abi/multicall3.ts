@@ -231,6 +231,7 @@ const DEPLOYMENT_BLOCK = {
   eni: 1,
   bitkub: 1,
   shido: 1,
+  elysium: 1343,
   prom: 1238475,
   nibiru: 19587573,
   arc: 1,
