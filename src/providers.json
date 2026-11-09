@@ -119,7 +119,7 @@
     "chainId": 3343,
     "explorer": "https://pro.edgex.exchange/en-US/explorer"
   },
-  "elysiumkinetiq": {
+  "elysium": {
     "rpc": [
       "https://rpc.elysium.kinetiq.xyz"
     ],
