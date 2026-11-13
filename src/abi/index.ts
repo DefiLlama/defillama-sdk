@@ -376,11 +376,19 @@ async function cachedMultiCall(params: MulticallOptions) {
 }
 
 
+// cached per chain + target regardless of block, so only list getters that never change after deployment
 const cachableAbiSet = new Set([
   'uint8:decimals',
+  'string:name',
+  'string:symbol',
+  'address:token0',
+  'address:token1',
+  'address:asset',
+  'address:token',
+  'address:underlying',
 ])
 
 function isCachableAbi(abi: string): boolean {
   if (typeof abi !== 'string') return false
-  return abi.startsWith('address:') || abi.startsWith('string:') || cachableAbiSet.has(abi)
+  return cachableAbiSet.has(abi)
 }

@@ -1,5 +1,6 @@
 import ChainApi from "../ChainApi";
 import { call, multiCall } from "./index";
+import { retriveCache } from "../util/internal-cache";
 const getReservesAbi = "function getReserves() view returns (uint112 _reserve0, uint112 _reserve1, uint32 _blockTimestampLast)"
 const getReservesAbi2 = "function getReserves() view returns (uint112 _reserve0, uint112 _reserve1)"
 
@@ -728,4 +729,24 @@ describe("chunk-level failure in runInPromisePool", () => {
 
     jest.dontMock('../util')
   })
+})
+test("shorthand abi of a mutable getter is read at each block, not served from cache", async () => {
+  const ethUsd = '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419' // chainlink proxy, aggregator() changed over time
+  const btcUsd = '0xF4030086522a5bEEa4988F8cA5B36dbC97BeE88c'
+  const blocks = [13000000, 18000000, 23000000]
+  const expected = {
+    [ethUsd]: ['0x37bC7498f4FF12C19678ee8fE19d713b87F6a9e6', '0xE62B71cf983019BFf55bC83B48601ce8419650CC', '0x7d4E742018fb52E48b08BE73d041C18B21de6Fb5'],
+    [btcUsd]: ['0xAe74faA92cB67A95ebCAB07358bC222e33A34dA7', '0xdBe1941BFbe4410D6865b9b7078e0b49af144D2d', '0x4a3411ac2948B33c69666B35cc6d055B27Ea84f1'],
+  }
+  for (const [i, block] of blocks.entries()) {
+    expect((await call({ target: ethUsd, abi: 'address:aggregator', block })).output).toBe(expected[ethUsd][i])
+    const res = await multiCall({ abi: 'address:aggregator', calls: [{ target: btcUsd }], block })
+    expect(res.output[0].output).toBe(expected[btcUsd][i])
+  }
+  expect(retriveCache().ethereum?.['address:aggregator']).toBeUndefined()
+
+  // immutable metadata is still cached
+  const pair = '0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc' // univ2 USDC/WETH
+  await call({ target: pair, abi: 'address:token0', block: 13000000 })
+  expect(retriveCache().ethereum['address:token0'][pair.slice(2).toLowerCase()]).toBe('0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48')
 })
