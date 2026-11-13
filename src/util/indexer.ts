@@ -316,6 +316,7 @@ export type IndexerGetLogsOptions = {
   toTimestamp?: number;
   entireLog?: boolean;
   cacheInCloud?: boolean;
+  skipCache?: boolean;
   onlyArgs?: boolean;
   targets?: Address[];
   flatten?: boolean;
