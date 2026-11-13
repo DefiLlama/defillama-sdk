@@ -91,7 +91,10 @@ export async function getLogs(
   if (onlyIndexer && !isIndexerEnabled(chain))
     throw new Error("onlyIndexer is true, but indexer is not enabled");
 
-  if (!skipIndexer && isIndexerEnabled(chain)) {
+
+  const indexerFillsCache = cacheInCloud && !skipIndexer && isIndexerEnabled(chain);
+
+  if (!skipIndexer && isIndexerEnabled(chain) && !indexerFillsCache) {
     try {
       const response = await getIndexerLogs({
         ...options,
@@ -135,7 +138,7 @@ export async function getLogs(
   /* ------------------------ Multi-target parallel ------------------------- */
 
   if (targets?.length) {
-    const baseOpts = { ...options, fromBlock, toBlock, skipIndexer: true };
+    const baseOpts = { ...options, fromBlock, toBlock, skipIndexer: !indexerFillsCache };
     delete baseOpts.targets;
 
     const jobs = targets.map((address, idx) => ({ idx, address }));
@@ -228,15 +231,7 @@ export async function getLogs(
 
     if (debugMode) console.time(dbgKey);
 
-    const { output: newLogs } = await getLogsV1({
-      chain,
-      target: target!,
-      topic: topic as string,
-      keys,
-      topics,
-      fromBlock,
-      toBlock,
-    });
+    const newLogs = await fetchLogs(fromBlock, toBlock);
 
     if (debugMode) {
       console.timeEnd(dbgKey);
@@ -274,6 +269,25 @@ export async function getLogs(
       // we are skipping compression by default, so reads & writes are faster
       await writeCache(getFile(), { caches: storeCaches, version: currentVersion }, { skipR2CacheWrite: !cacheInCloud, skipCompression: !cacheInCloud })
     }
+  }
+
+  async function fetchLogs(fromBlock: number, toBlock: number): Promise<EventLog[]> {
+    if (indexerFillsCache) {
+      try {
+        return await getIndexerLogs({
+          ...options, chain, target, topics, fromBlock, toBlock,
+          targets: undefined, fromTimestamp: undefined, toTimestamp: undefined,
+          all: true, flatten: true, processor: undefined, collect: undefined, offset: 0, limit: undefined,
+          eventAbi: undefined, entireLog: true, parseLog: false, onlyArgs: false,
+          cacheInCloud: false, skipCache: true,
+        });
+      } catch (e) {
+        debugLog("Error in indexer getLogs", (e as Error).message);
+        if (onlyIndexer) throw e;
+      }
+    }
+    const { output } = await getLogsV1({ chain, target: target!, topic: topic as string, keys, topics, fromBlock, toBlock });
+    return output;
   }
 
   function dedupLogs(...arr: EventLog[][]) {
