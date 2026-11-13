@@ -17,10 +17,11 @@ rm README.md
 
 # SDK_PUBLISH_REUSE_PROVIDERS=true  -> copy providers.json from the latest published release (fast, for back-to-back releases where the list did not change)
 # SDK_PUBLISH_REUSE_PROVIDERS=false -> rebuild it from chainlist + rpc health checks (the default behaviour)
-# unset                             -> ask
+# unset                             -> ask (defaults to false after 5s without an answer)
 REUSE_PROVIDERS=${SDK_PUBLISH_REUSE_PROVIDERS:-}
 if [[ -z "$REUSE_PROVIDERS" ]] ; then
-  read -p "Reuse providers.json from the latest published sdk instead of rebuilding it? [y/N] " _reuse
+  # no answer within 5s counts as "no"
+  read -t 5 -p "Reuse providers.json from the latest published sdk instead of rebuilding it? [y/N, 5s timeout = N] " _reuse || echo
   case "$_reuse" in
     y|Y|yes|YES) REUSE_PROVIDERS=true ;;
     *) REUSE_PROVIDERS=false ;;
