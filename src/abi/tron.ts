@@ -7,7 +7,7 @@ import { evmToTronAddress, postJson, shortenString, sleepRandom, tronToEvmAddres
 import * as evmAbi from "./index";
 import { registerEndpoints } from "../util/callStats";
 
-const limitRPCCalls = pLimit(+getEnvValue('TRON_RPC_CONCURRENCY_LIMIT', '5')!);
+const limitRPCCalls = pLimit(+getEnvValue('TRON_RPC_CONCURRENCY_LIMIT')!);
 
 const getEndpoint = () => getEnvValue('TRON_WALLET_RPC')
 const balanceCache: { [address: string]: any } = {}
@@ -84,7 +84,7 @@ export const unhexifyTarget = evmToTronAddress
 export const hexifyTarget = tronToEvmAddress
 
 async function post(body = {}, endpoint = '/wallet/triggerconstantcontract') {
-  await sleepRandom(3000)   // sleep random time to avoid rate limit
+  // await sleepRandom(3000)   // sleep random time to avoid rate limit
   const hosts = (getEndpoint()).split(',')
   registerEndpoints('tron', hosts)
 

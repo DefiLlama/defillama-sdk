@@ -16,7 +16,7 @@ const defaultEnvValues = {
   KATANA_MULTICALL_CHUNK_SIZE: "50",
   ARC_MULTICALL_CHUNK_SIZE: "50", // moved here from adapters/dimension-adapters env defaults
   INTERNAL_SDK_CACHE_FILE: './cache.json',
-  TRON_RPC_CONCURRENCY_LIMIT: '5',
+  TRON_RPC_CONCURRENCY_LIMIT: '1',
   LLAMA_INDEXER_ADDRESS_CHUNK_SIZE: '20',
   LLAMA_INDEXER_TIMEOUT_MS: '300000',
   TRON_WALLET_RPC: 'https://api.trongrid.io',

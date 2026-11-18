@@ -729,3 +729,63 @@ describe("chunk-level failure in runInPromisePool", () => {
     jest.dontMock('../util')
   })
 })
+
+describe("tron multicall batch rejected by the RPC", () => {
+  // Tron's JSON-RPC rejects a whole batch when it runs past the node CPU limit.
+  // That is an RPC error, so under permitFailure it must not turn into null
+  // results: the batch is split and retried, and it throws if a single call
+  // still cannot be executed. Other chains keep their existing behaviour.
+  const target = "0xa614f803b6fd780986a42c78ec9c7f77e6ded13c"
+  const calls = [0, 1, 2, 3, 4, 5].map(i => ({ target, params: ["0x000000000000000000000000000000000000000" + (i + 1)] }))
+  const ok = (chunk: any[]) => chunk.map((call: any) => ({
+    input: { target: call.contract, params: call.params },
+    success: true,
+    output: "1",
+  }))
+
+  function loadMultiCall(makeMultiCall: any) {
+    jest.resetModules()
+    jest.doMock('./multicall3', () => ({
+      ...jest.requireActual('./multicall3'),
+      __esModule: true,
+      default: makeMultiCall,
+    }))
+    return require('./index').multiCall
+  }
+
+  afterEach(() => jest.dontMock('./multicall3'))
+
+  test("permitFailure does not swallow a tron RPC error", async () => {
+    const makeMultiCall = jest.fn(async (_abi: any, chunk: any[]) => {
+      if (chunk.some((call: any) => call.params[0].endsWith('4'))) throw new Error("CPU timeout for 'DUP2' operation executing")
+      return ok(chunk)
+    })
+    const multiCallMocked = loadMultiCall(makeMultiCall)
+    await expect(multiCallMocked({ chain: 'tron', calls, abi: "erc20:balanceOf", chunkSize: 6, permitFailure: true, skipCache: true }))
+      .rejects.toThrow()
+  })
+
+  test("a batch the tron RPC rejects is split and retried, results keep their order", async () => {
+    const makeMultiCall = jest.fn(async (_abi: any, chunk: any[]) => {
+      if (chunk.length > 2) throw new Error("CPU timeout for 'DUP2' operation executing")
+      return ok(chunk)
+    })
+    const multiCallMocked = loadMultiCall(makeMultiCall)
+    const res = await multiCallMocked({ chain: 'tron', calls, abi: "erc20:balanceOf", chunkSize: 6, permitFailure: true, skipCache: true })
+    expect(res.output.length).toBe(6)
+    res.output.forEach((r: any, i: number) => {
+      expect(r.input.params).toEqual(calls[i].params)
+      expect(r.success).toBe(true)
+    })
+  })
+
+  test("permitFailure still nulls an unusable target on tron without failing the batch", async () => {
+    const makeMultiCall = jest.fn(async (_abi: any, chunk: any[]) => ok(chunk))
+    const multiCallMocked = loadMultiCall(makeMultiCall)
+    const mixed = [calls[0], { params: calls[1].params }, calls[2]] // second call has no target
+    const res = await multiCallMocked({ chain: 'tron', calls: mixed, abi: "erc20:balanceOf", permitFailure: true, skipCache: true })
+    expect(res.output.map((r: any) => r.success)).toEqual([true, false, true])
+    expect(res.output[1].output).toBe(null)
+    expect(res.output[2].input.params).toEqual(calls[2].params)
+  })
+})

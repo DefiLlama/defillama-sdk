@@ -232,11 +232,19 @@ export async function multiCall(params: MulticallOptions): Promise<any> {
 
   const abi = resolveABI(params.abi);
   const chunkedCalls = sliceIntoChunks(contractCalls, chunkSize)
+  // Tron only: its JSON-RPC rejects a whole multicall batch when the calls in it
+  // add up past the node's CPU limit ("CPU timeout for ... operation executing").
+  // That is an RPC error, not a failing contract, so it must not become null
+  // results under permitFailure: the batch is split and retried, and an RPC
+  // error that survives down to a single call throws.
+  const isTron = chain === 'tron'
   const results = await runInPromisePool({
     items: chunkedCalls,
     concurrency: 10,
-    processor: (calls: any) => makeMultiCall(abi, calls, chain as Chain, params.block),
-    permitFailure: params.permitFailure,
+    processor: (calls: any) => isTron
+      ? makeTronMultiCall(abi, calls, params.block, !!params.permitFailure)
+      : makeMultiCall(abi, calls, chain as Chain, params.block),
+    permitFailure: isTron ? false : params.permitFailure,
   })
 
   // When an entire chunk's processor call throws (e.g. a chunk-level RPC
@@ -284,6 +292,33 @@ export async function multiCall(params: MulticallOptions): Promise<any> {
   return {
     output: flatResults, // flatten array
   };
+}
+
+// Tron multicall batch. Calls with an unusable target are failed up front under
+// permitFailure (they are a caller problem and never reach the RPC). If the RPC
+// cannot execute the batch, it is halved and retried - halves run one after the
+// other, so a dead RPC fails after ~log2(n) attempts - and the error is rethrown
+// once a single call still cannot be executed.
+async function makeTronMultiCall(abi: any, calls: any[], block: number | string | undefined, permitFailure: boolean): Promise<any[]> {
+  if (permitFailure && calls.some((call: any) => !isValidTarget(call.contract, 'tron'))) {
+    const validCalls = calls.filter((call: any) => isValidTarget(call.contract, 'tron'))
+    const validResults = validCalls.length ? await makeTronMultiCall(abi, validCalls, block, false) : []
+    let validIndex = 0
+    return calls.map((call: any) => isValidTarget(call.contract, 'tron')
+      ? validResults[validIndex++]
+      : { input: { params: call.params, target: call.contract }, success: false, output: null })
+  }
+
+  try {
+    return await makeMultiCall(abi, calls, 'tron' as Chain, block)
+  } catch (e) {
+    if (calls.length <= 1) throw e
+    const mid = Math.ceil(calls.length / 2)
+    debugLog(`[chain: tron] multicall batch of ${calls.length} failed, retrying as two batches of ${mid}`)
+    const firstHalf = await makeTronMultiCall(abi, calls.slice(0, mid), block, false)
+    const secondHalf = await makeTronMultiCall(abi, calls.slice(mid), block, false)
+    return [...firstHalf, ...secondHalf]
+  }
 }
 
 async function cachedCall(params: CallOptions) {
