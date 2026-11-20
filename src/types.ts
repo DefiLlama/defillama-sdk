@@ -19,6 +19,7 @@ export type CallOptions = {
   abi?: string | any;
   abis?: string[];
   block?: Block;
+  timestamp?: number; // unix timestamp of `block`, only used to tell whether the call reads the current state (rpc call cache)
   params?: CallParams;
   chain?: Chain | string;
   withMetadata?: boolean;
@@ -34,6 +35,7 @@ export type MulticallOptions = {
   abis?: string[];
   calls: CallsParams[] | (string | number)[];
   block?: Block;
+  timestamp?: number; // unix timestamp of `block`, only used to tell whether the call reads the current state (rpc call cache)
   target?: Address; // Used when calls.target is not provided
   chain?: Chain | string;
   requery?: boolean;
@@ -50,6 +52,7 @@ export type FetchListOptions = {
   itemAbi: string | any;
   itemAbi2?: string | any;
   block?: Block;
+  timestamp?: number; // unix timestamp of `block`, only used to tell whether the call reads the current state (rpc call cache)
   startFrom?: number;
   target?: Address;
   calls?: Address[];

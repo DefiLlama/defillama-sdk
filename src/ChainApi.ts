@@ -119,6 +119,7 @@ export class ChainApi {
     return call({
       ...params,
       block: this.block,
+      timestamp: this.timestamp,
       chain: this.chain,
     })
   }
@@ -136,6 +137,7 @@ export class ChainApi {
     return multiCall({
       ...params,
       block: this.block,
+      timestamp: this.timestamp,
       chain: this.chain,
     })
   }
@@ -147,6 +149,7 @@ export class ChainApi {
     return fetchList({
       ...params,
       block: this.block,
+      timestamp: this.timestamp,
       chain: this.chain,
     })
   }

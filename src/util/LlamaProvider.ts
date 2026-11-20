@@ -170,7 +170,9 @@ export class LlamaProvider extends FallbackProvider {
         return result
       } catch (e: any) {
         // console.log('failed', runner.url, (e as any).message)
-        errors.push({ host: runner.url, error: (e?.message ?? e) })
+        // rpcPost throws the `error` object of the JSON-RPC response as is, everything else (transport, timeout,
+        // malformed body) is an Error instance. Used to tell a contract revert from an rpc failure, see isContractRevert
+        errors.push({ host: runner.url, error: (e?.message ?? e), jsonRpcError: !!e && !(e instanceof Error) })
       }
     }
 

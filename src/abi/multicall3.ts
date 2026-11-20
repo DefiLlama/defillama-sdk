@@ -244,6 +244,14 @@ const DEPLOYMENT_BLOCK = {
   funki: 1,
   etn: 15031577,
   zilliqa: 1,
+  tomochain: 87169904,
+  syscoin: 287139,
+  xlayer: 47416,
+  wan: 29597241,
+  ethpow: 14353601, // fork of ethereum, same deployment
+  map: 23863506,
+  neox: 6719042,
+  europa: 1,
 } as {
   [key: string | Chain]: number
 }

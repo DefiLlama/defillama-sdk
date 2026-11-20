@@ -14,6 +14,9 @@ importers:
       '@elastic/elasticsearch':
         specifier: ^8.13.1
         version: 8.19.1(supports-color@8.1.1)
+      '@redis/client':
+        specifier: ^6.3.1
+        version: 6.3.1(@opentelemetry/api@1.9.0)
       '@solana/web3.js':
         specifier: '>=1.73.0'
         version: 1.99.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)
@@ -534,6 +537,18 @@ packages:
   '@opentelemetry/semantic-conventions@1.37.0':
     resolution: {integrity: sha512-JD6DerIKdJGmRp4jQyX5FlrQjA4tjOw1cvfsPAZXfOOEErMUHjPcPSICS+6WnM0nB0efSFARh0KAZss+bvExOA==}
     engines: {node: '>=14'}
+
+  '@redis/client@6.3.1':
+    resolution: {integrity: sha512-masbfVKULdoAofwddepZxRhWa4w6zvBHn6TRn90TRPrRkVIlGCur3pFqwWaCbMxtYI9twepkz63e/T/tEH8GjA==}
+    engines: {node: '>= 20.0.0'}
+    peerDependencies:
+      '@node-rs/xxhash': ^1.1.0
+      '@opentelemetry/api': '>=1 <2'
+    peerDependenciesMeta:
+      '@node-rs/xxhash':
+        optional: true
+      '@opentelemetry/api':
+        optional: true
 
   '@scure/base@1.2.6':
     resolution: {integrity: sha512-g/nm5FgUa//MCj1gV09zTJTaM6KBAHqLN907YVQqf7zC49+DcO4B1so4ZX07Ef10Twr6nuqYEH9GEggFXA4Fmg==}
@@ -3069,6 +3084,10 @@ snapshots:
       '@opentelemetry/semantic-conventions': 1.37.0
 
   '@opentelemetry/semantic-conventions@1.37.0': {}
+
+  '@redis/client@6.3.1(@opentelemetry/api@1.9.0)':
+    optionalDependencies:
+      '@opentelemetry/api': 1.9.0
 
   '@scure/base@1.2.6': {}
 

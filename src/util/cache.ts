@@ -60,6 +60,7 @@ export async function readCache(file: string, options: ReadCacheOptions = {}): P
     return await parseCache(data, options)
   } catch (error) {
     // debugLog('Error reading cache:', error)
+    if (options.throwErrorOnFail) throw error
     return {}
   }
 
@@ -70,7 +71,7 @@ export async function readCache(file: string, options: ReadCacheOptions = {}): P
       return data
     } catch (error) {
       // debugLog('Error reading cache:', error)
-      return readDataFromR2()
+      return readDataFromR2(error)
     }
   }
 
@@ -87,26 +88,31 @@ export async function readCache(file: string, options: ReadCacheOptions = {}): P
     return data
   }
 
-  async function readDataFromR2() {
-    if (options.skipR2Cache) return;
+  async function readDataFromR2(localError: unknown) {
+    if (options.skipR2Cache) {
+      if (options.throwErrorOnFail) throw localError
+      return;
+    }
     try {
-      const r2Data = await getR2JSONString(currentVersion + '/' + file, { throwErrorOnFail: options.readFromR2Cache ?? false, private: options.private })
+      const r2Data = await getR2JSONString(currentVersion + '/' + file, { throwErrorOnFail: (options.readFromR2Cache || options.throwErrorOnFail) ?? false, private: options.private })
 
-      if (r2Data) {
-        // `file` already carries the `-uncompressed` suffix (added above), so omit skipCompression here to avoid writeCache appending it again
-        await writeCache(file, r2Data, { alreadyCompressed: true, skipR2CacheWrite: true })
-        return r2Data
-      }
+      if (!r2Data) throw new Error('Empty R2 cache: ' + file)
+
+      // `file` already carries the `-uncompressed` suffix (added above), so omit skipCompression here to avoid writeCache appending it again
+      // a failed local backfill must not fail the read, so throwErrorOnFail is not passed on
+      await writeCache(file, r2Data, { alreadyCompressed: true, skipR2CacheWrite: true })
+      return r2Data
     } catch (error) {
 
       if (options.readFromR2Cache) {
         // if we were forced to read from R2 cache, try reading from local cache if R2 fails
         try {
-           const data = await readDataFromLocal(false)  
+           const data = await readDataFromLocal(false)
            return data
         } catch (_e) {}
       }
 
+      if (options.throwErrorOnFail) throw error
       return {}
     }
   }
@@ -117,6 +123,7 @@ interface WriteCacheOptions {
   alreadyCompressed?: boolean
   skipCompression?: boolean // if true, data will not be compressed before writing to cache, more suited for local cache, it is faster but takes more space
   private?: boolean // if true, write to the private R2 bucket instead of the public one
+  throwErrorOnFail?: boolean // if true, reject when the data was not written (including data too small to cache) instead of failing silently
 }
 
 interface ReadCacheOptions {
@@ -125,6 +132,7 @@ interface ReadCacheOptions {
   skipR2Cache?: boolean,
   skipCompression?: boolean // if true, data will not be decompressed after reading from cache
   private?: boolean // if true, read from the private R2 bucket instead of the public one
+  throwErrorOnFail?: boolean // if true, reject when no data could be read (missing file included) instead of returning {}
 }
 
 export async function writeCache(file: string, data: any, options: WriteCacheOptions = {}): Promise<string | undefined> {
@@ -133,6 +141,7 @@ export async function writeCache(file: string, data: any, options: WriteCacheOpt
     const fileData = options.alreadyCompressed ? data : await compressCache(data, options)
 
     if (!data || (typeof data === 'string' && data.length < 20) || fileData.length < 20) {
+      if (options.throwErrorOnFail) throw new Error('Data too small to cache: ' + file)
       debugLog('Data too small to cache: ', file);
       return;
     }
@@ -150,6 +159,7 @@ export async function writeCache(file: string, data: any, options: WriteCacheOpt
 
     return fileData
   } catch (error) {
+    if (options.throwErrorOnFail) throw error
     if (typeof data === 'object' && data !== null && Object.keys(data).length === 0) return;
 
     debugLog('Error writing cache:', error)
@@ -332,9 +342,9 @@ export async function cachedFetch({
     }
   }
 
+  let data: any
   try {
 
-    let data: any
     if (fetcher) data = await fetcher()
     else {
       if (!endpoint) throw new Error('Either fetcher or endpoint is required for cachedFetch')
@@ -342,21 +352,24 @@ export async function cachedFetch({
       else data = await fetchJson(endpoint, fetchOptions)
     }
 
-    await writeCache(fileKey, data, writeCacheOptions)
-    return data
-
   } catch (error) {
 
     const errorMessage = formError(error).message
     debugLog('Error in cachedFetch:', errorMessage)
 
     // if fetch fails, read from cache (regardless of age)
-    const cachedData = await readCache(fileKey, readCacheOptions)
-
-    if (!cachedData && errorOnNoCache)
-      throw new Error('Fetch failed and no cache available')
-
-    return cachedData
+    // read in throw mode so a missing cache can be told apart from a cached empty value
+    try {
+      return await readCache(fileKey, { ...readCacheOptions, throwErrorOnFail: true })
+    } catch (cacheError) {
+      if (errorOnNoCache) throw new Error('Fetch failed and no cache available: ' + errorMessage)
+      if (readCacheOptions.throwErrorOnFail) throw cacheError
+      return {}
+    }
   }
+
+  // outside the try above: a failed cache write (with throwErrorOnFail) must not be mistaken for a failed fetch
+  await writeCache(fileKey, data, writeCacheOptions)
+  return data
 
 }

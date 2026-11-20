@@ -12,8 +12,9 @@ export async function call(params: CallOptions): Promise<any> {
     if (params.field) response.output = response.output[params.field]
     if (params.withMetadata) return response
     return response.output
-  } catch (e) {
-    if (!params.permitFailure) throw e
+  } catch (e: any) {
+    // permitFailure is about the contract rejecting the call, an rpc that could not execute it is always an error
+    if (!params.permitFailure || e?.isRpcFailure) throw e
     if (params.withMetadata) return { success: false, error: e }
     return null
   }
@@ -100,7 +101,7 @@ export async function multiCall(params: MulticallOptions): Promise<any[]> {
 
 export async function fetchList(params: FetchListOptions) {
   // itemAbi2 is used when we need to make a second call to get the final result
-  let { startFrom = 0, lengthAbi, itemAbi, withMetadata, startFromOne = false, itemCount, target, targets, calls: _targets, chain, block, permitFailure, groupedByInput, excludeFailed, itemAbi2, field, field2, } = params
+  let { startFrom = 0, lengthAbi, itemAbi, withMetadata, startFromOne = false, itemCount, target, targets, calls: _targets, chain, block, timestamp, permitFailure, groupedByInput, excludeFailed, itemAbi2, field, field2, } = params
 
   if (!targets) targets = _targets
   const _groupedByInputOrignal = groupedByInput
@@ -120,7 +121,7 @@ export async function fetchList(params: FetchListOptions) {
   if (target) {
 
     if (itemCount) itemLength = itemCount
-    else itemLength = await call({ chain, block, target, abi: lengthAbi, })
+    else itemLength = await call({ chain, block, timestamp, target, abi: lengthAbi, })
     // debugLog('length: ', itemLength)
     if (startFromOne) {
       itemLength++
@@ -128,14 +129,14 @@ export async function fetchList(params: FetchListOptions) {
     }
     for (let i = startFrom; i < itemLength; i++) calls.push({ target, params: [i] })
 
-    const response = await multiCall({ chain, block, permitFailure, abi: itemAbi, calls, withMetadata, excludeFailed, field, })
+    const response = await multiCall({ chain, block, timestamp, permitFailure, abi: itemAbi, calls, withMetadata, excludeFailed, field, })
     if (!itemAbi2) return response
-    return multiCall({ chain, block, target, permitFailure, abi: itemAbi2, calls: response, withMetadata, excludeFailed, field: field2, })
+    return multiCall({ chain, block, timestamp, target, permitFailure, abi: itemAbi2, calls: response, withMetadata, excludeFailed, field: field2, })
 
   }
 
   if (itemCount) itemLengths = targets!.map(() => itemCount)
-  else itemLengths = await multiCall({ chain, block, calls: targets!, abi: lengthAbi, })
+  else itemLengths = await multiCall({ chain, block, timestamp, calls: targets!, abi: lengthAbi, })
 
   // debugLog('itemLengths: ', itemLengths)
   let groupedByRes: any = itemLengths.map(() => [])
@@ -154,7 +155,7 @@ export async function fetchList(params: FetchListOptions) {
     }
   }
 
-  const res = await multiCall({ chain, block, permitFailure, abi: itemAbi, calls, withMetadata, excludeFailed, field, })
+  const res = await multiCall({ chain, block, timestamp, permitFailure, abi: itemAbi, calls, withMetadata, excludeFailed, field, })
   if (!groupedByInput) return res
   res.forEach((i: any, idx: number) => groupedByRes[indexToTargetMapping[idx]].push(i))
   if (!itemAbi2) return groupedByRes
@@ -167,7 +168,7 @@ export async function fetchList(params: FetchListOptions) {
     }
   }
 
-  const res2 = await multiCall({ chain, block, permitFailure, abi: itemAbi2, calls: calls2, withMetadata, excludeFailed, field: field2, })
+  const res2 = await multiCall({ chain, block, timestamp, permitFailure, abi: itemAbi2, calls: calls2, withMetadata, excludeFailed, field: field2, })
   if (!_groupedByInputOrignal) return res2
 
   groupedByRes = itemLengths.map(() => [])
