@@ -16,8 +16,8 @@
  * every function returns raw chain values (lovelace / asset quantities as strings).
  *
  * Configuration:
- *   - `BLOCKFROST_PROJECT_ID` (required, also `SDK_` / `LLAMA_SDK_` prefixed): Blockfrost api key.
- *     No key is embedded in the sdk.
+ *   - `BLOCKFROST_PROJECT_ID` (required, also `SDK_` / `LLAMA_SDK_` prefixed): Blockfrost api key(s),
+ *     comma separated. A random key is picked per request and reused by its retries. No key is embedded in the sdk.
  *   - `CARDANO_BLOCKFROST` (optional, comma separated): api base url(s), default
  *     `https://cardano-mainnet.blockfrost.io/api/v0`.
  *   - `CARDANO_RPC_CONCURRENCY` (optional): max parallel requests, default 5.
@@ -61,11 +61,17 @@ export function getEndpoint(): string {
   return getEndpointList()[0]
 }
 
-/** Blockfrost project id from `BLOCKFROST_PROJECT_ID`; throws when unset. */
+/** All Blockfrost project ids from `BLOCKFROST_PROJECT_ID` (comma separated); throws when unset. */
+export function getProjectIds(): string[] {
+  const ids = (getEnvValue(PROJECT_ID_ENV_KEY) ?? '').split(',').map(i => i.trim()).filter(Boolean)
+  if (!ids.length) throw new Error(`[chains.cardano] missing Blockfrost api key: set the ${PROJECT_ID_ENV_KEY} env var (https://blockfrost.io)`)
+  return ids
+}
+
+/** A random Blockfrost project id from `BLOCKFROST_PROJECT_ID`; throws when unset. */
 export function getProjectId(): string {
-  const value = getEnvValue(PROJECT_ID_ENV_KEY)
-  if (!value) throw new Error(`[chains.cardano] missing Blockfrost api key: set the ${PROJECT_ID_ENV_KEY} env var (https://blockfrost.io)`)
-  return value
+  const ids = getProjectIds()
+  return ids[Math.floor(Math.random() * ids.length)]
 }
 
 // ---------------------------------------------------------------------------
@@ -171,13 +177,14 @@ function isNotFound(e: any) {
  */
 export async function blockfrost({ path, params, allowNotFound = false, timeout = DEFAULT_TIMEOUT, retries }: BlockfrostOptions): Promise<any> {
   const endpoints = getEndpointList()
-  const headers = { project_id: getProjectId(), 'Content-Type': 'application/json' }
+  const headers = { project_id: getProjectId(), 'Content-Type': 'application/json' } // one key per call, reused by retries
   const config = { timeout, headers, params }
   const limiter = getLimiter(LIMITER_KEY, CONCURRENCY)
 
   const res = await withRetry(async (attempt) => {
     const base = endpoints[attempt % endpoints.length]
     const url = joinUrl(base, path)
+    
     return limiter(async () => {
       try {
         const response = await axios.get(url, config)
