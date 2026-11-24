@@ -182,6 +182,7 @@ const DEPLOYMENT_BLOCK = {
   tac: 1,
   eventum: 1,
   somnia: 1,
+  somnia_tokyo: 1,
   camp: 1,
   bitci: 1,
   plasma: 1,
