@@ -1,6 +1,6 @@
 import * as path from "path";
 import {
-  DEFAULT_ENDPOINT, getEndpoint, getEndpointList, getProjectId, parseAssetId, buildAssetId, decodeAssetName,
+  DEFAULT_ENDPOINT, getEndpoint, getEndpointList, getProjectId, getProjectIds, parseAssetId, buildAssetId, decodeAssetName,
   isStakeAddress, lovelaceToAda, getAssetDecimals, SHELLEY_SLOT_OFFSET,
   getAssetSupply, getAdaBalance, getLatestBlock, getBlockAtTimestamp, getAddressAssets, getAsset,
 } from "./cardano";
@@ -93,6 +93,16 @@ describe('chains.cardano config', () => {
     expect(() => getProjectId()).toThrow(/BLOCKFROST_PROJECT_ID/)
     process.env.BLOCKFROST_PROJECT_ID = 'test-key'
     expect(getProjectId()).toBe('test-key')
+    process.env.BLOCKFROST_PROJECT_ID = ' , '
+    expect(() => getProjectId()).toThrow(/BLOCKFROST_PROJECT_ID/)
+  })
+
+  test('BLOCKFROST_PROJECT_ID accepts a comma separated list, getProjectId picks one at random', () => {
+    process.env.BLOCKFROST_PROJECT_ID = 'keya, keyb,,keyc '
+    expect(getProjectIds()).toEqual(['keya', 'keyb', 'keyc'])
+    const picked = new Set<string>()
+    for (let i = 0; i < 200; i++) picked.add(getProjectId())
+    expect([...picked].sort()).toEqual(['keya', 'keyb', 'keyc'])
   })
 
   test('endpoint defaults to Blockfrost mainnet, CARDANO_BLOCKFROST entries come first', () => {
