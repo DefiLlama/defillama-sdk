@@ -53,6 +53,17 @@ export async function call(provider: ethers.AbstractProvider, data: ethers.JsonR
   }
 }
 
+const revertPattern = /revert|invalid opcode|out of gas|invalid jump|stack underflow|stack overflow|bad instruction/i
+
+// true only when a node executed the call and the EVM rejected it. Anything else (rpc down, timeout, rate limit, bad
+// response) is an rpc failure: it says nothing about the contract and must surface as an error, never as a null result.
+export function isContractRevert(e: any): boolean {
+  if (!e || typeof e !== 'object') return false
+  if (e.llamaRPCError)
+    return Array.isArray(e.errors) && e.errors.some((i: any) => i?.jsonRpcError && revertPattern.test(String(i.error?.message ?? i.error)))
+  return e.code === 'CALL_EXCEPTION' // ethers provider registered through setProvider
+}
+
 function getChainCounter(chain: string) {
   if (!COUNTERS[chain])
     COUNTERS[chain] = {

@@ -1,19 +1,13 @@
 import { ethers } from "ethers";
 import { getProvider, Chain } from "../general";
 import convertResults from "./convertResults";
-import { call } from "./rpcCall";
+import { call, isContractRevert } from "./rpcCall";
 import { debugLog } from "../util/debugLog"
 import { runInPromisePool, sliceIntoChunks, } from "../util"
 import { getEnvMulticallAddress } from "../util/env";
 
 export const MULTICALL_ADDRESS_MAINNET =
   "0xeefba1e63905ef1d7acba5a8513c70307c1ce441";
-export const MULTICALL_ADDRESS_KOVAN =
-  "0x2cc8688c5f75e365aaeeb4ea8d6a480405a48d2a";
-export const MULTICALL_ADDRESS_RINKEBY =
-  "0x42ad527de7d4e9d9d011ac45b31d8551f8fe9821";
-export const MULTICALL_ADDRESS_GOERLI =
-  "0x77dca2c955b15e9de4dbbcf1246b4b85b651e50e";
 export const MULTICALL_ADDRESS_POLYGON =
   "0x95028E5B8a734bb7E2071F96De89BABe75be9C8E";
 export const MULTICALL_ADDRESS_BSC =
@@ -38,6 +32,10 @@ export const MULTICALL_ADDRESS_OPTIMISM =
   "0xD0E99f15B24F265074747B2A1444eB02b9E30422";
 
 export const AGGREGATE_SELECTOR = "0x252dba42";
+
+// Legacy multicall (aggregate only: one reverting call reverts the whole batch). Used when multicall3 is not
+// available: chains without a multicall3 deployment, and blocks older than the multicall3 deployment (multicall3.ts).
+// A chain whose multicall3 exists from block 1 has no entry here.
 
 export default async function makeMultiCall(
   functionABI: any,
@@ -146,6 +144,8 @@ async function executeCalls(
       try {
         result = await call(getProvider(chain), { to, data }, block, chain,);
       } catch (e) {
+        // only a revert becomes a null result, an rpc failure fails the multicall (even with permitFailure)
+        if (!isContractRevert(e)) throw e
         debugLog(e)
       }
       return result
@@ -185,12 +185,6 @@ function multicallAddress(chainId: number | BigInt) {
     case 1:
     case 10001:
       return MULTICALL_ADDRESS_MAINNET;
-    case 42:
-      return MULTICALL_ADDRESS_KOVAN;
-    case 4:
-      return MULTICALL_ADDRESS_RINKEBY;
-    case 5:
-      return MULTICALL_ADDRESS_GOERLI;
     case 137:
       return MULTICALL_ADDRESS_POLYGON;
     case 56:
@@ -299,7 +293,6 @@ function multicallAddress(chainId: number | BigInt) {
     // case 8217: // Klaytn - multicall doesnt work for some reason
     //   // https://github.com/mds1/multicall
     //   return "0xcA11bde05977b3631167028862bE2a173976CA11"
-    case 96: // bitkub chain
       return "0xcc515Aa7eE9Be4491c98DE68ee2147F0A063759D"
     case 42170: // arbitrum nova chain
       return "0x2fe78f55c39dc437c4c025f8a1ffc54edb4a34c3"
@@ -335,8 +328,6 @@ function multicallAddress(chainId: number | BigInt) {
       return "0x7a677A43eb6eEe4AB6c13872Abc04e1bA5CF88eD";
     case 1116: // core
       return "0xE5552e0318531F9Ec585c83bDc8956C08Bf74b71";
-    case 2046399126: // europa
-      return "0x918D8F3670c67f14Ff3fEB025D46B9C165d12a23";
     case 2025: // rpg
       return "0x692D7f4B08E4490d546Cb9242F082064acd8c6cd";
     case 324: // zksync era
@@ -385,10 +376,6 @@ function multicallAddress(chainId: number | BigInt) {
       return '0xa8738F57538E3Bb73872d1133F2358c7Fe56FD35';
     case 5112:  // ham
       return '0xB7c3Ea932649fBD594C881aDCb3F19415e2EA2d5';
-    case 1996:  // sanko
-      return '0xB32d192e07727A0F6f48e721791aa4e02cd292e1';
-    case 185:  // mint
-      return '0xf8ac4BEB2F75d2cFFb588c63251347fdD629B92c';
     case 42420:  // assetchain
       return '0xf8ac4BEB2F75d2cFFb588c63251347fdD629B92c';
     case 388:  // cronos_zkevm
@@ -407,9 +394,6 @@ function multicallAddress(chainId: number | BigInt) {
     case 1110: return '0x114575812CF34299cd65BD251C798608fa805433'; // grx
     case 1990: return '0xfD4014ba4dDB610A1587501378Fa52eee6C3a07B'; // qiev3
     case 38833: return '0x7B2Fa3e6CE90Ce6037395630a4C6DF45B7ef25Af'; // igra
-    case 8721: return '0x965b692662d431cc4714f4E6d1191b0B18733243'; // ebchain
-    case 7119: return '0xFd4b34b5763f54a580a0d9f7997A2A993ef9ceE9'; // sentrix
-    case 36900: return '0x73df6E8F0D112D22bD672952323b43d6893AB6D2'; // adi
     case 589: return '0x36b580266BD2B9581B805BF99D0Db92FbC9CAa56'; // lady
     case 3344: return '0x1D9589CF11D92f46addd491e9698D7719c45a18f'; // pentagonchain (v1: aggregate only, deployed block 401584)
     default:

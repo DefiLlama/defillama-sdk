@@ -6,6 +6,8 @@ import { multiCall } from "../abi/abi2";
 import { debugLog } from "../util/debugLog";
 import { runInPromisePool } from "../generalUtil";
 
+const isAddress = (target: any) => typeof target === 'string' && /^0x[0-9a-fA-F]{40}$/.test(target)
+
 export async function getBalance(params: {
   target: Address;
   block?: number;
@@ -69,25 +71,22 @@ export async function getBalances(params: {
   }
 
   if (!output) {
+    // eth_getBalance cannot fail at the contract level, so the only failure permitFailure covers is an address that
+    // is not one (balance 0, no rpc call). An rpc failure throws: reporting it as a 0 balance would be a wrong number.
     output = await runInPromisePool({
       items: params.targets,
       concurrency: 7,
-      processor: async (target: string) => ({
-        target,
-        balance: handleDecimals(
-          await getProvider(params.chain).getBalance(target, params.block),
-          params.decimals
-        ),
-      }),
-      permitFailure: params.permitFailure
+      processor: async (target: string) => {
+        if (params.permitFailure && !isAddress(target)) return { target, balance: '0' }
+        return {
+          target,
+          balance: handleDecimals(
+            await getProvider(params.chain).getBalance(target, params.block),
+            params.decimals
+          ),
+        }
+      },
     })
-
-    // If some calls failed, fill their balance with 0
-    if (params.permitFailure)
-      output.forEach((o: any, idx: number) => {
-        if (!o?.balance) output[idx] = { target: params.targets[idx], balance: '0' }
-      })
-
   }
 
   if (params.logArray)
