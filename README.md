@@ -33,6 +33,8 @@ order `LLAMA_SDK_<KEY>` → `SDK_<KEY>` → `<KEY>`), so `SDK_ETHEREUM_RPC` work
 | `<CHAIN>_RPC_MULTICALL_V3` | Address of a Multicall3 contract for the chain. Setting it enables the Multicall3 code path for that chain (even if the chain is not in the built-in registry) and uses this address. Takes precedence over the built-in registry and the deployment-block gating. |
 | `<CHAIN>_RPC_MULTICALL` | Address of a legacy (v2) multicall contract, used only when Multicall3 is not available for the chain. |
 | `<CHAIN>_MULTICALL_CHUNK_SIZE` | Max number of calls per multicall batch for the chain. |
+| `CALL_STATS_RECORD_READS` | `sdk.callStats`: set to `true` to record, per run, the distinct balances (`owner|token`) and contract reads (`contract|function`) an adapter made, written to the `adapter-reads` index (default off). |
+| `CALL_STATS_READS_MAX` | `sdk.callStats`: distinct reads kept per run; a run over it stores no lists, only `truncated: true` (default 2000). |
 | `CALL_STATS_MIN_CALLS` | `sdk.callStats`: runs with fewer http requests in total are not written to elasticsearch (default 1, ie. everything). |
 | `RPC_CALL_CACHE_REDIS` | Redis connection url (`redis[s]://[[user][:password]@]host[:port][/db]`). Setting it enables the shared rpc call cache, without it nothing is cached. |
 | `RPC_CALL_CACHE_EMPTY` | `true` to also cache empty string / null address results, for 12 hours. Off by default. |

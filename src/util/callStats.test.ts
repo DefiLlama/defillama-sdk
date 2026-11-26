@@ -1,7 +1,11 @@
 import * as http from "http"
 import axios from "axios"
-import { run, registerEndpoints, resolveChain, snapshot, buildDocs, mergeSnapshots, getCurrent, recordMethod, recordLogs, flushActive, ES_INDEX } from "./callStats"
+import { run, registerEndpoints, resolveChain, snapshot, buildDocs, mergeSnapshots, getCurrent, recordMethod, recordLogs, flushActive, recordReads, recordBalanceRead, ES_INDEX, ES_READS_INDEX } from "./callStats"
 import { getProvider } from "./LlamaProvider"
+import { ETHER_ADDRESS } from "../general"
+import * as abiIndex from "../abi"
+import * as eth from "../eth"
+import * as erc20 from "../erc20"
 import { writeLog } from "./elastic"
 
 jest.mock("./elastic", () => ({ ...jest.requireActual("./elastic"), writeLog: jest.fn(async () => { }) }))
@@ -210,5 +214,165 @@ test("mergeSnapshots sums buckets", () => {
   expect(merged).toEqual({
     total: 5, unattributed: 1, byChain: { a: 3, b: 1 }, byHost: { h: 3, g: 2 }, byMethod: { getLogs: { a: 3, b: 1 }, call: { b: 1 } },
     logs: { rpc: { a: 5, b: 2 }, indexer: { b: 3 } },
+  })
+})
+
+describe("recordReads", () => {
+  const A = '0x' + 'a'.repeat(40)
+  const B = '0x' + 'b'.repeat(40)
+  const C = '0x' + 'c'.repeat(40)
+  const MULTICALL = '0xcA11bde05977b3631167028862cBa2d173976CA11'
+  const readsOf = (fn: () => void) => run(meta, async () => { fn(); return snapshot() }, opts).then(s => s.reads)
+
+  beforeEach(() => { process.env.CALL_STATS_RECORD_READS = 'true' })
+  afterEach(() => {
+    delete process.env.CALL_STATS_RECORD_READS
+    delete process.env.CALL_STATS_READS_MAX
+  })
+
+  test("flag off: nothing is recorded and buildDocs has no readDocs", async () => {
+    delete process.env.CALL_STATS_RECORD_READS
+    const stats = await run(meta, async () => { recordReads('ethereum', 'erc20:balanceOf', [{ target: A, params: [B] }]); return snapshot() }, opts)
+    expect(stats.reads).toBeUndefined()
+    expect(buildDocs(stats, meta, { success: true }).readDocs).toBeUndefined()
+  })
+
+  test("flag on, outside any run: nothing is recorded in the global bucket", () => {
+    recordReads('ethereum', 'erc20:balanceOf', [{ target: A, params: [B] }])
+    recordBalanceRead('ethereum', A, B)
+    expect(getCurrent().reads).toBeUndefined()
+  })
+
+  test("the function name is read from every abi form", async () => {
+    const abiObject = { name: 'getReserves', type: 'function', inputs: [] }
+    const forms: [unknown, string][] = [
+      [abiObject, 'getReserves'], ['erc20:balanceOf', 'balanceOf'], ['address:token', 'token'], ['uint256:totalSupply', 'totalSupply'],
+      ['function totalSupply() view returns (uint256)', 'totalSupply'], ['totalSupply() view returns (uint256)', 'totalSupply'],
+      ['function balanceOf(address account) view returns (uint256)', 'balanceOf'], [{}, '?'], [undefined, '?'], [42, '?'], ['garbage', '?'],
+    ]
+    for (const [abi, name] of forms) {
+      const reads = await readsOf(() => recordReads('ethereum', abi, [{ target: A }]))
+      expect(reads!.calls).toEqual([`ethereum|${A}|${name}`])
+    }
+  })
+
+  test("classification: balances, native balances, plain reads, lower case, and distinctness", async () => {
+    const reads = await readsOf(() => {
+      recordReads('Ethereum', 'erc20:balanceOf', [{ target: A.toUpperCase().replace('0X', '0x'), params: [B.toUpperCase().replace('0X', '0x')] }])
+      recordReads('bsc', 'function getEthBalance(address addr) view returns (uint256)', [{ target: MULTICALL, params: B }])
+      recordReads('bsc', 'erc20:balanceOf', [{ target: A, params: 'not-an-address' }, { target: A, params: [B, C] }, { target: A }])
+      recordReads(undefined, { name: 'totalSupply' }, [{ target: A }, { target: 5 }, { target: undefined }])
+      for (let i = 0; i < 1000; i++) recordReads('ethereum', 'erc20:balanceOf', [{ target: A, params: [B] }])
+      recordBalanceRead('ETHEREUM', C, ETHER_ADDRESS)
+      recordBalanceRead('ethereum', 5, A)
+    })
+    expect(reads!.balances.sort()).toEqual([`bsc|${B}|${ETHER_ADDRESS}`, `ethereum|${B}|${A}`, `ethereum|${C}|${ETHER_ADDRESS}`].sort())
+    expect(reads!.calls.sort()).toEqual([`bsc|${A}|balanceOf`, `ethereum|${A}|totalSupply`])
+    expect(reads!.truncated).toBe(false)
+  })
+
+  test("concurrent runs keep separate sets", async () => {
+    const [a, b] = await Promise.all([
+      run({ ...meta, name: 'a' }, async () => { await axios.get(`${server.url}/a`); recordReads('ethereum', 'uint256:x', [{ target: A }]); return snapshot() }, opts),
+      run({ ...meta, name: 'b' }, async () => { recordReads('ethereum', 'uint256:y', [{ target: B }]); await axios.get(`${server.url}/b`); return snapshot() }, opts),
+    ])
+    expect(a.reads!.calls).toEqual([`ethereum|${A}|x`])
+    expect(b.reads!.calls).toEqual([`ethereum|${B}|y`])
+  })
+
+  test("the fourth distinct key passes a cap of 3: lists are dropped and later reads are ignored", async () => {
+    process.env.CALL_STATS_READS_MAX = '3'
+    const stats = await run(meta, async () => {
+      recordReads('ethereum', 'uint256:x', [{ target: A }, { target: B }, { target: A }])
+      recordBalanceRead('ethereum', A, B)
+      expect(snapshot().reads!.truncated).toBe(false)
+      recordReads('ethereum', 'uint256:x', [{ target: C }])
+      expect(snapshot().reads!.truncated).toBe(true)
+      recordBalanceRead('ethereum', B, C)
+      recordReads('ethereum', 'uint256:x', [{ target: '0x' + 'd'.repeat(40) }])
+      return snapshot()
+    }, opts)
+    expect(stats.reads).toEqual({ balances: [], calls: [], truncated: true })
+    const { readDocs } = buildDocs(stats, meta, { success: true })
+    expect(readDocs).toHaveLength(1)
+    expect(readDocs![0]).toMatchObject({ chain: '_all', balances: [], calls: [], balanceCount: 0, callCount: 0, truncated: true, readsMax: 3 })
+  })
+
+  test("buildDocs: one doc per chain, sorted lists, right counts, stable ids", () => {
+    const reads = { balances: [`bsc|${C}|${A}`, `ethereum|${B}|${A}`, `ethereum|${A}|${C}`], calls: [`ethereum|${B}|totalSupply`, `ethereum|${A}|asset`], truncated: false }
+    const stats = { total: 0, unattributed: 0, byChain: {}, byHost: {}, byMethod: {}, reads }
+    const { readDocs } = buildDocs(stats, { ...meta, runType: 'cron' }, { success: true })
+    expect(readDocs!.map(d => d.chain)).toEqual(['bsc', 'ethereum'])
+    expect(readDocs![1]).toMatchObject({
+      application: 'test', name: 'proto', runType: 'cron', chain: 'ethereum', truncated: false, balanceCount: 2, callCount: 2,
+      balances: [`${A}|${C}`, `${B}|${A}`], calls: [`${A}|asset`, `${B}|totalSupply`],
+    })
+    expect(readDocs![1]['@timestamp']).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+    expect(readDocs![0]).toMatchObject({ chain: 'bsc', balanceCount: 1, callCount: 0, calls: [] })
+    const again = buildDocs(stats, meta, { success: true }).readDocs!
+    const other = buildDocs(stats, { ...meta, name: 'other' }, { success: true }).readDocs!
+    expect(again[1]._docId).toBe(readDocs![1]._docId)
+    expect(again[1]._docId).toMatch(/^[0-9a-f]{40}$/)
+    expect(again[0]._docId).not.toBe(again[1]._docId)
+    expect(other[1]._docId).not.toBe(again[1]._docId)
+  })
+
+  test("buildDocs: no readDocs for a failed or interrupted run, readDocs kept under minCalls", () => {
+    const stats = { total: 1, unattributed: 0, byChain: {}, byHost: {}, byMethod: {}, reads: { balances: [], calls: [`ethereum|${A}|x`], truncated: false } }
+    expect(buildDocs(stats, meta, { success: false }).readDocs).toBeUndefined()
+    expect(buildDocs(stats, meta, { success: undefined }).readDocs).toBeUndefined()
+    expect(buildDocs(stats, meta, { success: true, interrupted: 'timeout' }).readDocs).toBeUndefined()
+    const docs = buildDocs(stats, meta, { success: true, minCalls: 50 })
+    expect(docs.chainDocs).toEqual([])
+    expect(docs.readDocs).toHaveLength(1)
+  })
+
+  test("snapshots survive JSON and merge as a capped union; a truncated input truncates the result", async () => {
+    const take = (fn: () => void) => run(meta, async () => { fn(); return JSON.parse(JSON.stringify(snapshot())) }, opts)
+    const s1 = await take(() => { recordReads('ethereum', 'uint256:x', [{ target: A }]); recordBalanceRead('ethereum', B, A) })
+    const s2 = await take(() => { recordReads('ethereum', 'uint256:x', [{ target: A }, { target: C }]) })
+    const older = { total: 0, unattributed: 0, byChain: {}, byHost: {}, byMethod: {} }
+    const merged = mergeSnapshots([s1, s2, older])
+    expect(merged.reads!.calls.sort()).toEqual([`ethereum|${A}|x`, `ethereum|${C}|x`])
+    expect(merged.reads!.balances).toEqual([`ethereum|${B}|${A}`])
+    expect(mergeSnapshots([older]).reads).toBeUndefined()
+
+    process.env.CALL_STATS_READS_MAX = '2'
+    expect(mergeSnapshots([s1, s2]).reads).toEqual({ balances: [], calls: [], truncated: true })
+    delete process.env.CALL_STATS_READS_MAX
+    const truncated = { ...older, reads: { balances: [], calls: [], truncated: true } }
+    expect(mergeSnapshots([s1, truncated]).reads).toEqual({ balances: [], calls: [], truncated: true })
+  })
+
+  test("through the real call sites: abi.multiCall, abi.call, eth.getBalance and erc20.balanceOf on a local rpc", async () => {
+    process.env.SKIP_RPC_CHECK = 'true'
+    process.env.FOOCHAIN4_RPC = `${server.url}/foochain4`
+    const swallow = (p: Promise<unknown>) => p.catch(() => { })
+    const stats = await run(meta, async () => {
+      await swallow(abiIndex.multiCall({ abi: 'erc20:balanceOf', chain: 'foochain4', target: A, calls: [{ params: [B] }, { params: [C] }], permitFailure: true }))
+      await swallow(abiIndex.call({ abi: 'address:asset', chain: 'foochain4', target: A }))
+      await swallow(eth.getBalance({ chain: 'foochain4', target: B }))
+      await swallow(erc20.balanceOf({ chain: 'foochain4', target: C, owner: A }))
+      return snapshot()
+    }, opts)
+    delete process.env.SKIP_RPC_CHECK
+    expect(stats.reads!.balances.sort()).toEqual([`foochain4|${A}|${C}`, `foochain4|${B}|${A}`, `foochain4|${B}|${ETHER_ADDRESS}`, `foochain4|${C}|${A}`].sort())
+    expect(stats.reads!.calls).toEqual([`foochain4|${A}|asset`])
+  })
+
+  test("report writes each read doc under its stable id with no _docId in the body, and skipElastic writes nothing", async () => {
+    writeLogMock.mockClear()
+    const body = () => { recordReads('ethereum', 'uint256:x', [{ target: A }]) }
+    await run(meta, async () => body(), { minCalls: 0, skipElastic: true })
+    expect(writeLogMock.mock.calls.filter(([index]) => index === ES_READS_INDEX)).toHaveLength(0)
+    await run(meta, async () => body(), { minCalls: 0 })
+    await run(meta, async () => body(), { minCalls: 0 })
+    await run(meta, async () => { body(); throw new Error('x') }, { minCalls: 0 }).catch(() => { })
+    const writes = writeLogMock.mock.calls.filter(([index]) => index === ES_READS_INDEX)
+    expect(writes).toHaveLength(2)
+    expect(writes[0][2]).toMatch(/^[0-9a-f]{40}$/)
+    expect(writes[0][2]).toBe(writes[1][2])
+    expect(writes[0][1]).not.toHaveProperty('_docId')
+    expect(writes[0][1]).toMatchObject({ chain: 'ethereum', calls: [`${A}|x`], callCount: 1 })
   })
 })

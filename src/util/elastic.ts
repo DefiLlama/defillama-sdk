@@ -33,7 +33,7 @@ export function getClient() {
 
 export async function writeLog(index: string, log: {
   [key: string]: any
-}) {
+}, id?: string) {
   const client = getClient()
   if (!client) return;
   index = addYearAndMonth(index)
@@ -42,7 +42,7 @@ export async function writeLog(index: string, log: {
     log.timestamp = +Date.now()
 
   try {
-    await client.index({ index, body: log })
+    await client.index({ index, body: log, ...(id ? { id } : {}) })
   } catch (error) {
     debugLog((error as Error)?.message || 'Error writing log to Elasticsearch')
   }

@@ -11,7 +11,12 @@
  *    aggregation on `chain` or `name` over any time range is exact.
  *  - `adapter-call-hosts`: one doc per (run, host) for the 25 busiest hosts of the run, same base fields
  *    plus `host` and `rpc` (true when the host is a registered rpc endpoint).
- *  Both carry `@timestamp` (ISO) so Kibana picks it up as the time field with no index template.
+ *  - `adapter-reads` (only when env CALL_STATS_RECORD_READS=true): one doc per (run, chain) listing the DISTINCT
+ *    `balances` (`owner|token`) and `calls` (`contract|function`) the run read, sorted, with their counts. Written
+ *    with a stable id (adapter + chain), so a successful run replaces the previous doc; failed or interrupted runs
+ *    write nothing. A run reading more than CALL_STATS_READS_MAX (default 2000) distinct pairs writes a single
+ *    `chain: "_all"` doc with empty lists and `truncated: true`. Reads made outside `run` are not recorded.
+ *  All carry `@timestamp` (ISO) so Kibana picks it up as the time field with no index template.
  *
  * How it works
  *  - `install()` wraps `http.request` / `http.get` / `https.request` / `https.get` and subscribes to
@@ -35,11 +40,16 @@ import diagnosticsChannel from 'diagnostics_channel'
 import { writeLog } from './elastic'
 import { debugLog, debugTable } from './debugLog'
 import { getEnvValue } from './env'
+import { ETHER_ADDRESS } from '../general'
 
 /** one doc per (run, chain) */
 export const ES_INDEX = 'adapter-calls'
 /** one doc per (run, host) */
 export const ES_HOST_INDEX = 'adapter-call-hosts'
+/** one doc per (adapter, chain), replaced by every successful run */
+export const ES_READS_INDEX = 'adapter-reads'
+/** distinct reads kept per run (env CALL_STATS_READS_MAX), over it the run stores no lists at all */
+export const DEFAULT_READS_MAX = 2000
 /** `chain` of the doc counting requests that matched no registered rpc endpoint */
 export const OTHER_CHAIN = '_other'
 /** runs with fewer http requests in total are not written at all (env CALL_STATS_MIN_CALLS) */
@@ -71,14 +81,20 @@ export type CallStats = {
   byMethod: Record<string, Record<string, number>>
   /** log rows fetched over the wire: source ('rpc' | 'indexer') -> chain -> rows, recorded by the SDK (`recordLogs`) */
   logs: Record<LogSource, Record<string, number>>
+  /** distinct reads of the run, created on first use (env CALL_STATS_RECORD_READS) */
+  reads?: Reads
   /** set once the run's docs were written (by `run` settling, or earlier by `flushActive`) */
   reported?: boolean
 }
 
+/** `chain|owner|token` and `chain|contract|function` keys; `truncated`: the cap was passed and the sets were dropped */
+export type Reads = { balances: Set<string>, calls: Set<string>, truncated: boolean }
+export type ReadsSnapshot = { balances: string[], calls: string[], truncated: boolean }
+
 export type LogSource = 'rpc' | 'indexer'
 export const INDEXER_METHOD = 'indexer'
 
-export type CallStatsSnapshot = Pick<CallStats, 'total' | 'byChain' | 'byHost' | 'unattributed' | 'byMethod'> & Partial<Pick<CallStats, 'logs'>>
+export type CallStatsSnapshot = Pick<CallStats, 'total' | 'byChain' | 'byHost' | 'unattributed' | 'byMethod'> & Partial<Pick<CallStats, 'logs'>> & { reads?: ReadsSnapshot }
 
 type EndpointEntry = { path: string, chain: string }
 
@@ -206,6 +222,84 @@ export function recordLogs(source: LogSource, chain: string = OTHER_CHAIN, count
   byChain[chain] = (byChain[chain] ?? 0) + count
 }
 
+const ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/
+
+function getReadsMax(): number {
+  const max = +(getEnvValue('CALL_STATS_READS_MAX', String(DEFAULT_READS_MAX)) as string)
+  return max >= 0 ? max : DEFAULT_READS_MAX
+}
+
+function newReads(): Reads {
+  return { balances: new Set(), calls: new Set(), truncated: false }
+}
+
+/** Add `key` unless the run is truncated; passing `max` distinct keys truncates the run and frees the sets. */
+function addRead(reads: Reads, kind: 'balances' | 'calls', key: string, max: number): void {
+  if (reads.truncated || reads[kind].has(key)) return
+  if (reads.balances.size + reads.calls.size >= max) {
+    reads.truncated = true
+    reads.balances = new Set()
+    reads.calls = new Set()
+    return
+  }
+  reads[kind].add(key)
+}
+
+/** Function name of an abi in any form the sdk accepts (object, `type:name`, signature), `?` when unreadable. */
+function abiName(abi: unknown): string {
+  if (typeof abi === 'string') {
+    const match = abi.includes('(') ? /^\s*(?:function\s+)?([\w$]+)\s*\(/.exec(abi) : /^[^:\s]+:([\w$]+)\s*$/.exec(abi)
+    return match?.[1] ?? '?'
+  }
+  const name = (abi as { name?: unknown } | null | undefined)?.name
+  return typeof name === 'string' && name ? name : '?'
+}
+
+/** The current run's reads and the cap, or undefined when recording is off, outside a run, or the run is truncated. */
+function activeReads(): { reads: Reads, max: number } | undefined {
+  if (getEnvValue('CALL_STATS_RECORD_READS') !== 'true') return
+  const stats = shared.als.getStore()
+  if (!stats) return
+  const reads = stats.reads ?? (stats.reads = newReads())
+  if (reads.truncated) return
+  return { reads, max: getReadsMax() }
+}
+
+/**
+ * Remember which contract functions and balances the current run reads (env CALL_STATS_RECORD_READS=true, only inside `run`).
+ * `balanceOf(owner)` and `getEthBalance(owner)` are balance reads, everything else a `contract|function` read. Never throws.
+ * A call carries its contract as `target`, or as `contract` (the abi multiCall's own list).
+ */
+export function recordReads(chain: string | undefined, abi: unknown, calls: { target?: unknown, contract?: unknown, params?: unknown }[]): void {
+  try {
+    const active = activeReads()
+    if (!active) return
+    const { reads, max } = active
+    const name = abiName(abi)
+    const chainKey = String(chain ?? 'ethereum').toLowerCase()
+    for (const call of calls) {
+      if (reads.truncated) return
+      const target = call.target ?? call.contract
+      if (typeof target !== 'string') continue
+      const contract = target.toLowerCase()
+      const params = Array.isArray(call.params) ? call.params : call.params === undefined ? [] : [call.params]
+      const owner = params.length === 1 && typeof params[0] === 'string' && ADDRESS_RE.test(params[0]) ? params[0].toLowerCase() : undefined
+      if (owner && name === 'balanceOf') addRead(reads, 'balances', `${chainKey}|${owner}|${contract}`, max)
+      else if (owner && name === 'getEthBalance') addRead(reads, 'balances', `${chainKey}|${owner}|${ETHER_ADDRESS}`, max)
+      else addRead(reads, 'calls', `${chainKey}|${contract}|${name}`, max)
+    }
+  } catch { /* never break the adapter */ }
+}
+
+/** Record a balance read that does not go through an abi call (native coin, ethers contract). Same rules as `recordReads`. */
+export function recordBalanceRead(chain: string | undefined, owner: unknown, token: unknown): void {
+  try {
+    if (typeof owner !== 'string' || typeof token !== 'string') return
+    const active = activeReads()
+    if (active) addRead(active.reads, 'balances', `${String(chain ?? 'ethereum').toLowerCase()}|${owner.toLowerCase()}|${token.toLowerCase()}`, active.max)
+  } catch { /* never break the adapter */ }
+}
+
 function sumValues(map: Record<string, number> | undefined): number {
   return Object.values(map ?? {}).reduce((a, b) => a + b, 0)
 }
@@ -330,16 +424,30 @@ function addNested(target: Record<string, Record<string, number>>, source: Recor
 }
 
 export function snapshot(stats: CallStats = getCurrent()): CallStatsSnapshot {
-  return {
+  const out: CallStatsSnapshot = {
     total: stats.total, byChain: { ...stats.byChain }, byHost: { ...stats.byHost }, unattributed: stats.unattributed,
     byMethod: copyNested(stats.byMethod), logs: copyNested(stats.logs) as CallStats['logs'],
   }
+  if (stats.reads) out.reads = { balances: [...stats.reads.balances], calls: [...stats.reads.calls], truncated: stats.reads.truncated }
+  return out
 }
 
 export function mergeSnapshots(snapshots: CallStatsSnapshot[]): CallStatsSnapshot {
   const out: CallStatsSnapshot = { total: 0, byChain: {}, byHost: {}, unattributed: 0, byMethod: {}, logs: { rpc: {}, indexer: {} } }
+  let reads: Reads | undefined
   for (const s of snapshots) {
     if (!s) continue
+    if (s.reads) {
+      reads = reads ?? newReads()
+      if (s.reads.truncated) {
+        reads.truncated = true
+        reads.balances = new Set()
+        reads.calls = new Set()
+      }
+      const max = getReadsMax()
+      for (const key of s.reads.balances ?? []) addRead(reads, 'balances', key, max)
+      for (const key of s.reads.calls ?? []) addRead(reads, 'calls', key, max)
+    }
     out.total += s.total ?? 0
     out.unattributed += s.unattributed ?? 0
     for (const [k, v] of Object.entries(s.byChain ?? {})) out.byChain[k] = (out.byChain[k] ?? 0) + v
@@ -347,6 +455,7 @@ export function mergeSnapshots(snapshots: CallStatsSnapshot[]): CallStatsSnapsho
     addNested(out.byMethod, s.byMethod)
     addNested(out.logs!, s.logs)
   }
+  if (reads) out.reads = { balances: [...reads.balances], calls: [...reads.calls], truncated: reads.truncated }
   return out
 }
 
@@ -461,7 +570,8 @@ function flatMeta(meta: CallStatsMeta): Record<string, string | number | boolean
   return out
 }
 
-export type CallStatsDocs = { chainDocs: any[], hostDocs: any[] }
+/** `readDocs` is only present when there is a doc for `adapter-reads` */
+export type CallStatsDocs = { chainDocs: any[], hostDocs: any[], readDocs?: any[] }
 
 /**
  * Elasticsearch documents for a run: `chainDocs` for `adapter-calls` (one per chain) and `hostDocs` for
@@ -472,7 +582,37 @@ export type ReportOptions = { success?: boolean, runtime?: number, minCalls?: nu
 
 export function buildDocs(stats: CallStatsSnapshot, meta: CallStatsMeta, { success, runtime, minCalls, interrupted }: ReportOptions = {}): CallStatsDocs {
   const rows = stats.total >= getMinCalls(minCalls) ? chainRows(stats) : []
-  if (!rows.length) return { chainDocs: [], hostDocs: [] }
+  const readDocs = success === true && !interrupted ? buildReadDocs(stats.reads, meta) : []
+  const docs: CallStatsDocs = rows.length ? buildCallDocs(stats, meta, rows, { success, runtime, interrupted }) : { chainDocs: [], hostDocs: [] }
+  if (readDocs.length) docs.readDocs = readDocs
+  return docs
+}
+
+/** `adapter-reads` docs: one per chain with reads, or one `_all` doc for a truncated run. `_docId` is the doc id the report writes it under. */
+function buildReadDocs(reads: ReadsSnapshot | undefined, meta: CallStatsMeta): any[] {
+  if (!reads) return []
+  const doc = (chain: string, balances: string[], calls: string[], extra: object) => ({
+    '@timestamp': new Date().toISOString(),
+    ...flatMeta(meta),
+    chain, balances, calls, balanceCount: balances.length, callCount: calls.length,
+    ...extra,
+    _docId: crypto.createHash('sha1').update(`${meta.application}|${meta.name}|${chain}`).digest('hex'),
+  })
+  if (reads.truncated) return [doc('_all', [], [], { truncated: true, readsMax: getReadsMax() })]
+  const byChain = new Map<string, { balances: string[], calls: string[] }>()
+  const add = (kind: 'balances' | 'calls', key: string) => {
+    const split = key.indexOf('|')
+    const chain = key.slice(0, split)
+    const entry = byChain.get(chain) ?? byChain.set(chain, { balances: [], calls: [] }).get(chain)!
+    entry[kind].push(key.slice(split + 1))
+  }
+  for (const key of reads.balances ?? []) add('balances', key)
+  for (const key of reads.calls ?? []) add('calls', key)
+  return [...byChain].sort(([a], [b]) => (a < b ? -1 : 1))
+    .map(([chain, { balances, calls }]) => doc(chain, balances.sort(), calls.sort(), { truncated: false }))
+}
+
+function buildCallDocs(stats: CallStatsSnapshot, meta: CallStatsMeta, rows: ChainRow[], { success, runtime, interrupted }: ReportOptions): CallStatsDocs {
   const base = {
     '@timestamp': new Date().toISOString(),
     ...flatMeta(meta),
@@ -493,13 +633,15 @@ export function buildDocs(stats: CallStatsSnapshot, meta: CallStatsMeta, { succe
 /** Write the docs for `stats` to elasticsearch (no-op when ELASTICSEARCH_CONFIG is unset) and print the summary in debug mode. */
 export async function report(stats: CallStats | CallStatsSnapshot, { success, runtime, minCalls, interrupted, print, skipElastic, meta }: RunOptions & ReportOptions & { meta?: CallStatsMeta } = {}): Promise<void> {
   meta = meta ?? (stats as CallStats).meta ?? { application: 'unknown', name: '-' }
-  const { chainDocs, hostDocs } = buildDocs(stats, meta, { success, runtime, minCalls, interrupted })
-  if (print) printStats(stats, meta, console.log, console.table)
-  else printStats(stats, meta, debugLog, debugTable)
+  const data = (stats as CallStats).reads?.balances instanceof Set ? snapshot(stats as CallStats) : stats as CallStatsSnapshot
+  const { chainDocs, hostDocs, readDocs = [] } = buildDocs(data, meta, { success, runtime, minCalls, interrupted })
+  if (print) printStats(data, meta, console.log, console.table)
+  else printStats(data, meta, debugLog, debugTable)
   if (skipElastic) return
   await Promise.all([
     ...chainDocs.map(doc => writeLog(ES_INDEX, doc)),
     ...hostDocs.map(doc => writeLog(ES_HOST_INDEX, doc)),
+    ...readDocs.map(({ _docId, ...doc }) => writeLog(ES_READS_INDEX, doc, _docId)),
   ])
 }
 

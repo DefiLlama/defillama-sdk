@@ -1,6 +1,7 @@
 import { Address } from "../types";
 import { ethers } from "ethers";
 import { Chain, getProvider, handleDecimals } from "../general";
+import { recordBalanceRead } from "../util/callStats";
 
 const abi = [
   "function balanceOf(address owner) view returns (uint256)",
@@ -56,6 +57,7 @@ export async function balanceOf(params: {
   decimals?: number;
   chain?: Chain;
 }) {
+  recordBalanceRead(params.chain, params.owner, params.target)
   const balance: string = await getContract(
     params.target,
     params.chain
