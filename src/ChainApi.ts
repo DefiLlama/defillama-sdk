@@ -112,14 +112,18 @@ export class ChainApi {
     }
   }
 
+  private _readAt(block?: Block | string) {
+    if (block === undefined || block === null || block === this.block) return { block: this.block, timestamp: this.timestamp }
+    return { block, timestamp: undefined }
+  }
+
   async call(params: CallOptions) {
     await this._setBlockFromTimestamp()
 
     this.addStat('call')
     return call({
       ...params,
-      block: this.block,
-      timestamp: this.timestamp,
+      ...this._readAt(params.block),
       chain: this.chain,
     })
   }
@@ -136,8 +140,7 @@ export class ChainApi {
 
     return multiCall({
       ...params,
-      block: this.block,
-      timestamp: this.timestamp,
+      ...this._readAt(params.block),
       chain: this.chain,
     })
   }
@@ -148,8 +151,7 @@ export class ChainApi {
 
     return fetchList({
       ...params,
-      block: this.block,
-      timestamp: this.timestamp,
+      ...this._readAt(params.block),
       chain: this.chain,
     })
   }
@@ -159,7 +161,7 @@ export class ChainApi {
 
     return bytecodeCall({
       ...params,
-      block: this.block,
+      block: params.block ?? this.block,
       chain: this.chain,
     })
   }
