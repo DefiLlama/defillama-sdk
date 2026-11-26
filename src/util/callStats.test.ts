@@ -262,6 +262,7 @@ describe("recordReads", () => {
       recordReads('bsc', 'function getEthBalance(address addr) view returns (uint256)', [{ target: MULTICALL, params: B }])
       recordReads('bsc', 'erc20:balanceOf', [{ target: A, params: 'not-an-address' }, { target: A, params: [B, C] }, { target: A }])
       recordReads(undefined, { name: 'totalSupply' }, [{ target: A }, { target: 5 }, { target: undefined }])
+      recordReads('ethereum', 'function tryAggregate(bool requireSuccess, tuple(address target, bytes callData)[] calls) view returns (tuple(bool success, bytes returnData)[])', [{ target: MULTICALL, params: [false, []] }])
       for (let i = 0; i < 1000; i++) recordReads('ethereum', 'erc20:balanceOf', [{ target: A, params: [B] }])
       recordBalanceRead('ETHEREUM', C, ETHER_ADDRESS)
       recordBalanceRead('ethereum', 5, A)

@@ -276,6 +276,7 @@ export function recordReads(chain: string | undefined, abi: unknown, calls: { ta
     if (!active) return
     const { reads, max } = active
     const name = abiName(abi)
+    if (name === 'tryAggregate') return // the sdk's own multicall transport, not a read of the adapter
     const chainKey = String(chain ?? 'ethereum').toLowerCase()
     for (const call of calls) {
       if (reads.truncated) return
