@@ -10,6 +10,7 @@ import { getRpcCallCacheRule, isRpcCallCacheEnabled, isRpcCallCacheRuleActive, r
 import { runInPromisePool, sliceIntoChunks, } from "../util";
 import { fixTronCallParams, formError } from "../util/common";
 import { getDefaultChunkSize } from "../util/env";
+import { recordReads } from "../util/callStats";
 
 const nullAddress = '0x0000000000000000000000000000000000000000'
 
@@ -120,6 +121,7 @@ export async function call(params: CallOptions): Promise<any> {
   fixBlockTag(params)
   const chain = params.chain ?? "ethereum";
   if (catchedABIs[params.abi]) params.abi = catchedABIs[params.abi]
+  recordReads(chain, params.abi, [{ target: params.target, params: params.params }])
   let errorParams: any = { ...params }
   let rpcCalled = false
   try {
@@ -240,6 +242,7 @@ export async function multiCall(params: MulticallOptions): Promise<any> {
     })
     params.contractCalls = contractCalls
   }
+  recordReads(chain, params.abi, contractCalls)
   if (!params.skipCache) return cachedMultiCall(params)
 
   const abi = resolveABI(params.abi);

@@ -5,6 +5,7 @@ import { getMulticallAddress, } from "../abi/multicall3";
 import { multiCall } from "../abi/abi2";
 import { debugLog } from "../util/debugLog";
 import { runInPromisePool } from "../generalUtil";
+import { recordBalanceRead } from "../util/callStats";
 
 const isAddress = (target: any) => typeof target === 'string' && /^0x[0-9a-fA-F]{40}$/.test(target)
 
@@ -17,6 +18,7 @@ export async function getBalance(params: {
 }) {
   // this is needed eth.getBalances doesnt include staked trx value
   if (params.chain === 'tron') return Tron.getBalance(params)
+  recordBalanceRead(params.chain, params.target, ETHER_ADDRESS)
   const balance = await getProvider(params.chain).getBalance(
     params.target,
     params.block
@@ -78,6 +80,7 @@ export async function getBalances(params: {
       concurrency: 7,
       processor: async (target: string) => {
         if (params.permitFailure && !isAddress(target)) return { target, balance: '0' }
+        recordBalanceRead(params.chain, target, ETHER_ADDRESS)
         return {
           target,
           balance: handleDecimals(

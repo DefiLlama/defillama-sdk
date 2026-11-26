@@ -1,11 +1,11 @@
 
 import { Address } from "../types";
-import { handleDecimals } from "../general";
+import { ETHER_ADDRESS, handleDecimals } from "../general";
 import pLimit from 'p-limit';
 import { getEnvValue } from "../util/env";
 import { evmToTronAddress, postJson, shortenString, sleepRandom, tronToEvmAddress } from "../util/common";
 import * as evmAbi from "./index";
-import { registerEndpoints } from "../util/callStats";
+import { recordBalanceRead, registerEndpoints } from "../util/callStats";
 
 const limitRPCCalls = pLimit(+getEnvValue('TRON_RPC_CONCURRENCY_LIMIT')!);
 
@@ -43,6 +43,7 @@ export async function getBalance(params: {
 }) {
 
   if (!params.target) throw new Error('getBalance: target is required')
+  recordBalanceRead('tron', params.target, ETHER_ADDRESS)
 
   const data = await limitRPCCalls(() => {
     if (!balanceCache[params.target])
